@@ -1,29 +1,24 @@
 # Radio X to Spotify Playlist Adder
-# Version using WebSocket API for "Now Playing" - Cleaned Output & Bolded Additions
+# Version using WebSocket API for "Now Playing"
 # SETTINGS ARE HARDCODED IN THIS VERSION
-# Updated check intervals.
-# Structural changes for Gunicorn deployment on Render.
-# Added Spotify API call resilience with retries.
+# Includes duplicate checking, updated intervals, and Flask wrapper.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry # For retry strategy
 import time
 import os
 import json 
 import logging
 import websocket # Requires: pip install websocket-client
-import threading # For running the main logic in the background
-from flask import Flask # For the web service part
+import threading 
+from flask import Flask 
 
 # --- Flask App Setup ---
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    # This is a simple endpoint for Render's health checks and uptime pingers
     return "RadioX to Spotify script is running in the background. Status: OK"
 
 # --- Configuration (HARDCODED) ---
@@ -34,7 +29,7 @@ SPOTIFY_PLAYLIST_ID = "5i13fDRDoW0gu60f74cysp"
 RADIOX_STATION_SLUG = "radiox" 
 
 CHECK_INTERVAL = 120  # Check every 120 seconds for new songs
-DUPLICATE_CHECK_INTERVAL = 30 * 60 # Check for duplicates every 30 minutes
+DUPLICATE_CHECK_INTERVAL = 30 * 60 # Check for duplicates every 30 minutes (1800 seconds)
 
 BOLD = '\033[1m'
 RESET = '\033[0m'
@@ -82,26 +77,15 @@ try:
                                 redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, 
                                 cache_path=SPOTIPY_CACHE_FILENAME) 
     token_info = auth_manager.get_cached_token()
-    if not token_info and not cache_written:
-        logging.warning("No cached Spotify token and no cache from ENV. On a server, this will likely prevent Spotify features from working as interactive auth is not possible.")
+    if not token_info and not cache_written: # Only attempt web auth if no cache was provided via ENV
+        logging.info("No cached Spotify token and no cache from ENV, attempting to get new token (will fail on server without browser).")
+        # On a server, this interactive step will fail. The SPOTIPY_CACHE_BASE64 must be valid.
+        # token_info = auth_manager.get_access_token(as_dict=False) # This line would trigger browser flow
+        logging.warning("On server, SPOTIPY_CACHE_BASE64 ENV var must provide a valid token for auth if cache file is missing.")
 
-    if token_info:
-        # --- Create a requests session with retry logic ---
-        http_session = requests.Session()
-        retry_strategy = Retry(
-            total=3,                # Total number of retries
-            backoff_factor=1,       # Wait 1s, 2s, 4s (approx) between retries
-            status_forcelist=[429, 500, 502, 503, 504], # HTTP status codes to retry on
-            allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT", "DELETE"] 
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        http_session.mount("https://", adapter)
-        http_session.mount("http://", adapter)
-        logging.info("Requests session with retry strategy configured for Spotify.")
-        # --- End of retry session setup ---
 
-        sp = spotipy.Spotify(auth_manager=auth_manager, requests_session=http_session, requests_timeout=15)
-        
+    if token_info: # This will be true if cache was written and valid, or if local auth flow worked
+        sp = spotipy.Spotify(auth_manager=auth_manager)
         user = sp.current_user() 
         if user:
             logging.info(f"Successfully authenticated with Spotify as {user['display_name']} ({user['id']})")
@@ -224,7 +208,7 @@ def search_song_on_spotify(title, artist):
             return track["id"]
         else:
             logging.info(f"Song '{title}' by '{artist}' not found on Spotify.")
-    except Exception as e: # Includes requests.exceptions.RequestException if retry fails
+    except Exception as e:
         logging.error(f"Error searching Spotify for '{title}' by '{artist}': {e}")
     return None
 
@@ -249,7 +233,7 @@ def add_song_to_playlist(track_id, playlist_id_to_use):
         else:
             logging.error(f"Error adding to Spotify playlist {playlist_id_to_use}: {e}")
         return False
-    except Exception as e: # Includes requests.exceptions.RequestException if retry fails
+    except Exception as e:
         logging.error(f"Unexpected error adding to playlist {playlist_id_to_use}: {e}")
         return False
 
@@ -267,17 +251,16 @@ def check_and_remove_duplicates(playlist_id):
             results = sp.playlist_items(playlist_id, limit=limit, offset=offset, fields="items(track(id,uri,name)),next")
             if not results or not results['items']:
                 break
-            for item in results['items']:
+            for item_idx, item in enumerate(results['items']): 
                 if item['track'] and item['track']['id'] and item['track']['uri']:
                     all_playlist_items_with_indices.append({
                         'uri': item['track']['uri'], 
                         'id': item['track']['id'],
                         'name': item['track'].get('name', 'Unknown Track'),
-                        'original_index': current_absolute_index
+                        'original_index': offset + item_idx 
                     })
-                current_absolute_index += 1
             if results['next']:
-                offset += limit
+                offset += len(results['items']) 
             else:
                 break
         logging.info(f"Fetched {len(all_playlist_items_with_indices)} tracks from playlist {playlist_id} for duplicate check.")
@@ -289,34 +272,39 @@ def check_and_remove_duplicates(playlist_id):
             track_occurrences[track_id].append(track_item['original_index'])
         items_to_remove_payload = [] 
         for track_id, indices in track_occurrences.items():
-            if len(indices) > 1:
+            if len(indices) > 1: 
                 indices.sort() 
-                indices_to_remove = indices[1:] 
+                indices_to_remove_for_this_track = indices[1:] 
                 track_uri = None
                 track_name_for_log = "Unknown Track"
-                for item in all_playlist_items_with_indices:
+                for item in all_playlist_items_with_indices: 
                     if item['id'] == track_id:
                         track_uri = item['uri']
                         track_name_for_log = item['name']
                         break
-                if track_uri and indices_to_remove:
-                    logging.info(f"Marking duplicate for '{BOLD}{track_name_for_log}{RESET}' (URI: {track_uri}) for removal at original indices: {indices_to_remove}")
-                    items_to_remove_payload.append({"uri": track_uri, "positions": indices_to_remove})
+                if track_uri and indices_to_remove_for_this_track:
+                    logging.info(f"Marking duplicate occurrences of '{BOLD}{track_name_for_log}{RESET}' (URI: {track_uri}) for removal at original playlist indices: {indices_to_remove_for_this_track}")
+                    items_to_remove_payload.append({"uri": track_uri, "positions": indices_to_remove_for_this_track})
         if items_to_remove_payload:
-            total_duplicates_to_remove = sum(len(item['positions']) for item in items_to_remove_payload)
-            logging.info(f"Attempting to remove {total_duplicates_to_remove} duplicate track occurrences.")
+            total_duplicate_occurrences = sum(len(item['positions']) for item in items_to_remove_payload)
+            logging.info(f"Attempting to remove {total_duplicate_occurrences} duplicate track occurrences from the playlist.")
             for i in range(0, len(items_to_remove_payload), 100):
                 batch = items_to_remove_payload[i:i + 100]
                 try:
                     sp.playlist_remove_specific_occurrences_of_items(playlist_id, batch)
-                    logging.info(f"Successfully sent request to remove a batch of duplicates.")
+                    logging.info(f"Successfully sent request to Spotify to remove a batch of duplicate items.")
                     for removed_item_detail in batch:
-                        logging.info(f"  - Requested removal for {BOLD}{removed_item_detail['uri'].split(':')[-1]}{RESET} at original indices {removed_item_detail['positions']}")
+                        track_name_for_log = "Unknown Track" 
+                        for item in all_playlist_items_with_indices:
+                            if item['uri'] == removed_item_detail['uri']:
+                                track_name_for_log = item['name']
+                                break
+                        logging.info(f"  - Requested removal of '{BOLD}{track_name_for_log}{RESET}' (URI: {removed_item_detail['uri']}) at original indices {removed_item_detail['positions']}")
                 except Exception as e_remove:
                     logging.error(f"Error removing batch of duplicates: {e_remove}")
         else:
             logging.info("No duplicates found in the playlist needing removal.")
-    except Exception as e: # Includes requests.exceptions.RequestException if retry fails
+    except Exception as e:
         logging.error(f"Error during duplicate check for playlist {playlist_id}: {e}", exc_info=True)
 
 def run_radio_monitor():
@@ -389,8 +377,8 @@ def run_radio_monitor():
         logging.info(f"Waiting for {CHECK_INTERVAL} seconds before next check...")
         time.sleep(CHECK_INTERVAL)
 
-# --- Function to start the background monitoring (called when script is imported by Gunicorn) ---
 def start_monitoring_thread():
+    # Check if thread has already been started (simple flag)
     if not hasattr(start_monitoring_thread, "thread_started") or not start_monitoring_thread.thread_started:
         logging.info("Preparing to start monitor_thread from start_monitoring_thread function.")
         print("DEBUG: Preparing to start monitor_thread from start_monitoring_thread function.")
@@ -400,19 +388,23 @@ def start_monitoring_thread():
         logging.info("Monitor thread started via start_monitoring_thread function.")
         print("DEBUG: Monitor thread started via start_monitoring_thread function.")
     else:
-        logging.info("Monitor thread already started or attempted.")
-        print("DEBUG: Monitor thread already started or attempted.")
+        logging.info("Monitor thread already started or attempt was made.")
+        print("DEBUG: Monitor thread already started or attempt was made.")
 
-# --- Script Execution Control ---
+# This block will run when Gunicorn imports the file to find 'app'
+# It initializes Spotify auth and starts the background thread if auth is successful.
 if sp: 
     start_monitoring_thread()
 else:
     logging.error("Spotify authentication failed (sp is None) during initial script load. Background monitor thread will NOT be started automatically by Gunicorn import.")
     print("ERROR: Spotify authentication failed during initial script load. Background monitor thread will NOT be started.")
 
+# The following is for running the script directly with `python radiox_spotify.py` for local testing
 if __name__ == "__main__":
     logging.info("Script being run directly (e.g., local testing).")
     print("DEBUG: In __main__ block (local execution).")
+    # For local testing, the thread is already started by the logic above if Spotify auth succeeded.
+    # We just need to run the Flask development server.
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on port {port}.")
     print(f"DEBUG: Starting Flask app locally on 0.0.0.0:{port}") 
