@@ -1,7 +1,8 @@
 # Radio X to Spotify Playlist Adder
-# Version using WebSocket API - Adapted for Web Service Hosting (e.g., Render)
-# SETTINGS ARE HARDCODED. INCLUDES DUPLICATE CHECKING.
+# Version using WebSocket API for "Now Playing" - Cleaned Output & Bolded Additions
+# SETTINGS ARE HARDCODED IN THIS VERSION
 # Updated check intervals.
+# Added detailed thread startup logging.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -25,7 +26,7 @@ def home():
 # --- Configuration (HARDCODED) ---
 SPOTIPY_CLIENT_ID = "89c7e2957a7e465a8eeb9d2476a82a2d"
 SPOTIPY_CLIENT_SECRET = "f8dc109892b9464ab44fba3b2502a7eb"
-SPOTIPY_REDIRECT_URI = "http://127.0.0.1:8888/callback" # This will be handled by local auth first
+SPOTIPY_REDIRECT_URI = "http://127.0.0.1:8888/callback" 
 SPOTIFY_PLAYLIST_ID = "5i13fDRDoW0gu60f74cysp" 
 RADIOX_STATION_SLUG = "radiox" 
 
@@ -39,9 +40,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 if not all([SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, SPOTIPY_REDIRECT_URI, SPOTIFY_PLAYLIST_ID, RADIOX_STATION_SLUG]):
     logging.critical("CRITICAL ERROR: Hardcoded configuration values are missing.")
-    # In a web service, print might go to logs Render can see
     print("CRITICAL ERROR: Hardcoded configuration values are missing in the script.") 
-    # exit() might not be ideal here, but the script won't function
 else:
     logging.info("Successfully using hardcoded configuration.")
 
@@ -53,8 +52,7 @@ sp = None
 herald_id_cache = {} 
 last_duplicate_check_time = 0
 
-# --- Spotify Authentication Cache Handling ---
-SPOTIPY_CACHE_CONTENTS_ENV_VAR = "SPOTIPY_CACHE_BASE64" # Name of environment variable on Render
+SPOTIPY_CACHE_CONTENTS_ENV_VAR = "SPOTIPY_CACHE_BASE64"
 SPOTIPY_CACHE_FILENAME = ".spotipy_cache"
 
 def write_spotipy_cache():
@@ -66,51 +64,40 @@ def write_spotipy_cache():
             with open(SPOTIPY_CACHE_FILENAME, 'w') as f:
                 f.write(cache_content_json)
             logging.info(f"Successfully wrote decoded Spotify cache to {SPOTIPY_CACHE_FILENAME}")
+            return True
         except Exception as e:
             logging.error(f"Error decoding/writing Spotify cache from environment variable: {e}")
+            return False
     else:
-        logging.info(f"{SPOTIPY_CACHE_CONTENTS_ENV_VAR} not set. Local auth flow may be needed or might fail on server.")
-
+        logging.info(f"{SPOTIPY_CACHE_CONTENTS_ENV_VAR} not set. Local auth flow would be needed if no cache file exists.")
+        return False
 
 scope = "playlist-modify-public playlist-modify-private user-library-read"
 try:
-    write_spotipy_cache() # Attempt to write cache from env var before initializing SpotifyOAuth
-
+    cache_written = write_spotipy_cache()
     auth_manager = SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET,
                                 redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, 
-                                cache_path=SPOTIPY_CACHE_FILENAME) # Use the defined filename
-
+                                cache_path=SPOTIPY_CACHE_FILENAME) 
     token_info = auth_manager.get_cached_token()
-    if not token_info:
-        # THIS PART IS PROBLEMATIC ON A SERVER WITHOUT A BROWSER
-        # You MUST pre-authenticate locally and provide the cache via environment variable
-        logging.warning("No cached Spotify token found or generated. Script will likely fail to get new token on server.")
-        logging.warning("Ensure SPOTIPY_CACHE_BASE64 env var is set correctly on Render from a local .spotipy_cache file.")
-        # Attempting to get a token here on a server without a browser will fail the OAuth flow.
-        # For robust server deployment, the cache MUST be pre-generated and provided.
-        # We will proceed, but Spotify calls will fail if no valid token.
-        # token_info = auth_manager.get_access_token(as_dict=False) # This would initiate browser flow
-
-    if token_info: # This will be true if cache was written and valid, or if local flow (not on server) worked
+    if not token_info and not cache_written:
+        logging.warning("No cached Spotify token and no cache from ENV. On a server, this will likely prevent Spotify features from working as interactive auth is not possible.")
+    if token_info:
         sp = spotipy.Spotify(auth_manager=auth_manager)
-        user = sp.current_user()
+        user = sp.current_user() 
         if user:
             logging.info(f"Successfully authenticated with Spotify as {user['display_name']} ({user['id']})")
         else:
-            logging.error("Could not get current Spotify user details. Token might be invalid or cache setup failed.")
-            # Not exiting here, to allow Flask to run, but Spotify features will fail.
+            sp = None 
+            logging.error("Could not get current Spotify user details even with a token. Token might be invalid/expired or cache is stale.")
+            print("ERROR: Could not get current Spotify user details from token.")
     else:
-        logging.error("Failed to obtain Spotify token (no cache and no interactive auth possible on server). Ensure SPOTIPY_CACHE_BASE64 is correctly set.")
-        # Not exiting here, to allow Flask to run, but Spotify features will fail.
-
+        sp = None 
+        logging.error("Failed to obtain Spotify token (no valid cache and no interactive auth possible on server).")
+        print("ERROR: Failed to obtain Spotify token. Ensure SPOTIPY_CACHE_BASE64 is correctly set with fresh cache data.")
 except Exception as e:
-    logging.critical(f"CRITICAL Spotify Authentication Setup Error: {e}", exc_info=True)
-    # Not exiting here, to allow Flask to run, but Spotify features will fail.
-
-
-# --- Functions (get_station_herald_id, get_current_radiox_song, search_song_on_spotify, add_song_to_playlist, check_and_remove_duplicates) ---
-# (Paste the full definitions of these 5 functions from the previous script here)
-# Ensure they are indented correctly under this comment block, but NOT inside another function.
+    sp = None 
+    logging.critical(f"CRITICAL Error during Spotify Authentication Setup: {e}", exc_info=True)
+    print(f"CRITICAL Error during Spotify Authentication Setup: {e}")
 
 def get_station_herald_id(station_slug_to_find):
     if station_slug_to_find in herald_id_cache:
@@ -208,7 +195,7 @@ def get_current_radiox_song(station_herald_id):
     return None
 
 def search_song_on_spotify(title, artist):
-    if not sp: logging.error("Spotify not initialized."); return None
+    if not sp: logging.error("Spotify not initialized for search."); return None
     query = f"track:{title} artist:{artist}"
     try:
         results = sp.search(q=query, type="track", limit=1)
@@ -224,8 +211,8 @@ def search_song_on_spotify(title, artist):
 
 def add_song_to_playlist(track_id, playlist_id_to_use):
     global RECENTLY_ADDED_SPOTIFY_TRACK_IDS
-    if not sp: logging.error("Spotify not initialized."); return False
-    if not track_id or not playlist_id_to_use: logging.error("Missing track/playlist ID."); return False
+    if not sp: logging.error("Spotify not initialized for adding to playlist."); return False
+    if not track_id or not playlist_id_to_use: logging.error("Missing track/playlist ID for adding song."); return False
     if track_id in RECENTLY_ADDED_SPOTIFY_TRACK_IDS:
         logging.info(f"Track ID {track_id} recently added. Skipping.")
         return False
@@ -313,15 +300,16 @@ def check_and_remove_duplicates(playlist_id):
     except Exception as e:
         logging.error(f"Error during duplicate check for playlist {playlist_id}: {e}", exc_info=True)
 
-# --- Main Application Logic (to be run in a thread) ---
 def run_radio_monitor():
+    print("DEBUG: run_radio_monitor thread function initiated.") 
+    logging.info("--- run_radio_monitor thread function initiated. ---") 
     global last_added_radiox_track_id, last_duplicate_check_time
-
-    if not sp: # Check if Spotify auth failed earlier
-        logging.error("Spotify not authenticated. Radio monitor thread will not start.")
-        return
-
-    logging.info("Radio monitor thread started.")
+    
+    if not sp: 
+        print("DEBUG: Spotify object 'sp' is None in run_radio_monitor. Thread cannot perform Spotify actions.") 
+        logging.error("Spotify not authenticated or 'sp' object not available to thread. Radio monitor thread will not execute its main work effectively.")
+    
+    logging.info(f"Radio monitor thread started. Spotify object 'sp' is {'INITIALIZED' if sp else 'NONE'}.")
     logging.info(f"Target Spotify Playlist ID: {SPOTIFY_PLAYLIST_ID}") 
     logging.info(f"Monitoring Station Slug: {RADIOX_STATION_SLUG}")
     logging.info(f"Check interval for new songs: {CHECK_INTERVAL} seconds.")
@@ -339,6 +327,11 @@ def run_radio_monitor():
                     logging.error(f"Could not get Herald ID for {RADIOX_STATION_SLUG}. Retrying in {CHECK_INTERVAL}s.")
                     time.sleep(CHECK_INTERVAL)
                     continue
+            
+            if not sp: 
+                logging.warning("Spotify object 'sp' is None. Skipping Radio X and Spotify operations in this cycle.")
+                time.sleep(CHECK_INTERVAL)
+                continue
 
             current_song_info = get_current_radiox_song(current_station_herald_id)
 
@@ -359,11 +352,14 @@ def run_radio_monitor():
                     last_added_radiox_track_id = radiox_song_identifier 
             else:
                 logging.info("No new track information from Radio X this cycle.")
-
+            
             current_time = time.time()
             if current_time - last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
                 logging.info("--- Starting periodic duplicate check ---")
-                check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID)
+                if sp: 
+                    check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID)
+                else:
+                    logging.warning("Spotify not initialized. Skipping duplicate check.")
                 last_duplicate_check_time = current_time
                 logging.info("--- Finished periodic duplicate check ---")
 
@@ -374,16 +370,16 @@ def run_radio_monitor():
         logging.info(f"Waiting for {CHECK_INTERVAL} seconds before next check...")
         time.sleep(CHECK_INTERVAL)
 
-# --- Script Entry Point for Web Service ---
 if __name__ == "__main__":
-    logging.info("Script starting as a web service or standalone.")
+    logging.info("Script execution point: __main__ (preparing to start Flask and background thread)")
+    print("DEBUG: In __main__, preparing to start monitor_thread.") 
 
-    # Start the radio monitoring in a background thread
     monitor_thread = threading.Thread(target=run_radio_monitor, daemon=True)
+    print("DEBUG: monitor_thread object created.") 
     monitor_thread.start()
-
-    # Run the Flask app
-    # Render will set the PORT environment variable. For local testing, it might default to 5000 or another port.
+    print("DEBUG: monitor_thread.start() called.") 
+    
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask web server on port {port} to keep service alive.")
+    print(f"DEBUG: Starting Flask app on 0.0.0.0:{port}") 
     app.run(host='0.0.0.0', port=port)
