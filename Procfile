@@ -1,0 +1,1 @@
+web: gunicorn radiox_spotify:app --log-file -
