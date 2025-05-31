@@ -1,7 +1,8 @@
 # Radio X to Spotify Playlist Adder
 # Version using WebSocket API for "Now Playing"
 # SETTINGS ARE HARDCODED IN THIS VERSION
-# Includes duplicate checking (remove all & re-add strategy), updated intervals, and Flask wrapper.
+# Includes duplicate checking, updated intervals, and Flask wrapper.
+# Improved Spotify search by cleaning titles.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -10,6 +11,7 @@ import time
 import os
 import json 
 import logging
+import re # For cleaning song titles
 import websocket # Requires: pip install websocket-client
 import threading 
 from flask import Flask 
@@ -186,19 +188,45 @@ def get_current_radiox_song(station_herald_id):
             except Exception: pass
     return None
 
-def search_song_on_spotify(title, artist):
-    if not sp: logging.error("Spotify not initialized for search."); return None
-    query = f"track:{title} artist:{artist}"
+def search_song_on_spotify(original_title, artist):
+    if not sp: 
+        logging.error("Spotify not initialized for search.")
+        return None
+    
+    # First attempt: Search with the original title
+    logging.debug(f"Spotify search attempt 1: Title='{original_title}', Artist='{artist}'")
+    query = f"track:{original_title} artist:{artist}"
     try:
         results = sp.search(q=query, type="track", limit=1)
         if results and results["tracks"]["items"]:
             track = results["tracks"]["items"][0]
-            logging.info(f"Found on Spotify: '{track['name']}' by {', '.join(a['name'] for a in track['artists'])} (ID: {track['id']})")
+            logging.info(f"Found on Spotify (attempt 1): '{track['name']}' by {', '.join(a['name'] for a in track['artists'])} (ID: {track['id']})")
             return track["id"]
-        else:
-            logging.info(f"Song '{title}' by '{artist}' not found on Spotify.")
     except Exception as e:
-        logging.error(f"Error searching Spotify for '{title}' by '{artist}': {e}")
+        logging.error(f"Error during Spotify search attempt 1 for '{original_title}' by '{artist}': {e}")
+
+    logging.info(f"Song '{original_title}' by '{artist}' not found on Spotify with original title. Attempting to clean title.")
+
+    # Second attempt: Clean the title by removing content in parentheses and try again
+    cleaned_title = re.sub(r'\s*\(.*?\)\s*', ' ', original_title) # Replace with space to avoid merging words
+    cleaned_title = re.sub(r'\s+', ' ', cleaned_title).strip() # Normalize multiple spaces and strip
+
+    if cleaned_title and cleaned_title.lower() != original_title.lower(): # Check if title actually changed and is not empty
+        logging.info(f"Spotify search attempt 2: Cleaned Title='{cleaned_title}', Artist='{artist}'")
+        query_cleaned = f"track:{cleaned_title} artist:{artist}"
+        try:
+            results_cleaned = sp.search(q=query_cleaned, type="track", limit=1)
+            if results_cleaned and results_cleaned["tracks"]["items"]:
+                track_cleaned = results_cleaned["tracks"]["items"][0]
+                logging.info(f"Found on Spotify (attempt 2 with cleaned title): '{track_cleaned['name']}' by {', '.join(a['name'] for a in track_cleaned['artists'])} (ID: {track_cleaned['id']})")
+                return track_cleaned["id"]
+            else:
+                logging.info(f"Song '{cleaned_title}' by '{artist}' (cleaned from '{original_title}') still not found on Spotify.")
+        except Exception as e:
+            logging.error(f"Error during Spotify search attempt 2 for '{cleaned_title}' by '{artist}': {e}")
+    else:
+        logging.info(f"No significant change to title after cleaning or title became empty. Original search for '{original_title}' was the main attempt.")
+        
     return None
 
 def add_song_to_playlist(track_id, playlist_id_to_use):
@@ -283,14 +311,13 @@ def check_and_remove_duplicates(playlist_id):
                     sp.playlist_add_items(playlist_id, [track_uri_to_process])
                     logging.info(f"  DUPLICATE_CLEANUP: Successfully re-added '{BOLD}{track_name_to_process}{RESET}' to the end of the playlist.")
                     
-                    # Add to RECENTLY_ADDED_SPOTIFY_TRACK_IDS to prevent immediate re-addition by main song loop
-                    if track_id: # track_id is the Spotify ID here
+                    if track_id:
                          RECENTLY_ADDED_SPOTIFY_TRACK_IDS.add(track_id)
                          if len(RECENTLY_ADDED_SPOTIFY_TRACK_IDS) > MAX_RECENT_TRACKS:
                             try: RECENTLY_ADDED_SPOTIFY_TRACK_IDS.pop()
                             except KeyError: pass
                     
-                    time.sleep(1) # Small delay between processing each duplicated song URI
+                    time.sleep(1) 
                 except Exception as e_readd:
                     logging.error(f"DUPLICATE_CLEANUP: Error processing URI {track_uri_to_process} ('{track_name_to_process}'): {e_readd}")
         
@@ -349,10 +376,10 @@ def run_radio_monitor():
                 elif radiox_song_identifier == last_added_radiox_track_id:
                     logging.info(f"Song '{title}' by '{artist}' (ID: {radiox_song_identifier}) is same as last. Skipping song processing.")
                 else:
-                    spotify_track_id = search_song_on_spotify(title, artist)
+                    spotify_track_id = search_song_on_spotify(title, artist) # title is original_title here
                     if spotify_track_id:
                         if spotify_track_id in RECENTLY_ADDED_SPOTIFY_TRACK_IDS and radiox_song_identifier != last_added_radiox_track_id:
-                             logging.info(f"Song '{title}' by '{artist}' (Spotify ID: {spotify_track_id}) was recently processed (possibly by duplicate cleanup). Skipping add attempt by main loop.")
+                             logging.info(f"Song '{title}' by '{artist}' (Spotify ID: {spotify_track_id}) was recently processed. Skipping add attempt by main loop.")
                         elif add_song_to_playlist(spotify_track_id, SPOTIFY_PLAYLIST_ID): 
                             logging.info(f"SUCCESS: Added '{BOLD}{title}{RESET}' by '{BOLD}{artist}{RESET}' to the playlist (ID: {spotify_track_id}).")
                     last_added_radiox_track_id = radiox_song_identifier 
