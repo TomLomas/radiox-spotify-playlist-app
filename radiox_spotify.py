@@ -2,8 +2,7 @@
 # Version using WebSocket API for "Now Playing" - Cleaned Output & Bolded Additions
 # SETTINGS ARE HARDCODED IN THIS VERSION
 # Updated check intervals.
-# Revised duplicate removal to be more conservative (removes one latest duplicate per track per cycle).
-# Structural changes for Gunicorn deployment on Render.
+# Ultra-detailed logging in duplicate removal function.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -36,6 +35,7 @@ DUPLICATE_CHECK_INTERVAL = 30 * 60
 BOLD = '\033[1m'
 RESET = '\033[0m'
 
+# Set main logging level to INFO. Specific debug logs will be used for duplicate check.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 if not all([SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, SPOTIPY_REDIRECT_URI, SPOTIFY_PLAYLIST_ID, RADIOX_STATION_SLUG]):
@@ -233,17 +233,24 @@ def check_and_remove_duplicates(playlist_id):
         logging.error("Spotify not initialized. Cannot check for duplicates.")
         return
     
-    logging.info(f"Checking for duplicates in playlist: {playlist_id}")
+    logging.info(f"Starting duplicate check for playlist: {playlist_id}")
     
     tracks_with_original_indices = []
     offset = 0
     limit = 50 
     
     try:
+        logging.debug("DUPLICATE_CHECK: Fetching all tracks from playlist...")
+        page_num = 0
         while True:
+            page_num += 1
+            logging.debug(f"DUPLICATE_CHECK: Fetching page {page_num} (offset: {offset}, limit: {limit})")
             results = sp.playlist_items(playlist_id, limit=limit, offset=offset, fields="items(track(id,uri,name)),next")
             if not results or not results['items']:
+                logging.debug(f"DUPLICATE_CHECK: No more items on page {page_num}.")
                 break
+            
+            logging.debug(f"DUPLICATE_CHECK: Fetched {len(results['items'])} items on page {page_num}.")
             for item_idx, item in enumerate(results['items']): 
                 if item['track'] and item['track']['id'] and item['track']['uri']:
                     tracks_with_original_indices.append({
@@ -258,57 +265,72 @@ def check_and_remove_duplicates(playlist_id):
             else:
                 break
         
-        logging.info(f"Fetched {len(tracks_with_original_indices)} tracks from playlist {playlist_id} for duplicate check.")
+        logging.info(f"DUPLICATE_CHECK: Fetched {len(tracks_with_original_indices)} total tracks from playlist {playlist_id} for analysis.")
+        if not tracks_with_original_indices:
+            logging.info("DUPLICATE_CHECK: Playlist is empty or no tracks fetched. No duplicates to check.")
+            return
 
         track_occurrences = {} 
         for track_item in tracks_with_original_indices:
             track_id = track_item['id']
             if track_id not in track_occurrences:
                 track_occurrences[track_id] = []
-            track_occurrences[track_id].append(track_item['original_index'])
+            track_occurrences[track_id].append(track_item) 
 
         items_to_remove_payload = [] 
-        for track_id, indices in track_occurrences.items():
-            if len(indices) > 1: 
-                indices.sort() 
-                # MODIFIED LOGIC: Remove only the single latest occurrence (highest index) in this pass
-                index_to_remove_this_pass = [indices[-1]] # Get the original index of the very last occurrence
+        for track_id, occurrences_list in track_occurrences.items():
+            logging.debug(f"DUPLICATE_CHECK: Analyzing track_id: {track_id} (Name: {occurrences_list[0]['name'] if occurrences_list else 'N/A'})")
+            if len(occurrences_list) > 1: 
+                occurrences_list.sort(key=lambda x: x['original_index']) 
                 
-                track_uri = None
-                track_name_for_log = "Unknown Track"
-                for item in tracks_with_original_indices: 
-                    if item['id'] == track_id:
-                        track_uri = item['uri']
-                        track_name_for_log = item['name']
-                        break
+                item_to_keep = occurrences_list[0]
+                items_marked_for_removal_this_track = occurrences_list[1:]
                 
-                if track_uri:
-                    logging.info(f"Marking latest duplicate of '{BOLD}{track_name_for_log}{RESET}' for removal at original index: {index_to_remove_this_pass[0]}")
-                    items_to_remove_payload.append({"uri": track_uri, "positions": index_to_remove_this_pass})
+                track_name_for_log = item_to_keep['name']
+                all_found_indices = [occ['original_index'] for occ in occurrences_list]
+                logging.info(f"DUPLICATE_CHECK: Found duplicates for track: '{BOLD}{track_name_for_log}{RESET}' (ID: {track_id})")
+                logging.info(f"DUPLICATE_CHECK:   All original indices found: {all_found_indices}")
+                logging.info(f"DUPLICATE_CHECK:   Keeping instance: Name='{item_to_keep['name']}', Original Index={item_to_keep['original_index']}, URI={item_to_keep['uri']}")
+                
+                if items_marked_for_removal_this_track:
+                    # Conservative: target only the single latest occurrence for removal in this pass
+                    item_to_remove_this_cycle = items_marked_for_removal_this_track[-1] 
+                    indices_to_remove_this_pass = [item_to_remove_this_cycle['original_index']]
+                    track_uri_to_remove = item_to_remove_this_cycle['uri']
+                    
+                    logging.info(f"DUPLICATE_CHECK:   Targeting for REMOVAL THIS CYCLE: Name='{item_to_remove_this_cycle['name']}', Original Index={indices_to_remove_this_pass[0]}, URI={track_uri_to_remove}")
+                    items_to_remove_payload.append({"uri": track_uri_to_remove, "positions": indices_to_remove_this_pass})
+                else:
+                    logging.debug(f"DUPLICATE_CHECK:   No further duplicate instances of '{track_name_for_log}' to remove in this cycle beyond the one kept.")
         
         if items_to_remove_payload:
-            total_duplicate_occurrences_to_remove = len(items_to_remove_payload) # Each item now removes one occurrence
-            logging.info(f"Attempting to remove {total_duplicate_occurrences_to_remove} latest duplicate track occurrences from the playlist (one per duplicated song title).")
+            num_distinct_songs_with_duplicates_targeted = len(items_to_remove_payload)
+            logging.info(f"DUPLICATE_CHECK: Attempting to remove {num_distinct_songs_with_duplicates_targeted} latest duplicate track occurrence(s).")
             
             for i in range(0, len(items_to_remove_payload), 100): 
                 batch = items_to_remove_payload[i:i + 100]
+                logging.info(f"DUPLICATE_CHECK: SENDING REMOVAL BATCH TO SPOTIFY: {json.dumps(batch, indent=2)}")
                 try:
                     sp.playlist_remove_specific_occurrences_of_items(playlist_id, batch)
-                    logging.info(f"Successfully sent request to Spotify to remove a batch of {len(batch)} duplicate items.")
+                    logging.info(f"DUPLICATE_CHECK: Successfully sent request to Spotify to remove a batch of {len(batch)} duplicate items.")
                     for removed_item_detail in batch:
-                        current_track_name = "Unknown Track"
-                        for track_item in tracks_with_original_indices:
-                            if track_item['uri'] == removed_item_detail['uri']:
-                                current_track_name = track_item['name']
+                        track_name_for_log = "Unknown Track" 
+                        for track_item_original_list in tracks_with_original_indices:
+                            if track_item_original_list['uri'] == removed_item_detail['uri'] and track_item_original_list['original_index'] == removed_item_detail['positions'][0]:
+                                track_name_for_log = track_item_original_list['name']
                                 break
-                        logging.info(f"  - Requested removal of '{BOLD}{current_track_name}{RESET}' (URI: {removed_item_detail['uri']}) at original index {removed_item_detail['positions'][0]}")
+                        logging.info(f"DUPLICATE_CHECK:   Requested removal of '{BOLD}{track_name_for_log}{RESET}' (URI: {removed_item_detail['uri']}) at original index {removed_item_detail['positions'][0]}")
                 except Exception as e_remove:
-                    logging.error(f"Error removing batch of duplicates: {e_remove}")
+                    logging.error(f"DUPLICATE_CHECK: Error removing batch of duplicates: {e_remove}")
+            
+            logging.info("DUPLICATE_CHECK: Pausing for 5 seconds to allow Spotify to process removals...")
+            time.sleep(5) 
         else:
-            logging.info("No duplicates found in the playlist needing removal this cycle.")
+            logging.info("DUPLICATE_CHECK: No duplicates identified for removal in this cycle.")
 
     except Exception as e:
         logging.error(f"Error during duplicate check for playlist {playlist_id}: {e}", exc_info=True)
+
 
 def run_radio_monitor():
     print("DEBUG: run_radio_monitor thread function initiated.") 
@@ -340,7 +362,7 @@ def run_radio_monitor():
             
             if not sp: 
                 logging.warning("Spotify object 'sp' is None. Skipping Radio X and Spotify operations in this cycle.")
-                time.sleep(CHECK_INTERVAL)
+                time.sleep(CHECK_INTERVAL) 
                 continue
 
             current_song_info = get_current_radiox_song(current_station_herald_id)
@@ -405,4 +427,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on port {port}.")
     print(f"DEBUG: Starting Flask app locally on 0.0.0.0:{port}") 
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
