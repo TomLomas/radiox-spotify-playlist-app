@@ -2,7 +2,7 @@
 # Version using WebSocket API for "Now Playing" - Cleaned Output & Bolded Additions
 # SETTINGS ARE HARDCODED IN THIS VERSION
 # Updated check intervals.
-# Added detailed thread startup logging.
+# Structural changes for Gunicorn deployment on Render.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -370,16 +370,35 @@ def run_radio_monitor():
         logging.info(f"Waiting for {CHECK_INTERVAL} seconds before next check...")
         time.sleep(CHECK_INTERVAL)
 
-if __name__ == "__main__":
-    logging.info("Script execution point: __main__ (preparing to start Flask and background thread)")
-    print("DEBUG: In __main__, preparing to start monitor_thread.") 
+# --- Function to start the background monitoring (called when script is imported by Gunicorn) ---
+def start_monitoring_thread():
+    if not hasattr(start_monitoring_thread, "thread_started") or not start_monitoring_thread.thread_started:
+        logging.info("Preparing to start monitor_thread from start_monitoring_thread function.")
+        print("DEBUG: Preparing to start monitor_thread from start_monitoring_thread function.")
+        monitor_thread = threading.Thread(target=run_radio_monitor, daemon=True)
+        monitor_thread.start()
+        start_monitoring_thread.thread_started = True 
+        logging.info("Monitor thread started via start_monitoring_thread function.")
+        print("DEBUG: Monitor thread started via start_monitoring_thread function.")
+    else:
+        logging.info("Monitor thread already started or attempted.")
+        print("DEBUG: Monitor thread already started or attempted.")
 
-    monitor_thread = threading.Thread(target=run_radio_monitor, daemon=True)
-    print("DEBUG: monitor_thread object created.") 
-    monitor_thread.start()
-    print("DEBUG: monitor_thread.start() called.") 
-    
+# --- Script Execution Control ---
+# This block will run when Gunicorn imports the file to find 'app'
+if sp: 
+    start_monitoring_thread()
+else:
+    logging.error("Spotify authentication failed (sp is None) during initial script load. Background monitor thread will NOT be started automatically by Gunicorn import.")
+    print("ERROR: Spotify authentication failed during initial script load. Background monitor thread will NOT be started.")
+
+# The following is for running the script directly with `python radiox_spotify.py` for local testing
+if __name__ == "__main__":
+    logging.info("Script being run directly (e.g., local testing).")
+    print("DEBUG: In __main__ block (local execution).")
+    # For local testing, the thread is already started by the block above if Spotify auth succeeded.
+    # We just need to run the Flask development server.
     port = int(os.environ.get("PORT", 8080)) 
-    logging.info(f"Starting Flask web server on port {port} to keep service alive.")
-    print(f"DEBUG: Starting Flask app on 0.0.0.0:{port}") 
-    app.run(host='0.0.0.0', port=port)
+    logging.info(f"Starting Flask development server on port {port}.")
+    print(f"DEBUG: Starting Flask app locally on 0.0.0.0:{port}") 
+    app.run(host='0.0.0.0', port=port, debug=False)
