@@ -1,7 +1,9 @@
 # Radio X to Spotify Playlist Adder
-# Version using WebSocket API for "Now Playing"
+# Version using WebSocket API for "Now Playing" - Cleaned Output & Bolded Additions
 # SETTINGS ARE HARDCODED IN THIS VERSION
-# Includes duplicate checking, updated intervals, and Flask wrapper.
+# Updated check intervals.
+# Revised duplicate removal to be more conservative (removes one latest duplicate per track per cycle).
+# Structural changes for Gunicorn deployment on Render.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -28,8 +30,8 @@ SPOTIPY_REDIRECT_URI = "http://127.0.0.1:8888/callback"
 SPOTIFY_PLAYLIST_ID = "5i13fDRDoW0gu60f74cysp" 
 RADIOX_STATION_SLUG = "radiox" 
 
-CHECK_INTERVAL = 120  # Check every 120 seconds for new songs
-DUPLICATE_CHECK_INTERVAL = 30 * 60 # Check for duplicates every 30 minutes (1800 seconds)
+CHECK_INTERVAL = 120  
+DUPLICATE_CHECK_INTERVAL = 30 * 60 
 
 BOLD = '\033[1m'
 RESET = '\033[0m'
@@ -42,7 +44,6 @@ if not all([SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, SPOTIPY_REDIRECT_URI, SPOT
 else:
     logging.info("Successfully using hardcoded configuration.")
 
-# --- Global Variables & Spotify Auth ---
 last_added_radiox_track_id = None
 RECENTLY_ADDED_SPOTIFY_TRACK_IDS = set()
 MAX_RECENT_TRACKS = 50
@@ -77,14 +78,9 @@ try:
                                 redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, 
                                 cache_path=SPOTIPY_CACHE_FILENAME) 
     token_info = auth_manager.get_cached_token()
-    if not token_info and not cache_written: # Only attempt web auth if no cache was provided via ENV
-        logging.info("No cached Spotify token and no cache from ENV, attempting to get new token (will fail on server without browser).")
-        # On a server, this interactive step will fail. The SPOTIPY_CACHE_BASE64 must be valid.
-        # token_info = auth_manager.get_access_token(as_dict=False) # This line would trigger browser flow
-        logging.warning("On server, SPOTIPY_CACHE_BASE64 ENV var must provide a valid token for auth if cache file is missing.")
-
-
-    if token_info: # This will be true if cache was written and valid, or if local auth flow worked
+    if not token_info and not cache_written:
+        logging.warning("No cached Spotify token and no cache from ENV. On a server, this will likely prevent Spotify features from working as interactive auth is not possible.")
+    if token_info:
         sp = spotipy.Spotify(auth_manager=auth_manager)
         user = sp.current_user() 
         if user:
@@ -137,7 +133,7 @@ def get_station_herald_id(station_slug_to_find):
 
 def get_current_radiox_song(station_herald_id):
     if not station_herald_id:
-        logging.error("No station_herald_id provided to get_current_radiox_song.")
+        logging.error("No station_herald_id provided.")
         return None
     websocket_url = "wss://metadata.musicradio.com/v2/now-playing"
     logging.info(f"Connecting to WebSocket: {websocket_url} for heraldId: {station_herald_id}")
@@ -147,25 +143,23 @@ def get_current_radiox_song(station_herald_id):
         ws = websocket.create_connection(websocket_url, timeout=10)
         subscribe_message = {"actions": [{"type": "subscribe", "service": str(station_herald_id)}]}
         ws.send(json.dumps(subscribe_message))
-        logging.debug(f"Sent subscribe message: {json.dumps(subscribe_message)}")
+        logging.debug(f"Sent subscribe: {json.dumps(subscribe_message)}")
         message_received = None
         ws.settimeout(10) 
         for i in range(3): 
             raw_message = ws.recv()
-            logging.debug(f"Received raw WebSocket message ({i+1}/3): {raw_message[:300]}...") 
+            logging.debug(f"Raw WebSocket ({i+1}/3): {raw_message[:300]}...") 
             if raw_message:
                 message_data = json.loads(raw_message)
                 if message_data.get('now_playing') and message_data['now_playing'].get('type') == 'track':
                     message_received = message_data
                     break 
                 elif message_data.get('type') == 'heartbeat':
-                    logging.debug("Received heartbeat from WebSocket.")
+                    logging.debug("WebSocket heartbeat.")
                     continue 
-                else:
-                    logging.debug(f"Received non-track/non-heartbeat message: {message_data.get('type')}")
             time.sleep(0.2) 
         if not message_received:
-            logging.info(f"No track update message received from WebSocket for heraldId {station_herald_id} in this attempt.")
+            logging.info(f"No track update via WebSocket for heraldId {station_herald_id} this attempt.")
             return None
         now_playing = message_received.get('now_playing', {})
         title = now_playing.get('title')
@@ -178,23 +172,20 @@ def get_current_radiox_song(station_herald_id):
                 unique_broadcast_id = track_id_api or f"{station_herald_id}_{title}_{artist}".replace(" ", "_")
                 logging.info(f"Radio X Now Playing: {title} by {artist}")
                 return {"title": title, "artist": artist, "id": unique_broadcast_id}
-        logging.info(f"Could not extract title/artist from WebSocket message for heraldId {station_herald_id}. Message type: {message_received.get('now_playing', {}).get('type')}")
+        logging.info(f"Could not extract title/artist from WebSocket for heraldId {station_herald_id}. Type: {message_received.get('now_playing', {}).get('type')}")
         return None
     except websocket.WebSocketTimeoutException:
-        logging.warning(f"WebSocket timeout for heraldId {station_herald_id} from {websocket_url}")
+        logging.warning(f"WebSocket timeout for heraldId {station_herald_id}")
     except websocket.WebSocketException as e:
-        logging.error(f"WebSocket error for heraldId {station_herald_id} with {websocket_url}: {e}")
+        logging.error(f"WebSocket error for heraldId {station_herald_id}: {e}")
     except json.JSONDecodeError as e:
         logging.error(f"Error decoding JSON from WebSocket for heraldId {station_herald_id}: {e}. Message: {raw_message[:300]}...")
     except Exception as e:
-        logging.error(f"Unexpected error in WebSocket for heraldId {station_herald_id}: {e}", exc_info=True)
+        logging.error(f"Unexpected WebSocket error for heraldId {station_herald_id}: {e}", exc_info=True)
     finally:
         if ws:
-            try:
-                ws.close()
-                logging.debug("WebSocket connection closed.")
-            except Exception as e_close:
-                logging.error(f"Error closing WebSocket: {e_close}")
+            try: ws.close(); logging.debug("WebSocket closed.")
+            except Exception: pass
     return None
 
 def search_song_on_spotify(title, artist):
@@ -241,11 +232,13 @@ def check_and_remove_duplicates(playlist_id):
     if not sp:
         logging.error("Spotify not initialized. Cannot check for duplicates.")
         return
+    
     logging.info(f"Checking for duplicates in playlist: {playlist_id}")
-    all_playlist_items_with_indices = []
+    
+    tracks_with_original_indices = []
     offset = 0
     limit = 50 
-    current_absolute_index = 0
+    
     try:
         while True:
             results = sp.playlist_items(playlist_id, limit=limit, offset=offset, fields="items(track(id,uri,name)),next")
@@ -253,57 +246,67 @@ def check_and_remove_duplicates(playlist_id):
                 break
             for item_idx, item in enumerate(results['items']): 
                 if item['track'] and item['track']['id'] and item['track']['uri']:
-                    all_playlist_items_with_indices.append({
+                    tracks_with_original_indices.append({
                         'uri': item['track']['uri'], 
                         'id': item['track']['id'],
                         'name': item['track'].get('name', 'Unknown Track'),
                         'original_index': offset + item_idx 
                     })
+            
             if results['next']:
                 offset += len(results['items']) 
             else:
                 break
-        logging.info(f"Fetched {len(all_playlist_items_with_indices)} tracks from playlist {playlist_id} for duplicate check.")
+        
+        logging.info(f"Fetched {len(tracks_with_original_indices)} tracks from playlist {playlist_id} for duplicate check.")
+
         track_occurrences = {} 
-        for track_item in all_playlist_items_with_indices:
+        for track_item in tracks_with_original_indices:
             track_id = track_item['id']
             if track_id not in track_occurrences:
                 track_occurrences[track_id] = []
             track_occurrences[track_id].append(track_item['original_index'])
+
         items_to_remove_payload = [] 
         for track_id, indices in track_occurrences.items():
             if len(indices) > 1: 
                 indices.sort() 
-                indices_to_remove_for_this_track = indices[1:] 
+                # MODIFIED LOGIC: Remove only the single latest occurrence (highest index) in this pass
+                index_to_remove_this_pass = [indices[-1]] # Get the original index of the very last occurrence
+                
                 track_uri = None
                 track_name_for_log = "Unknown Track"
-                for item in all_playlist_items_with_indices: 
+                for item in tracks_with_original_indices: 
                     if item['id'] == track_id:
                         track_uri = item['uri']
                         track_name_for_log = item['name']
                         break
-                if track_uri and indices_to_remove_for_this_track:
-                    logging.info(f"Marking duplicate occurrences of '{BOLD}{track_name_for_log}{RESET}' (URI: {track_uri}) for removal at original playlist indices: {indices_to_remove_for_this_track}")
-                    items_to_remove_payload.append({"uri": track_uri, "positions": indices_to_remove_for_this_track})
+                
+                if track_uri:
+                    logging.info(f"Marking latest duplicate of '{BOLD}{track_name_for_log}{RESET}' for removal at original index: {index_to_remove_this_pass[0]}")
+                    items_to_remove_payload.append({"uri": track_uri, "positions": index_to_remove_this_pass})
+        
         if items_to_remove_payload:
-            total_duplicate_occurrences = sum(len(item['positions']) for item in items_to_remove_payload)
-            logging.info(f"Attempting to remove {total_duplicate_occurrences} duplicate track occurrences from the playlist.")
-            for i in range(0, len(items_to_remove_payload), 100):
+            total_duplicate_occurrences_to_remove = len(items_to_remove_payload) # Each item now removes one occurrence
+            logging.info(f"Attempting to remove {total_duplicate_occurrences_to_remove} latest duplicate track occurrences from the playlist (one per duplicated song title).")
+            
+            for i in range(0, len(items_to_remove_payload), 100): 
                 batch = items_to_remove_payload[i:i + 100]
                 try:
                     sp.playlist_remove_specific_occurrences_of_items(playlist_id, batch)
-                    logging.info(f"Successfully sent request to Spotify to remove a batch of duplicate items.")
+                    logging.info(f"Successfully sent request to Spotify to remove a batch of {len(batch)} duplicate items.")
                     for removed_item_detail in batch:
-                        track_name_for_log = "Unknown Track" 
-                        for item in all_playlist_items_with_indices:
-                            if item['uri'] == removed_item_detail['uri']:
-                                track_name_for_log = item['name']
+                        current_track_name = "Unknown Track"
+                        for track_item in tracks_with_original_indices:
+                            if track_item['uri'] == removed_item_detail['uri']:
+                                current_track_name = track_item['name']
                                 break
-                        logging.info(f"  - Requested removal of '{BOLD}{track_name_for_log}{RESET}' (URI: {removed_item_detail['uri']}) at original indices {removed_item_detail['positions']}")
+                        logging.info(f"  - Requested removal of '{BOLD}{current_track_name}{RESET}' (URI: {removed_item_detail['uri']}) at original index {removed_item_detail['positions'][0]}")
                 except Exception as e_remove:
                     logging.error(f"Error removing batch of duplicates: {e_remove}")
         else:
-            logging.info("No duplicates found in the playlist needing removal.")
+            logging.info("No duplicates found in the playlist needing removal this cycle.")
+
     except Exception as e:
         logging.error(f"Error during duplicate check for playlist {playlist_id}: {e}", exc_info=True)
 
@@ -378,7 +381,6 @@ def run_radio_monitor():
         time.sleep(CHECK_INTERVAL)
 
 def start_monitoring_thread():
-    # Check if thread has already been started (simple flag)
     if not hasattr(start_monitoring_thread, "thread_started") or not start_monitoring_thread.thread_started:
         logging.info("Preparing to start monitor_thread from start_monitoring_thread function.")
         print("DEBUG: Preparing to start monitor_thread from start_monitoring_thread function.")
@@ -391,20 +393,15 @@ def start_monitoring_thread():
         logging.info("Monitor thread already started or attempt was made.")
         print("DEBUG: Monitor thread already started or attempt was made.")
 
-# This block will run when Gunicorn imports the file to find 'app'
-# It initializes Spotify auth and starts the background thread if auth is successful.
 if sp: 
     start_monitoring_thread()
 else:
     logging.error("Spotify authentication failed (sp is None) during initial script load. Background monitor thread will NOT be started automatically by Gunicorn import.")
     print("ERROR: Spotify authentication failed during initial script load. Background monitor thread will NOT be started.")
 
-# The following is for running the script directly with `python radiox_spotify.py` for local testing
 if __name__ == "__main__":
     logging.info("Script being run directly (e.g., local testing).")
     print("DEBUG: In __main__ block (local execution).")
-    # For local testing, the thread is already started by the logic above if Spotify auth succeeded.
-    # We just need to run the Flask development server.
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on port {port}.")
     print(f"DEBUG: Starting Flask app locally on 0.0.0.0:{port}") 
