@@ -3,10 +3,13 @@
 # SETTINGS ARE HARDCODED IN THIS VERSION
 # Updated check intervals.
 # Structural changes for Gunicorn deployment on Render.
+# Added Spotify API call resilience with retries.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry # For retry strategy
 import time
 import os
 import json 
@@ -81,8 +84,24 @@ try:
     token_info = auth_manager.get_cached_token()
     if not token_info and not cache_written:
         logging.warning("No cached Spotify token and no cache from ENV. On a server, this will likely prevent Spotify features from working as interactive auth is not possible.")
+
     if token_info:
-        sp = spotipy.Spotify(auth_manager=auth_manager)
+        # --- Create a requests session with retry logic ---
+        http_session = requests.Session()
+        retry_strategy = Retry(
+            total=3,                # Total number of retries
+            backoff_factor=1,       # Wait 1s, 2s, 4s (approx) between retries
+            status_forcelist=[429, 500, 502, 503, 504], # HTTP status codes to retry on
+            allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT", "DELETE"] 
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        http_session.mount("https://", adapter)
+        http_session.mount("http://", adapter)
+        logging.info("Requests session with retry strategy configured for Spotify.")
+        # --- End of retry session setup ---
+
+        sp = spotipy.Spotify(auth_manager=auth_manager, requests_session=http_session, requests_timeout=15)
+        
         user = sp.current_user() 
         if user:
             logging.info(f"Successfully authenticated with Spotify as {user['display_name']} ({user['id']})")
@@ -205,7 +224,7 @@ def search_song_on_spotify(title, artist):
             return track["id"]
         else:
             logging.info(f"Song '{title}' by '{artist}' not found on Spotify.")
-    except Exception as e:
+    except Exception as e: # Includes requests.exceptions.RequestException if retry fails
         logging.error(f"Error searching Spotify for '{title}' by '{artist}': {e}")
     return None
 
@@ -230,7 +249,7 @@ def add_song_to_playlist(track_id, playlist_id_to_use):
         else:
             logging.error(f"Error adding to Spotify playlist {playlist_id_to_use}: {e}")
         return False
-    except Exception as e:
+    except Exception as e: # Includes requests.exceptions.RequestException if retry fails
         logging.error(f"Unexpected error adding to playlist {playlist_id_to_use}: {e}")
         return False
 
@@ -297,7 +316,7 @@ def check_and_remove_duplicates(playlist_id):
                     logging.error(f"Error removing batch of duplicates: {e_remove}")
         else:
             logging.info("No duplicates found in the playlist needing removal.")
-    except Exception as e:
+    except Exception as e: # Includes requests.exceptions.RequestException if retry fails
         logging.error(f"Error during duplicate check for playlist {playlist_id}: {e}", exc_info=True)
 
 def run_radio_monitor():
@@ -385,19 +404,15 @@ def start_monitoring_thread():
         print("DEBUG: Monitor thread already started or attempted.")
 
 # --- Script Execution Control ---
-# This block will run when Gunicorn imports the file to find 'app'
 if sp: 
     start_monitoring_thread()
 else:
     logging.error("Spotify authentication failed (sp is None) during initial script load. Background monitor thread will NOT be started automatically by Gunicorn import.")
     print("ERROR: Spotify authentication failed during initial script load. Background monitor thread will NOT be started.")
 
-# The following is for running the script directly with `python radiox_spotify.py` for local testing
 if __name__ == "__main__":
     logging.info("Script being run directly (e.g., local testing).")
     print("DEBUG: In __main__ block (local execution).")
-    # For local testing, the thread is already started by the block above if Spotify auth succeeded.
-    # We just need to run the Flask development server.
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on port {port}.")
     print(f"DEBUG: Starting Flask app locally on 0.0.0.0:{port}") 
