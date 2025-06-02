@@ -54,12 +54,10 @@ herald_id_cache = {}
 last_duplicate_check_time = 0
 failed_search_queue = [] 
 
-# For Daily Summary
 daily_added_songs = [] 
 daily_search_failures = [] 
 last_summary_log_date = None 
 
-# --- Spotify Authentication & Cache ---
 SPOTIPY_CACHE_CONTENTS_ENV_VAR = "SPOTIPY_CACHE_BASE64"
 SPOTIPY_CACHE_FILENAME = ".spotipy_cache"
 
@@ -104,12 +102,10 @@ except Exception as e:
     sp = None 
     logging.critical(f"CRITICAL Error during Spotify Authentication Setup: {e}", exc_info=True)
 
-# --- Robust API Call Wrapper ---
 def spotify_api_call_with_retry(func, *args, **kwargs):
     max_retries = 3
-    base_delay = 5 
+    base_delay = 5  
     retryable_spotify_exceptions = (500, 502, 503, 504) 
-
     last_exception = None
     for attempt in range(max_retries):
         try:
@@ -129,7 +125,7 @@ def spotify_api_call_with_retry(func, *args, **kwargs):
             logging.warning(f"Spotify API Exception on {func.__name__} (attempt {attempt + 1}/{max_retries}): HTTP {e.http_status} - {e.msg}")
             if e.http_status == 429: 
                 retry_after_header = e.headers.get('Retry-After')
-                retry_after = int(retry_after_header) if retry_after_header else (base_delay * (2**attempt))
+                retry_after = int(retry_after_header) if retry_after_header and retry_after_header.isdigit() else (base_delay * (2**attempt))
                 logging.info(f"Rate limited. Retrying after {retry_after} seconds...")
                 time.sleep(retry_after)
             elif e.http_status in retryable_spotify_exceptions: 
@@ -144,6 +140,8 @@ def spotify_api_call_with_retry(func, *args, **kwargs):
                 raise e 
     if last_exception:
         raise last_exception
+    # This line should not be reached if exceptions are properly re-raised.
+    # Adding a fallback raise to ensure the function doesn't silently return None on unhandled retry exhaustion.
     raise Exception(f"{func.__name__} failed after all retries for network/server issues without specific re-raise.")
 
 
@@ -180,8 +178,6 @@ def get_station_herald_id(station_slug_to_find):
     headers = {'User-Agent': 'RadioXToSpotifyApp/1.0','Accept': 'application/vnd.global.8+json'}
     logging.info(f"Fetching heraldId for {station_slug_to_find} from {global_player_brands_url}")
     try:
-        # Note: requests.get itself doesn't have our retry wrapper by default
-        # For extreme robustness, this could also be wrapped if it becomes a source of frequent failure.
         response = requests.get(global_player_brands_url, headers=headers, timeout=10)
         response.raise_for_status()
         brands_data = response.json()
@@ -199,43 +195,67 @@ def get_station_herald_id(station_slug_to_find):
 
 
 def get_current_radiox_song(station_herald_id):
-    if not station_herald_id: logging.error("No station_herald_id provided."); return None
+    if not station_herald_id:
+        logging.error("No station_herald_id provided.")
+        return None
     websocket_url = "wss://metadata.musicradio.com/v2/now-playing"
     logging.info(f"Connecting to WebSocket: {websocket_url} for heraldId: {station_herald_id}")
     ws = None
+    raw_message = "No message received"
     try:
-        # Consider adding retry for ws.create_connection if it's problematic
         ws = websocket.create_connection(websocket_url, timeout=10)
-        ws.send(json.dumps({"actions": [{"type": "subscribe", "service": str(station_herald_id)}]}))
-        message_received = None; ws.settimeout(10)
-        for _ in range(3): # Try to receive a few messages to get past heartbeats
-            raw_message = ws.recv(); logging.debug(f"Raw WebSocket: {raw_message[:300]}...")
+        subscribe_message = {"actions": [{"type": "subscribe", "service": str(station_herald_id)}]}
+        ws.send(json.dumps(subscribe_message))
+        logging.debug(f"Sent subscribe: {json.dumps(subscribe_message)}")
+        message_received = None
+        ws.settimeout(10) 
+        for i in range(3): 
+            raw_message = ws.recv()
+            logging.debug(f"Raw WebSocket ({i+1}/3): {raw_message[:300]}...") 
             if raw_message:
                 message_data = json.loads(raw_message)
                 if message_data.get('now_playing') and message_data['now_playing'].get('type') == 'track':
-                    message_received = message_data; break
-                elif message_data.get('type') == 'heartbeat': logging.debug("WebSocket heartbeat."); continue
-            time.sleep(0.2)
-        if not message_received: logging.info(f"No track update for heraldId {station_herald_id}."); return None
+                    message_received = message_data
+                    break 
+                elif message_data.get('type') == 'heartbeat':
+                    logging.debug("WebSocket heartbeat.")
+                    continue 
+            time.sleep(0.2) 
+        if not message_received:
+            logging.info(f"No track update via WebSocket for heraldId {station_herald_id} this attempt.")
+            return None
         now_playing = message_received.get('now_playing', {})
-        title, artist, track_id_api = now_playing.get('title'), now_playing.get('artist'), now_playing.get('id')
+        title = now_playing.get('title')
+        artist = now_playing.get('artist') 
+        track_id_api = now_playing.get('id') 
         if title and artist:
-            title, artist = title.strip(), artist.strip()
-            if title and artist:
-                unique_id = track_id_api or f"{station_herald_id}_{title}_{artist}".replace(" ", "_")
+            title = title.strip()
+            artist = artist.strip()
+            if title and artist: 
+                unique_broadcast_id = track_id_api or f"{station_herald_id}_{title}_{artist}".replace(" ", "_")
                 logging.info(f"Radio X Now Playing: {title} by {artist}")
-                return {"title": title, "artist": artist, "id": unique_id}
-        logging.info(f"Could not extract info from WebSocket for heraldId {station_herald_id}.")
+                return {"title": title, "artist": artist, "id": unique_broadcast_id}
+        logging.info(f"Could not extract title/artist from WebSocket for heraldId {station_herald_id}. Type: {message_received.get('now_playing', {}).get('type')}")
         return None
-    except websocket.WebSocketTimeoutException: logging.warning(f"WebSocket timeout for heraldId {station_herald_id}")
-    except Exception as e: logging.error(f"WebSocket error for heraldId {station_herald_id}: {e}", exc_info=True)
+    except websocket.WebSocketTimeoutException:
+        logging.warning(f"WebSocket timeout for heraldId {station_herald_id}")
+    except websocket.WebSocketException as e: 
+        logging.error(f"WebSocket error for heraldId {station_herald_id}: {e}")
+    except json.JSONDecodeError as e:
+        logging.error(f"Error decoding JSON from WebSocket for heraldId {station_herald_id}: {e}. Message: {raw_message[:300]}...")
+    except Exception as e: 
+        logging.error(f"Unexpected WebSocket error for heraldId {station_herald_id}: {e}", exc_info=True)
     finally:
-        if ws: try: ws.close() 
-            except: pass
+        if ws:
+            try:
+                ws.close()
+                logging.debug("WebSocket closed.")
+            except Exception as e_close:
+                logging.error(f"Error closing WebSocket for heraldId {station_herald_id}: {e_close}")
     return None
 
 def search_song_on_spotify(original_title, artist, radiox_id_for_queue=None, is_retry_from_queue=False):
-    global daily_search_failures # For logging definitive "not found"
+    global daily_search_failures
     if not sp: 
         logging.error("Spotify not initialized for search.")
         return None
@@ -243,31 +263,39 @@ def search_song_on_spotify(original_title, artist, radiox_id_for_queue=None, is_
     search_attempts_details = []
     
     def _attempt_search_spotify(title_to_search, attempt_description):
-        nonlocal search_attempts_details
+        nonlocal search_attempts_details 
         logging.debug(f"Spotify search ({attempt_description}): Title='{title_to_search}', Artist='{artist}'")
         query = f"track:{title_to_search} artist:{artist}"
         try:
-            results = spotify_api_call_with_retry(sp.search, q=query, type="track", limit=1) # Retries are handled here
+            results = spotify_api_call_with_retry(sp.search, q=query, type="track", limit=1)
             if results and results["tracks"]["items"]:
                 track = results["tracks"]["items"][0]
                 logging.info(f"Found on Spotify ({attempt_description}): '{track['name']}' by {', '.join(a['name'] for a in track['artists'])} (ID: {track['id']})")
                 return track["id"]
             else:
                 search_attempts_details.append(f"Attempt '{attempt_description}' with title '{title_to_search}': Not found via API (empty result).")
-                return None # Genuine "not found" from Spotify
-        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout, requests.exceptions.Timeout, spotipy.SpotifyException) as e:
-            logging.error(f"Persistent network/Spotify error during {attempt_description} for '{title_to_search}' by '{artist}' after all retries: {e}")
-            if radiox_id_for_queue and not is_retry_from_queue: # Only add to queue on initial search failures
+                return None 
+        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout, requests.exceptions.Timeout) as e:
+            logging.error(f"Persistent network error during {attempt_description} for '{title_to_search}' by '{artist}' after all retries: {e}")
+            if radiox_id_for_queue and not is_retry_from_queue: 
                 add_to_failed_search_queue(original_title, artist, radiox_id_for_queue)
-            return "NETWORK_ERROR_FLAG" # Indicate failure to search, not "not found"
-        except Exception as e: # Other unexpected errors during search
+            return "NETWORK_ERROR_FLAG" 
+        except spotipy.SpotifyException as e:
+             if e.http_status in [429, 500, 502, 503, 504]: 
+                logging.error(f"Persistent Spotify server error ({e.http_status}) during {attempt_description} for '{title_to_search}' by '{artist}' after retries: {e.msg}")
+                if radiox_id_for_queue and not is_retry_from_queue:
+                    add_to_failed_search_queue(original_title, artist, radiox_id_for_queue)
+                return "NETWORK_ERROR_FLAG"
+             else: 
+                search_attempts_details.append(f"Attempt '{attempt_description}' with title '{title_to_search}': Spotify API error {e.http_status} - {e.msg}.")
+                return None
+        except Exception as e: 
             logging.error(f"Unexpected error during {attempt_description} for '{title_to_search}' by '{artist}': {e}")
-            return "NETWORK_ERROR_FLAG"
+            return "NETWORK_ERROR_FLAG" 
 
-    # Attempt 1: Original title
     spotify_id = _attempt_search_spotify(original_title, "original title")
     if spotify_id == "NETWORK_ERROR_FLAG": 
-        if not is_retry_from_queue: # Log to daily if it's a primary search failure due to network
+        if not is_retry_from_queue: 
              daily_search_failures.append({
                 "timestamp": datetime.datetime.now().isoformat(),
                 "radio_title": original_title, "radio_artist": artist,
@@ -277,7 +305,6 @@ def search_song_on_spotify(original_title, artist, radiox_id_for_queue=None, is_
     if spotify_id: 
         return spotify_id
 
-    # Attempt 2: Cleaned title (only if first attempt didn't network error out and didn't find anything)
     cleaned_title = re.sub(r'\s*\(.*?\)\s*', ' ', original_title) 
     cleaned_title = re.sub(r'\s+', ' ', cleaned_title).strip()
 
@@ -285,11 +312,11 @@ def search_song_on_spotify(original_title, artist, radiox_id_for_queue=None, is_
         logging.info(f"Original title search failed. Retrying with cleaned title: '{cleaned_title}'")
         spotify_id = _attempt_search_spotify(cleaned_title, "cleaned title")
         if spotify_id == "NETWORK_ERROR_FLAG": 
-            if not is_retry_from_queue: # Log to daily if it's a primary search failure due to network
+            if not is_retry_from_queue:
                  daily_search_failures.append({
                     "timestamp": datetime.datetime.now().isoformat(),
-                    "radio_title": original_title, "radio_artist": artist, # Log original for clarity
-                    "reason": f"Search with cleaned title ('{cleaned_title}') failed due to persistent network/API error (queued for later retry)"
+                    "radio_title": original_title, "radio_artist": artist,
+                    "reason": f"Search with cleaned title ('{cleaned_title}') failed (queued for later retry if applicable)"
                 })
             return None
         if spotify_id: 
@@ -299,11 +326,10 @@ def search_song_on_spotify(original_title, artist, radiox_id_for_queue=None, is_
         else: search_attempts_details.append("No significant change to title after cleaning.")
     
     logging.info(f"Song '{original_title}' by '{artist}' definitively not found on Spotify. Details: [{'; '.join(search_attempts_details)}]")
-    if not is_retry_from_queue: # Log to daily if it's a primary search failure
+    if not is_retry_from_queue: 
         daily_search_failures.append({
             "timestamp": datetime.datetime.now().isoformat(),
-            "radio_title": original_title,
-            "radio_artist": artist,
+            "radio_title": original_title, "radio_artist": artist,
             "reason": "Not found on Spotify after original and cleaned title attempts."
         })
     return None
@@ -332,23 +358,15 @@ def add_song_to_playlist(radio_x_title, radio_x_artist, spotify_track_id, playli
 
         RECENTLY_ADDED_SPOTIFY_TRACK_IDS.add(spotify_track_id)
         if len(RECENTLY_ADDED_SPOTIFY_TRACK_IDS) > MAX_RECENT_TRACKS:
-            try: RECENTLY_ADDED_SPOTIFY_TRACK_IDS.pop()
-            except KeyError: pass
+            oldest_track = RECENTLY_ADDED_SPOTIFY_TRACK_IDS.pop() if RECENTLY_ADDED_SPOTIFY_TRACK_IDS else None # .pop() on empty set raises KeyError
+            if oldest_track : logging.debug(f"Removed {oldest_track} from RECENTLY_ADDED_SPOTIFY_TRACK_IDS (limit: {MAX_RECENT_TRACKS})")
         return True
     except spotipy.SpotifyException as e:
-        # ... (error handling for add, as before) ...
         reason_for_fail_log = f"Spotify API Error when adding: HTTP {e.http_status} - {e.msg}"
         if e.http_status == 403 and "duplicate" in e.msg.lower(): 
              logging.warning(f"Could not add track ID {spotify_track_id} ('{radio_x_title}') (Spotify API indicated duplicate): {e.msg}")
              RECENTLY_ADDED_SPOTIFY_TRACK_IDS.add(spotify_track_id)
-             reason_for_fail_log = "Spotify blocked add as duplicate" 
-             # Don't add to daily_failed_searches because it *was* found, just not added as new.
-             # Or, we could log it as a specific type of "add failure"
-             daily_search_failures.append({
-                "timestamp": datetime.datetime.now().isoformat(), "radio_title": radio_x_title,
-                "radio_artist": radio_x_artist, "reason": reason_for_fail_log
-            })
-             return False 
+             reason_for_fail_log = "Spotify blocked add as duplicate (already in playlist)"
         else: 
             logging.error(f"Error adding track {spotify_track_id} ('{radio_x_title}') to playlist: {e}")
         daily_search_failures.append({
@@ -365,7 +383,6 @@ def add_song_to_playlist(radio_x_title, radio_x_artist, spotify_track_id, playli
         return False
 
 def check_and_remove_duplicates(playlist_id):
-    # ... (This function with "remove all & re-add strategy" and retry wrapper for its API calls)
     if not sp:
         logging.error("Spotify not initialized. Cannot check for duplicates.")
         return
@@ -424,64 +441,93 @@ def process_failed_search_queue():
     if not sp: logging.debug("PFSQ: Spotify not available."); return
     if not failed_search_queue: logging.debug("PFSQ: Queue empty."); return
 
-    logging.info(f"PFSQ: Processing up to 1 item from failed search queue (size: {len(failed_search_queue)}).")
+    # Process only one item from the queue per call to this function
+    # to avoid hammering the API if it's still recovering or if many items are queued.
+    item_to_retry = failed_search_queue[0] # Peek at the oldest item
     
-    item_to_retry = failed_search_queue.pop(0) 
-    title, artist, radiox_id, attempts = item_to_retry['title'], item_to_retry['artist'], item_to_retry['radiox_id'], item_to_retry['attempts']
+    title = item_to_retry['title']
+    artist = item_to_retry['artist']
+    radiox_id = item_to_retry['radiox_id']
+    attempts = item_to_retry['attempts']
 
-    logging.info(f"PFSQ: Retrying search for '{title}' by '{artist}' (RadioX ID: {radiox_id}, Attempt: {attempts + 1})")
+    logging.info(f"PFSQ: Retrying search for '{title}' by '{artist}' (RadioX ID: {radiox_id}, Attempt: {attempts + 1} of {MAX_FAILED_SEARCH_ATTEMPTS})")
     
-    # Call search_song_on_spotify with is_retry_from_queue=True to prevent re-queuing or double logging to daily_failed
+    # Call search_song_on_spotify with is_retry_from_queue=True
+    # This prevents it from adding itself back to the failed_search_queue if it fails this retry.
+    # It also prevents it from logging to daily_search_failures if it's "Not Found" (we do that below if max attempts are hit).
     spotify_track_id = search_song_on_spotify(title, artist, radiox_id_for_queue=None, is_retry_from_queue=True) 
     
+    item_processed_from_queue = False
     if spotify_track_id:
-        logging.info(f"PFSQ: Successfully found '{title}' on retry. Spotify ID: {spotify_track_id}")
-        if add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID): # Will log to daily_added_songs
-            logging.info(f"PFSQ: SUCCESS: Added '{BOLD}{title}{RESET}' by '{BOLD}{artist}{RESET}' from queue.")
+        logging.info(f"PFSQ: Successfully found '{title}' on retry from queue. Spotify ID: {spotify_track_id}")
+        # Pass original Radio X title and artist for consistency in daily log
+        if add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID):
+            logging.info(f"PFSQ: SUCCESS: Added '{BOLD}{title}{RESET}' by '{BOLD}{artist}{RESET}' from queue to playlist.")
+            # Song is now added, remove from queue
+            failed_search_queue.pop(0)
+            item_processed_from_queue = True
         else: 
-            logging.warning(f"PFSQ: Found '{title}' on retry, but failed to add to playlist (may already exist or other add error).")
-            # Add failure (if not due to "duplicate on Spotify") would be logged by add_song_to_playlist
+            logging.warning(f"PFSQ: Found '{title}' on retry, but failed to add to playlist (may already exist or other add error). Will not retry this item further from queue.")
+            failed_search_queue.pop(0) # Remove, as adding failed for a reason other than search
+            item_processed_from_queue = True 
+            # Failure to add (if not duplicate) would be logged by add_song_to_playlist to daily_search_failures
     else: 
+        # search_song_on_spotify returned None (either not found, or network error still persisted through its retries)
         logging.warning(f"PFSQ: Still could not find or error searching for '{title}' by '{artist}' on retry from queue.")
         item_to_retry['attempts'] += 1
-        if item_to_retry['attempts'] < MAX_FAILED_SEARCH_ATTEMPTS:
-            logging.info(f"PFSQ: Re-queuing '{title}' (Attempts made: {item_to_retry['attempts']}).")
-            failed_search_queue.append(item_to_retry) 
-        else:
+        if item_to_retry['attempts'] >= MAX_FAILED_SEARCH_ATTEMPTS:
             logging.error(f"PFSQ: Max retries ({MAX_FAILED_SEARCH_ATTEMPTS}) reached for '{title}' by '{artist}'. Discarding from queue.")
-            daily_search_failures.append({
+            failed_search_queue.pop(0) # Remove from queue
+            item_processed_from_queue = True
+            daily_search_failures.append({ # Log to daily summary as a final failure
                 "timestamp": datetime.datetime.now().isoformat(),
                 "radio_title": title, "radio_artist": artist,
-                "reason": f"Max retries from failed search queue / Persistent search failure."
+                "reason": f"Max retries ({MAX_FAILED_SEARCH_ATTEMPTS}) from failed search queue exhausted."
             })
+        else:
+            # Item remains in queue for next time if pop(0) was not done, or re-add if it was.
+            # Current logic: we popped it, so if not max_attempts, re-add to end.
+            # To keep it simple, if pop(0) is done at start, just update attempts if not removing.
+            # Re-evaluating: pop at start, if not successful & not max attempts, re-insert at end or update if still at head.
+            # For now, if it's not max_attempts, it just means failed_search_queue[0] now has updated attempts.
+            # Let's re-add to the end of the queue if not max attempts.
+            logging.info(f"PFSQ: Updating attempt count for '{title}' to {item_to_retry['attempts']}. Will try again later.")
+            # No item_processed_from_queue = True here, as it's still in the queue effectively
+            # Actually, we popped it. So if not max, add it back to the *end*
+            if item_to_retry['attempts'] < MAX_FAILED_SEARCH_ATTEMPTS:
+                 failed_search_queue.append(item_to_retry) # Add to the end for later retry
+            # if we don't pop initially, we'd do: failed_search_queue[0]['attempts'] +=1
+
 
 def log_daily_summary():
     global daily_added_songs, daily_search_failures, last_summary_log_date
     
     logging.info("--- DAILY SONG SUMMARY ---")
+    current_log_time = datetime.datetime.now().isoformat()
+    logging.info(f"Summary for date ending: {last_summary_log_date.isoformat()} (Logged at: {current_log_time})")
+
     if not daily_added_songs and not daily_search_failures:
         logging.info("No new songs processed or failed today.")
     
     if daily_added_songs:
         logging.info(f"Successfully ADDED {len(daily_added_songs)} song(s) today:")
         for song_info in daily_added_songs:
-            logging.info(f"  - ADDED: '{song_info['radio_title']}' by '{song_info['radio_artist']}' as '{song_info['spotify_title']}' by '{song_info['spotify_artist']}' (ID: {song_info['spotify_id']}) at {song_info['timestamp']}")
+            logging.info(f"  - ADDED @ {song_info['timestamp']}: '{song_info['radio_title']}' by '{song_info['radio_artist']}' as '{song_info['spotify_title']}' by '{song_info['spotify_artist']}' (ID: {song_info['spotify_id']})")
     else:
         logging.info("No songs were successfully added to Spotify today.")
 
     if daily_search_failures:
         logging.info(f"FAILED to find/add {len(daily_search_failures)} song(s) today:")
         for song_info in daily_search_failures:
-            logging.info(f"  - FAILED: '{song_info['radio_title']}' by '{song_info['radio_artist']}' (Reason: {song_info['reason']}) at {song_info['timestamp']}")
+            logging.info(f"  - FAILED @ {song_info['timestamp']}: '{song_info['radio_title']}' by '{song_info['radio_artist']}' (Reason: {song_info['reason']})")
     else:
-        logging.info("No song search/add failures (that were not resolved by queue) recorded for today.")
+        logging.info("No song search/add failures (that were not resolved by queue or other means) recorded for today.")
     
     logging.info("--- END OF DAILY SONG SUMMARY ---")
     
     daily_added_songs.clear()
     daily_search_failures.clear()
-    last_summary_log_date = datetime.date.today()
-
+    # last_summary_log_date is updated in the main loop after this call
 
 def run_radio_monitor():
     print("DEBUG: run_radio_monitor thread function initiated.") 
@@ -503,9 +549,10 @@ def run_radio_monitor():
         last_summary_log_date = datetime.date.today() - datetime.timedelta(days=1) 
 
     while True:
-        current_date = datetime.date.today()
-        if current_date != last_summary_log_date:
-            log_daily_summary() # Clears lists and updates last_summary_log_date
+        current_date_obj = datetime.date.today() 
+        if last_summary_log_date < current_date_obj : 
+            log_daily_summary() 
+            last_summary_log_date = current_date_obj # Update after logging
 
         logging.debug(f"Loop start. Last RadioX ID: {last_added_radiox_track_id}. Failed queue: {len(failed_search_queue)}")
         try:
@@ -518,33 +565,39 @@ def run_radio_monitor():
                 logging.warning("Spotify 'sp' object is None. Skipping cycle."); time.sleep(CHECK_INTERVAL); continue
 
             current_song_info = get_current_radiox_song(current_station_herald_id)
-            song_added_this_cycle_from_radio = False
+            song_processed_from_radio_this_cycle = False
 
             if current_song_info and current_song_info.get("title") and current_song_info.get("artist"):
                 title = current_song_info["title"]
                 artist = current_song_info["artist"]
                 radiox_song_identifier = current_song_info.get("id")
+                song_processed_from_radio_this_cycle = True
 
                 if not title or not artist: 
                     logging.warning("Empty title or artist from Radio X.")
                 elif radiox_song_identifier == last_added_radiox_track_id:
-                    logging.info(f"Song '{title}' (RadioX ID: {radiox_song_identifier}) same as last. Skipping.")
+                    logging.info(f"Song '{title}' by '{artist}' (RadioX ID: {radiox_song_identifier}) same as last. Skipping.")
                 else:
                     logging.info(f"New song from Radio X: '{title}' by '{artist}' (RadioX ID: {radiox_song_identifier})")
-                    spotify_track_id = search_song_on_spotify(title, artist, radiox_song_identifier) 
+                    # Pass radiox_id to search so it can be queued if network error on search
+                    spotify_track_id = search_song_on_spotify(title, artist, radiox_id_for_queue=radiox_song_identifier) 
+                    
                     if spotify_track_id:
-                        # Pass original Radio X title and artist for logging in add_song_to_playlist
-                        if add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID):
-                            song_added_this_cycle_from_radio = True 
-                    # If search_song_on_spotify returned None, it either queued it or logged to daily_failed_searches (if definitive not found)
+                        # add_song_to_playlist now handles adding to daily_added_songs
+                        add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID)
+                    # else: search_song_on_spotify handles adding to daily_failed_searches if definitively not found,
+                    # or adds to failed_search_queue if network error.
                     last_added_radiox_track_id = radiox_song_identifier 
             else:
                 logging.info("No new track information from Radio X this cycle.")
             
-            # Process one item from the failed search queue
-            # Do this if a song was added (network likely ok) or periodically
-            if failed_search_queue and (song_added_this_cycle_from_radio or (time.time() % (CHECK_INTERVAL * 4) < CHECK_INTERVAL)): 
-                 process_failed_search_queue()
+            # Process one item from the failed search queue if a song was successfully processed from radio OR periodically
+            if failed_search_queue:
+                # Try to process queue item if a radio song was processed (network might be good)
+                # or periodically try anyway every few main cycles
+                # (time.time() % (CHECK_INTERVAL * 5) < CHECK_INTERVAL) means roughly every 5 main loops (10 mins if CHECK_INTERVAL is 2 mins)
+                if song_processed_from_radio_this_cycle or (time.time() % (CHECK_INTERVAL * 5) < CHECK_INTERVAL):
+                     process_failed_search_queue()
 
             current_time = time.time()
             if current_time - last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
