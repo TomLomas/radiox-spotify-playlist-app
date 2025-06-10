@@ -1,7 +1,7 @@
 # Radio X to Spotify Playlist Adder
-# v4.1 - Full Featured with HTML Email Summary
-# Includes: Time-windowed operation (GMT/BST aware), playlist size limit (FIFO),
-#           daily HTML email summaries, robust networking, failed search queue, and more.
+# v4.2 - Full Featured with HTML Email Summary and Active Hours
+# Includes: Time-windowed operation, playlist size limit, daily email summaries,
+#           robust networking, failed search queue, and improved title cleaning.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -49,7 +49,7 @@ END_TIME = datetime.time(22, 0)
 
 # Email Summary Settings (read from environment)
 EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = os.getenv("EMAIL_PORT") # Should be integer, will be converted later
+EMAIL_PORT = os.getenv("EMAIL_PORT") 
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT")
@@ -73,7 +73,6 @@ herald_id_cache = {}
 last_duplicate_check_time = 0
 failed_search_queue = [] 
 
-# For Daily Summary
 daily_added_songs = [] 
 daily_search_failures = [] 
 last_summary_log_date = None 
@@ -308,6 +307,7 @@ def search_song_on_spotify(original_title, artist, radiox_id_for_queue=None, is_
     if not is_retry_from_queue:
         daily_search_failures.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": original_title, "radio_artist": artist, "reason": "Not found on Spotify after all attempts."})
     return None
+
 def manage_playlist_size(playlist_id):
     if not sp: return False
     try:
@@ -362,8 +362,11 @@ def add_song_to_playlist(radio_x_title, radio_x_artist, spotify_track_id, playli
 
         RECENTLY_ADDED_SPOTIFY_TRACK_IDS.add(spotify_track_id)
         if len(RECENTLY_ADDED_SPOTIFY_TRACK_IDS) > MAX_RECENT_TRACKS:
-            try: RECENTLY_ADDED_SPOTIFY_TRACK_IDS.pop()
-            except KeyError: pass
+            try:
+                oldest_track = next(iter(RECENTLY_ADDED_SPOTIFY_TRACK_IDS))
+                RECENTLY_ADDED_SPOTIFY_TRACK_IDS.remove(oldest_track)
+                logging.debug(f"Removed {oldest_track} from recent tracks cache.")
+            except (StopIteration, KeyError): pass
         return True
     except spotipy.SpotifyException as e:
         reason_for_fail_log = f"Spotify API Error when adding: HTTP {e.http_status} - {e.msg}"
@@ -462,28 +465,29 @@ def process_failed_search_queue():
             failed_search_queue.append(updated_item)
             logging.info(f"PFSQ: Re-queued '{title}' for another attempt later (Attempts made: {item_to_retry['attempts']}).")
 
-def send_summary_email(html_body):
+def send_summary_email(html_body, subject):
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         logging.info("Email settings not configured in environment variables. Skipping email summary.")
         return
 
-    logging.info(f"Attempting to send daily summary email to {EMAIL_RECIPIENT}...")
+    logging.info(f"Attempting to send summary email to {EMAIL_RECIPIENT}...")
     
     try:
+        port = int(EMAIL_PORT)
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = f"Radio X Spotify Adder Daily Summary - {datetime.date.today().isoformat()}"
+        msg['Subject'] = subject
         msg['From'] = EMAIL_HOST_USER
         msg['To'] = EMAIL_RECIPIENT
         
         msg.attach(MIMEText(html_body, 'html'))
 
-        with smtplib.SMTP(EMAIL_HOST, int(EMAIL_PORT)) as server:
+        with smtplib.SMTP(EMAIL_HOST, port) as server:
             server.starttls()
             server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
             server.send_message(msg)
-            logging.info("Daily summary email sent successfully.")
+            logging.info("Summary email sent successfully.")
     except Exception as e:
-        logging.error(f"Failed to send daily summary email: {e}")
+        logging.error(f"Failed to send summary email: {e}")
 
 def log_daily_summary():
     global daily_added_songs, daily_search_failures, last_summary_log_date
@@ -529,17 +533,53 @@ def log_daily_summary():
 
     console_summary_lines = [f"--- DAILY SONG SUMMARY ({summary_date}) ---"]
     if daily_added_songs:
-        console_summary_lines.append(f"\nADDED ({len(daily_added_songs)}):")
+        console_summary_lines.append(f"\\nADDED ({len(daily_added_songs)}):")
         for item in daily_added_songs: console_summary_lines.append(f"  - {item['radio_title']} | {item['radio_artist']}")
     if daily_search_failures:
-        console_summary_lines.append(f"\nFAILED ({len(daily_search_failures)}):")
+        console_summary_lines.append(f"\\nFAILED ({len(daily_search_failures)}):")
         for item in daily_search_failures: console_summary_lines.append(f"  - {item['radio_title']} | {item['radio_artist']} | {item['reason']}")
-    logging.info("\n".join(console_summary_lines))
+    logging.info("\\n".join(console_summary_lines))
     
-    send_summary_email(html)
+    email_subject = f"Radio X Spotify Adder Daily Summary - {summary_date}"
+    send_summary_email(html, subject=email_subject)
     
     daily_added_songs.clear()
     daily_search_failures.clear()
+
+def send_startup_test_email():
+    if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
+        logging.info("Email settings not configured. Skipping startup test email.")
+        return
+
+    logging.info("Preparing to send a startup test email...")
+    
+    startup_time = datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S %Z")
+    subject = f"Radio X Spotify Adder - Startup Test Successful"
+    
+    html_body = f\"\"\"
+    <html>
+    <head>
+        <style>
+            body {{ font-family: sans-serif; line-height: 1.5; color: #333; }}
+            table {{ border-collapse: collapse; width: 100%; margin-top: 10px; }}
+            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+            th {{ background-color: #f2f2f2; }}
+            h2 {{ border-bottom: 2px solid #ccc; padding-bottom: 5px; }}
+        </style>
+    </head>
+    <body>
+        <h2>Radio X Spotify Adder Startup Test</h2>
+        <p>This is a test email to confirm that your email summary configuration is working correctly. The script started successfully at <b>{startup_time}</b>.</p>
+        <p>Your daily summaries will be formatted like this:</p>
+        <hr>
+        <h2><b>ADDED (Sample)</b></h2>
+        <table><tr><th>Title</th><th>Artist</th></tr><tr><td>Mr. Brightside</td><td>The Killers</td></tr></table>
+        <br><h2><b>FAILED (Sample)</b></h2>
+        <table><tr><th>Title</th><th>Artist</th><th>Reason for Failure</th></tr><tr><td>Some Obscure B-Side</td><td>A Local Band</td><td>Not found on Spotify after all attempts.</td></tr></table>
+    </body>
+    </html>
+    \"\"\"
+    send_summary_email(html_body, subject=subject)
 
 def run_radio_monitor():
     global last_added_radiox_track_id, last_duplicate_check_time, last_summary_log_date
@@ -622,6 +662,8 @@ def start_monitoring_thread():
         monitor_thread.start()
         start_monitoring_thread.thread_started = True 
         logging.info("Monitor thread started.")
+        # Send the test email once on successful startup
+        send_startup_test_email()
     else:
         logging.info("Monitor thread already started.")
 
@@ -633,7 +675,7 @@ else:
 if __name__ == "__main__":
     logging.info("Script being run directly (e.g., local testing).")
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
-        print("\nWARNING: Email environment variables not set. The daily summary will be logged to console only.\n")
+        print("\\nWARNING: Email environment variables not set. The daily summary will be logged to console only.\\n")
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on http://0.0.0.0:{port}")
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
