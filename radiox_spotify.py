@@ -1,7 +1,8 @@
 # Radio X to Spotify Playlist Adder
-# v4.4 - Full Featured with Total Counts in Email Summary
-# Includes: Time-windowed operation, playlist size limit, daily HTML email summaries,
-#           robust networking, failed search queue, and improved title cleaning.
+# v4.5 - Full Featured with Timed Notifications
+# Includes: Time-windowed operation (07:30-22:00), playlist size limit (500),
+#           daily HTML email summaries sent at end of day, robust networking,
+#           failed search queue, and improved title cleaning.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -73,9 +74,12 @@ herald_id_cache = {}
 last_duplicate_check_time = 0
 failed_search_queue = [] 
 
+# For Daily Summary and Notifications
 daily_added_songs = [] 
 daily_search_failures = [] 
-last_summary_log_date = None 
+last_processed_date = None # Tracks the current day to know when to reset flags
+startup_email_sent = False
+shutdown_summary_sent = False
 
 # --- Spotify Authentication & Cache ---
 SPOTIPY_CACHE_CONTENTS_ENV_VAR = "SPOTIPY_CACHE_BASE64"
@@ -494,7 +498,6 @@ def log_daily_summary():
     
     summary_date = last_summary_log_date.isoformat() if last_summary_log_date else (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
     
-    # Corrected HTML string using double curly braces for f-string escaping
     html = f"""
     <html>
     <head>
@@ -545,37 +548,26 @@ def log_daily_summary():
     daily_added_songs.clear()
     daily_search_failures.clear()
 
-def send_startup_test_email():
+def send_startup_notification():
+    """Sends a simple email notification when the script starts its active period."""
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
-        logging.info("Email settings not configured. Skipping startup test email.")
+        logging.info("Email settings not configured. Skipping startup notification.")
         return
 
-    logging.info("Preparing to send a startup test email...")
+    logging.info("Sending startup notification email...")
     
-    startup_time = datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S %Z")
-    subject = f"Radio X Spotify Adder - Startup Test Successful"
+    now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+    subject = f"Radio X Spotify Adder Service Started"
     
-    # Corrected HTML string using double curly braces for f-string escaping
     html_body = f"""
     <html>
     <head>
-        <style>
-            body {{ font-family: sans-serif; line-height: 1.5; color: #333; }}
-            table {{ border-collapse: collapse; width: 100%; margin-top: 10px; }}
-            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-            th {{ background-color: #f2f2f2; }}
-            h2 {{ border-bottom: 2px solid #ccc; padding-bottom: 5px; }}
-        </style>
+        <style>body {{ font-family: sans-serif; }}</style>
     </head>
     <body>
-        <h2>Radio X Spotify Adder Startup Test</h2>
-        <p>This is a test email to confirm that your email summary configuration is working correctly. The script started successfully at <b>{startup_time}</b>.</p>
-        <p>Your daily summaries will be formatted like this:</p>
-        <hr>
-        <h2><b>ADDED (Total: 1)</b></h2>
-        <table><tr><th>Title</th><th>Artist</th></tr><tr><td>Mr. Brightside</td><td>The Killers</td></tr></table>
-        <br><h2><b>FAILED (Total: 1)</b></h2>
-        <table><tr><th>Title</th><th>Artist</th><th>Reason for Failure</th></tr><tr><td>Some Obscure B-Side</td><td>A Local Band</td><td>Not found on Spotify after all attempts.</td></tr></table>
+        <h2>Radio X Spotify Adder: Service Active</h2>
+        <p>The script has entered its active monitoring window and has started running.</p>
+        <p><b>Time:</b> {now_local.strftime("%Y-%m-%d %H:%M:%S %Z")}</p>
     </body>
     </html>
     """
@@ -583,6 +575,7 @@ def send_startup_test_email():
 
 def run_radio_monitor():
     global last_added_radiox_track_id, last_duplicate_check_time, last_summary_log_date
+    global startup_email_sent, shutdown_summary_sent
     
     print("DEBUG: run_radio_monitor thread function initiated.") 
     logging.info("--- run_radio_monitor thread initiated. ---") 
@@ -592,7 +585,7 @@ def run_radio_monitor():
     logging.info(f"Monitoring Radio X. Active hours: {START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')} ({TIMEZONE})")
 
     if last_summary_log_date is None: 
-        last_summary_log_date = datetime.date.today()
+        last_summary_log_date = datetime.date.today() - datetime.timedelta(days=1)
 
     current_station_herald_id = None
     
@@ -600,51 +593,79 @@ def run_radio_monitor():
         try:
             now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
             
-            logging.info(f"Time check: Current London time is {now_local.strftime('%H:%M:%S %Z')}. Active hours: {START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}.")
-
+            # --- Daily Flag Reset ---
             if last_summary_log_date < now_local.date():
-                log_daily_summary()
+                logging.info(f"New day detected ({now_local.date().isoformat()}). Resetting daily flags and summary data.")
+                startup_email_sent = False
+                shutdown_summary_sent = False
                 last_summary_log_date = now_local.date()
+                # Clear lists here in case the shutdown summary was missed (e.g. script was down at 22:00)
+                daily_added_songs.clear()
+                daily_search_failures.clear()
 
-            if not (START_TIME <= now_local.time() <= END_TIME):
-                logging.info(f"Result: Outside of active hours. Pausing...")
-                time.sleep(CHECK_INTERVAL * 2); continue
+            # --- Active/Inactive Logic ---
+            if START_TIME <= now_local.time() <= END_TIME:
+                if not startup_email_sent:
+                    logging.info("Active hours started. Sending startup notification.")
+                    send_startup_notification()
+                    startup_email_sent = True
+                    shutdown_summary_sent = False # Ensure shutdown email can be sent later
 
-            logging.debug(f"Loop start. Last RadioX ID: {last_added_radiox_track_id}. Failed queue: {len(failed_search_queue)}")
-            if not current_station_herald_id:
-                current_station_herald_id = get_station_herald_id(RADIOX_STATION_SLUG)
-                if not current_station_herald_id: time.sleep(CHECK_INTERVAL); continue
-            
-            if not sp: logging.warning("Spotify client 'sp' is None. Skipping operations."); time.sleep(CHECK_INTERVAL); continue
+                logging.debug(f"Loop start. Last RadioX ID: {last_added_radiox_track_id}. Failed queue: {len(failed_search_queue)}")
+                if not current_station_herald_id:
+                    current_station_herald_id = get_station_herald_id(RADIOX_STATION_SLUG)
+                    if not current_station_herald_id: time.sleep(CHECK_INTERVAL); continue
+                
+                if not sp: logging.warning("Spotify client 'sp' is None. Skipping operations."); time.sleep(CHECK_INTERVAL); continue
 
-            current_song_info = get_current_radiox_song(current_station_herald_id)
-            song_added_from_radio = False
+                current_song_info = get_current_radiox_song(current_station_herald_id)
+                song_added_from_radio = False
 
-            if current_song_info and current_song_info.get("title") and current_song_info.get("artist"):
-                title, artist, radiox_id = current_song_info["title"], current_song_info["artist"], current_song_info["id"]
+                if current_song_info and current_song_info.get("title") and current_song_info.get("artist"):
+                    title, artist, radiox_id = current_song_info["title"], current_song_info["artist"], current_song_info["id"]
 
-                if not title or not artist: logging.warning("Empty title or artist from Radio X.")
-                elif radiox_id == last_added_radiox_track_id: logging.info(f"Song '{title}' by '{artist}' (RadioX ID: {radiox_id}) same as last. Skipping.")
+                    if not title or not artist: logging.warning("Empty title or artist from Radio X.")
+                    elif radiox_id == last_added_radiox_track_id: logging.info(f"Song '{title}' by '{artist}' (RadioX ID: {radiox_id}) same as last. Skipping.")
+                    else:
+                        logging.info(f"New song from Radio X: '{title}' by '{artist}' (RadioX ID: {radiox_id})")
+                        spotify_track_id = search_song_on_spotify(title, artist, radiox_id) 
+                        if spotify_track_id:
+                            if add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID):
+                                song_added_from_radio = True 
+                        last_added_radiox_track_id = radiox_id 
                 else:
-                    logging.info(f"New song from Radio X: '{title}' by '{artist}' (RadioX ID: {radiox_id})")
-                    spotify_track_id = search_song_on_spotify(title, artist, radiox_id) 
-                    if spotify_track_id:
-                        if add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID):
-                            song_added_from_radio = True 
-                    last_added_radiox_track_id = radiox_id 
-            else:
-                logging.info("No new track information from Radio X this cycle.")
-            
-            if failed_search_queue and (song_added_from_radio or (time.time() % (CHECK_INTERVAL * 4) < CHECK_INTERVAL)): 
-                 process_failed_search_queue()
+                    logging.info("No new track information from Radio X this cycle.")
+                
+                if failed_search_queue and (song_added_from_radio or (time.time() % (CHECK_INTERVAL * 4) < CHECK_INTERVAL)): 
+                     process_failed_search_queue()
 
-            current_time = time.time()
-            if current_time - last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
-                logging.info("--- Starting periodic duplicate check ---")
-                if sp: check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID)
-                else: logging.warning("Spotify not initialized. Skipping duplicate check.")
-                last_duplicate_check_time = current_time
-                logging.info("--- Finished periodic duplicate check ---")
+                current_time = time.time()
+                if current_time - last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
+                    logging.info("--- Starting periodic duplicate check ---")
+                    if sp: check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID)
+                    else: logging.warning("Spotify not initialized. Skipping duplicate check.")
+                    last_duplicate_check_time = current_time
+                    logging.info("--- Finished periodic duplicate check ---")
+            
+            else: # Outside of active hours
+                logging.info(f"Outside of active hours ({START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}). Pausing...")
+                if not shutdown_summary_sent:
+                    logging.info("End of active day. Generating and sending daily summary.")
+                    log_daily_summary() # This function now clears lists for the next day
+                    shutdown_summary_sent = True
+                    startup_email_sent = False # Reset for the next morning
+                
+                # Sleep until the next active window starts to be more efficient
+                # but with a max cap to check periodically.
+                time_until_start = (datetime.datetime.combine(now_local.date(), START_TIME) - now_local.time()).total_seconds()
+                if time_until_start < 0: # If we are past start time, target tomorrow's start
+                    tomorrow = now_local.date() + datetime.timedelta(days=1)
+                    time_until_start = (datetime.datetime.combine(tomorrow, START_TIME) - now_local.time()).total_seconds()
+                
+                sleep_duration = min(time_until_start, 3600) # Sleep for up to an hour at a time
+                logging.info(f"Will sleep for {sleep_duration / 60:.1f} minutes...")
+                time.sleep(sleep_duration)
+                continue # Skip the normal sleep at the end of the loop
 
         except Exception as e:
             logging.error(f"CRITICAL UNHANDLED ERROR in run_radio_monitor loop: {e}", exc_info=True)
@@ -664,7 +685,7 @@ def start_monitoring_thread():
         monitor_thread.start()
         start_monitoring_thread.thread_started = True 
         logging.info("Monitor thread started.")
-        send_startup_test_email()
+        # No longer send test email here, it's handled by the daily 07:30 check
     else:
         logging.info("Monitor thread already started.")
 
