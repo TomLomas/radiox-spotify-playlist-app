@@ -1,6 +1,6 @@
 # Radio X to Spotify Playlist Adder
-# v4.2 - Full Featured with HTML Email Summary and Active Hours
-# Includes: Time-windowed operation, playlist size limit, daily email summaries,
+# v4.4 - Full Featured with Total Counts in Email Summary
+# Includes: Time-windowed operation, playlist size limit, daily HTML email summaries,
 #           robust networking, failed search queue, and improved title cleaning.
 
 import spotipy
@@ -494,6 +494,7 @@ def log_daily_summary():
     
     summary_date = last_summary_log_date.isoformat() if last_summary_log_date else (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
     
+    # Corrected HTML string using double curly braces for f-string escaping
     html = f"""
     <html>
     <head>
@@ -507,11 +508,10 @@ def log_daily_summary():
     </head>
     <body>
         <h2>Radio X Spotify Adder Daily Summary: {summary_date}</h2>
-        <h2><b>ADDED</b></h2>
+        <h2><b>ADDED (Total: {len(daily_added_songs)})</b></h2>
     """
 
     if daily_added_songs:
-        html += f"<p>Successfully added {len(daily_added_songs)} song(s) today.</p>"
         html += "<table><tr><th>Title</th><th>Artist</th></tr>"
         for item in daily_added_songs:
             html += f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td></tr>"
@@ -519,9 +519,8 @@ def log_daily_summary():
     else:
         html += "<p>No songs were successfully added to Spotify today.</p>"
         
-    html += "<br><h2><b>FAILED</b></h2>"
+    html += f"<br><h2><b>FAILED (Total: {len(daily_search_failures)})</b></h2>"
     if daily_search_failures:
-        html += f"<p>Failed to find/add {len(daily_search_failures)} song(s) today.</p>"
         html += "<table><tr><th>Title</th><th>Artist</th><th>Reason for Failure</th></tr>"
         for item in daily_search_failures:
             html += f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td><td>{item['reason']}</td></tr>"
@@ -533,12 +532,12 @@ def log_daily_summary():
 
     console_summary_lines = [f"--- DAILY SONG SUMMARY ({summary_date}) ---"]
     if daily_added_songs:
-        console_summary_lines.append(f"\\nADDED ({len(daily_added_songs)}):")
+        console_summary_lines.append(f"\nADDED ({len(daily_added_songs)}):")
         for item in daily_added_songs: console_summary_lines.append(f"  - {item['radio_title']} | {item['radio_artist']}")
     if daily_search_failures:
-        console_summary_lines.append(f"\\nFAILED ({len(daily_search_failures)}):")
+        console_summary_lines.append(f"\nFAILED ({len(daily_search_failures)}):")
         for item in daily_search_failures: console_summary_lines.append(f"  - {item['radio_title']} | {item['radio_artist']} | {item['reason']}")
-    logging.info("\\n".join(console_summary_lines))
+    logging.info("\n".join(console_summary_lines))
     
     email_subject = f"Radio X Spotify Adder Daily Summary - {summary_date}"
     send_summary_email(html, subject=email_subject)
@@ -556,6 +555,7 @@ def send_startup_test_email():
     startup_time = datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S %Z")
     subject = f"Radio X Spotify Adder - Startup Test Successful"
     
+    # Corrected HTML string using double curly braces for f-string escaping
     html_body = f"""
     <html>
     <head>
@@ -572,9 +572,9 @@ def send_startup_test_email():
         <p>This is a test email to confirm that your email summary configuration is working correctly. The script started successfully at <b>{startup_time}</b>.</p>
         <p>Your daily summaries will be formatted like this:</p>
         <hr>
-        <h2><b>ADDED (Sample)</b></h2>
+        <h2><b>ADDED (Total: 1)</b></h2>
         <table><tr><th>Title</th><th>Artist</th></tr><tr><td>Mr. Brightside</td><td>The Killers</td></tr></table>
-        <br><h2><b>FAILED (Sample)</b></h2>
+        <br><h2><b>FAILED (Total: 1)</b></h2>
         <table><tr><th>Title</th><th>Artist</th><th>Reason for Failure</th></tr><tr><td>Some Obscure B-Side</td><td>A Local Band</td><td>Not found on Spotify after all attempts.</td></tr></table>
     </body>
     </html>
@@ -600,12 +600,14 @@ def run_radio_monitor():
         try:
             now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
             
+            logging.info(f"Time check: Current London time is {now_local.strftime('%H:%M:%S %Z')}. Active hours: {START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}.")
+
             if last_summary_log_date < now_local.date():
                 log_daily_summary()
                 last_summary_log_date = now_local.date()
 
             if not (START_TIME <= now_local.time() <= END_TIME):
-                logging.info(f"Outside of active hours ({START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}). Pausing...")
+                logging.info(f"Result: Outside of active hours. Pausing...")
                 time.sleep(CHECK_INTERVAL * 2); continue
 
             logging.debug(f"Loop start. Last RadioX ID: {last_added_radiox_track_id}. Failed queue: {len(failed_search_queue)}")
@@ -662,7 +664,6 @@ def start_monitoring_thread():
         monitor_thread.start()
         start_monitoring_thread.thread_started = True 
         logging.info("Monitor thread started.")
-        # Send the test email once on successful startup
         send_startup_test_email()
     else:
         logging.info("Monitor thread already started.")
