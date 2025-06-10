@@ -1,8 +1,7 @@
 # Radio X to Spotify Playlist Adder
-# v4.5 - Full Featured with Timed Notifications
-# Includes: Time-windowed operation (07:30-22:00), playlist size limit (500),
-#           daily HTML email summaries sent at end of day, robust networking,
-#           failed search queue, and improved title cleaning.
+# v4.6 - Full Featured with Scope Fix for Daily Notifications
+# Includes: Time-windowed operation, playlist size limit, daily HTML email summaries,
+#           robust networking, failed search queue, and improved title cleaning.
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -77,7 +76,7 @@ failed_search_queue = []
 # For Daily Summary and Notifications
 daily_added_songs = [] 
 daily_search_failures = [] 
-last_processed_date = None # Tracks the current day to know when to reset flags
+last_summary_log_date = None # Tracks the current day to know when to reset flags
 startup_email_sent = False
 shutdown_summary_sent = False
 
@@ -498,6 +497,7 @@ def log_daily_summary():
     
     summary_date = last_summary_log_date.isoformat() if last_summary_log_date else (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
     
+    # CORRECTED: Escaped curly braces for CSS in f-string
     html = f"""
     <html>
     <head>
@@ -549,7 +549,6 @@ def log_daily_summary():
     daily_search_failures.clear()
 
 def send_startup_notification():
-    """Sends a simple email notification when the script starts its active period."""
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         logging.info("Email settings not configured. Skipping startup notification.")
         return
@@ -559,10 +558,13 @@ def send_startup_notification():
     now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
     subject = f"Radio X Spotify Adder Service Started"
     
+    # CORRECTED: Escaped curly braces for CSS in f-string
     html_body = f"""
     <html>
     <head>
-        <style>body {{ font-family: sans-serif; }}</style>
+        <style>
+            body {{ font-family: sans-serif; }}
+        </style>
     </head>
     <body>
         <h2>Radio X Spotify Adder: Service Active</h2>
@@ -585,7 +587,7 @@ def run_radio_monitor():
     logging.info(f"Monitoring Radio X. Active hours: {START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')} ({TIMEZONE})")
 
     if last_summary_log_date is None: 
-        last_summary_log_date = datetime.date.today() - datetime.timedelta(days=1)
+        last_summary_log_date = datetime.date.today()
 
     current_station_herald_id = None
     
@@ -598,10 +600,11 @@ def run_radio_monitor():
                 logging.info(f"New day detected ({now_local.date().isoformat()}). Resetting daily flags and summary data.")
                 startup_email_sent = False
                 shutdown_summary_sent = False
+                # If shutdown summary was missed (e.g. script was down at 22:00), log previous day's summary now.
+                if daily_added_songs or daily_search_failures:
+                    logging.warning(f"Logging summary for previous day ({last_summary_log_date.isoformat()}) which was missed.")
+                    log_daily_summary()
                 last_summary_log_date = now_local.date()
-                # Clear lists here in case the shutdown summary was missed (e.g. script was down at 22:00)
-                daily_added_songs.clear()
-                daily_search_failures.clear()
 
             # --- Active/Inactive Logic ---
             if START_TIME <= now_local.time() <= END_TIME:
@@ -609,7 +612,7 @@ def run_radio_monitor():
                     logging.info("Active hours started. Sending startup notification.")
                     send_startup_notification()
                     startup_email_sent = True
-                    shutdown_summary_sent = False # Ensure shutdown email can be sent later
+                    shutdown_summary_sent = False # Reset for the end of the day
 
                 logging.debug(f"Loop start. Last RadioX ID: {last_added_radiox_track_id}. Failed queue: {len(failed_search_queue)}")
                 if not current_station_herald_id:
@@ -651,20 +654,11 @@ def run_radio_monitor():
                 logging.info(f"Outside of active hours ({START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}). Pausing...")
                 if not shutdown_summary_sent:
                     logging.info("End of active day. Generating and sending daily summary.")
-                    log_daily_summary() # This function now clears lists for the next day
+                    log_daily_summary() 
                     shutdown_summary_sent = True
                     startup_email_sent = False # Reset for the next morning
                 
-                # Sleep until the next active window starts to be more efficient
-                # but with a max cap to check periodically.
-                time_until_start = (datetime.datetime.combine(now_local.date(), START_TIME) - now_local.time()).total_seconds()
-                if time_until_start < 0: # If we are past start time, target tomorrow's start
-                    tomorrow = now_local.date() + datetime.timedelta(days=1)
-                    time_until_start = (datetime.datetime.combine(tomorrow, START_TIME) - now_local.time()).total_seconds()
-                
-                sleep_duration = min(time_until_start, 3600) # Sleep for up to an hour at a time
-                logging.info(f"Will sleep for {sleep_duration / 60:.1f} minutes...")
-                time.sleep(sleep_duration)
+                time.sleep(CHECK_INTERVAL * 2)
                 continue # Skip the normal sleep at the end of the loop
 
         except Exception as e:
@@ -685,7 +679,6 @@ def start_monitoring_thread():
         monitor_thread.start()
         start_monitoring_thread.thread_started = True 
         logging.info("Monitor thread started.")
-        # No longer send test email here, it's handled by the daily 07:30 check
     else:
         logging.info("Monitor thread already started.")
 
