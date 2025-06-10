@@ -556,7 +556,7 @@ def send_startup_test_email():
     startup_time = datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S %Z")
     subject = f"Radio X Spotify Adder - Startup Test Successful"
     
-    html_body = f\"\"\"
+    html_body = f"""
     <html>
     <head>
         <style>
@@ -578,7 +578,7 @@ def send_startup_test_email():
         <table><tr><th>Title</th><th>Artist</th><th>Reason for Failure</th></tr><tr><td>Some Obscure B-Side</td><td>A Local Band</td><td>Not found on Spotify after all attempts.</td></tr></table>
     </body>
     </html>
-    \"\"\"
+    """
     send_summary_email(html_body, subject=subject)
 
 def run_radio_monitor():
