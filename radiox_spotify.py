@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v5.6.1 - Full Featured with Corrected Deployment Startup Logic and UI Fix
+# v5.7 - Full Featured with Corrected Deployment Startup Logic
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -87,6 +87,7 @@ class RadioXBot:
         self.daily_added_songs = [] 
         self.daily_search_failures = [] 
         self.event_log = deque(maxlen=50)
+        self.log_event("Application instance created. Waiting for initialization.")
 
     def log_event(self, message):
         """Adds an event to the global log for the web UI and standard logging."""
@@ -531,9 +532,17 @@ def status():
 
 @app.route('/')
 def index_page():
-    # CORRECTED: Escaped all curly braces in the style block
+    # CORRECTED: Escaped all curly braces in the style block for f-string compatibility
     return render_template_string("""
-    <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:2em;background-color:#f4f4f9;color:#333}}.container{{max-width:900px;margin:auto;background:white;padding:25px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}}h1,h2{{color:#1DB954;border-bottom:1px solid #eee;padding-bottom:10px}}.status-box{{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:5px;background-color:#fafafa}}.log-container{{height:400px;overflow-y:scroll;border:1px solid #ccc;padding:10px;background-color:#2b2b2b;color:#f1f1f1;font-family:monospace;white-space:pre-wrap;margin-top:10px;border-radius:5px}}button{{background-color:#1DB954;color:white;border:none;padding:10px 15px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px;transition:background-color .2s}}button:hover{{background-color:#1ed760}}</style>
+    <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+        body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:2em;background-color:#f4f4f9;color:#333}}
+        .container{{max-width:900px;margin:auto;background:white;padding:25px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}}
+        h1,h2{{color:#1DB954;border-bottom:1px solid #eee;padding-bottom:10px}}
+        .status-box{{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:5px;background-color:#fafafa}}
+        .log-container{{height:400px;overflow-y:scroll;border:1px solid #ccc;padding:10px;background-color:#2b2b2b;color:#f1f1f1;font-family:monospace;white-space:pre-wrap;margin-top:10px;border-radius:5px}}
+        button{{background-color:#1DB954;color:white;border:none;padding:10px 15px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px;transition:background-color .2s}}
+        button:hover{{background-color:#1ed760}}
+    </style>
     <script>
         function triggerAction(url, button) {{
             const originalText = button.innerHTML;
@@ -578,7 +587,7 @@ def index_page():
     </head><body><div class="container"><h1>Radio X to Spotify - Live Status</h1>
     <div class="status-box">
         <p><strong>Last Event:</strong> <span id="last-event">Initializing...</span></p>
-        <p><strong>Active Hours:</strong> {{active_hours}}</p>
+        <p><strong>Active Hours:</strong> {active_hours}</p>
         <p><strong>Failed Search Queue Size:</strong> <span id="queue-size">...</span></p>
         <p><small>Last Updated: <span id="last-updated">Never</span></small></p>
     </div>
