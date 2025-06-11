@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v5.7 - Full Featured with Corrected Deployment Startup Logic
+# v5.8 - Final with All Features and Fixes
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -601,17 +601,25 @@ def index_page():
 
 def start_app():
     """Initializes and starts the bot's background thread."""
+    if not bot_instance.is_running:
+        bot_instance.is_running = True
+        # Run all initialization in a background thread to prevent blocking deployment
+        init_thread = threading.Thread(target=initialize_bot, daemon=True)
+        init_thread.start()
+
+def initialize_bot():
+    """Handles the slow startup tasks in the background."""
+    logging.info("Background initialization started.")
     if bot_instance.authenticate_spotify():
         bot_instance.load_state() 
-        # Run diagnostics in a separate thread to not block the main app startup
-        threading.Thread(target=bot_instance.run_startup_diagnostics, daemon=True).start()
+        bot_instance.run_startup_diagnostics()
         
         monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
         monitor_thread.start()
     else:
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
 
-# This top-level execution is what Gunicorn runs
+# This top-level execution is what Gunicorn runs on Render
 start_app()
 
 if __name__ == "__main__":
