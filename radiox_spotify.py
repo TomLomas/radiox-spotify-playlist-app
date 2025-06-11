@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v5.5.2 - Full Featured with Corrected Startup Logic and UI Fix
+# v5.5.4 - Full Featured with UI/JavaScript Fix
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -55,6 +55,7 @@ EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT")
 
 BOLD = '\033[1m'
 RESET = '\033[0m'
+ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -89,7 +90,8 @@ class RadioXBot:
     def log_event(self, message):
         """Adds an event to the global log for the web UI and standard logging."""
         logging.info(message)
-        self.event_log.appendleft(f"[{datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}] {message}")
+        clean_message = ANSI_ESCAPE.sub('', message) # Remove ANSI codes for web log
+        self.event_log.appendleft(f"[{datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}] {clean_message}")
 
     # --- Persistent State Management ---
     def save_state(self):
@@ -241,7 +243,7 @@ class RadioXBot:
                 else: search_attempts_details.append(f"Attempt '{attempt_description}': Not found."); return None
             except Exception as e:
                 self.log_event(f"ERROR: Persistent network/API error during search for '{title_to_search}'.")
-                if radiox_id_for_queue and not is_retry_from_queue: add_to_failed_search_queue(original_title, artist, radiox_id_for_queue)
+                if radiox_id_for_queue and not is_retry_from_queue: self.add_to_failed_search_queue(original_title, artist, radiox_id_for_queue)
                 return "NETWORK_ERROR_FLAG"
 
         spotify_id = _attempt_search_spotify(original_title, "original title")
@@ -508,6 +510,7 @@ class RadioXBot:
 
 # --- Flask Routes & Script Execution ---
 bot_instance = RadioXBot()
+atexit.register(bot_instance.save_state) # Ensure state is saved on exit
 
 @app.route('/force_duplicates')
 def force_duplicates():
@@ -528,7 +531,61 @@ def status():
 @app.route('/')
 def index_page():
     return render_template_string("""
-    <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:2em;background-color:#f4f4f9;color:#333}}.container{{max-width:900px;margin:auto;background:white;padding:25px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}}h1,h2{{color:#1DB954;border-bottom:1px solid #eee;padding-bottom:10px}}.status-box{{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:5px;background-color:#fafafa}}.log-container{{height:400px;overflow-y:scroll;border:1px solid #ccc;padding:10px;background-color:#2b2b2b;color:#f1f1f1;font-family:monospace;white-space:pre-wrap;margin-top:10px;border-radius:5px}}button{{background-color:#1DB954;color:white;border:none;padding:10px 15px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px;transition:background-color .2s}}button:hover{{background-color:#1ed760}}</style><script>function triggerAction(t,e){{const o=e.innerHTML;e.innerHTML="Triggering...",e.disabled=!0,fetch(t).then(t=>t.text()).then(t=>{{alert("Action Triggered: "+t),e.innerHTML=o,e.disabled=!1,setTimeout(()=>location.reload(),1e3)}}).catch(t=>{{alert("Error triggering action: "+t),e.innerHTML=o,e.disabled=!1}})}}function updateStatus(){{fetch("/status").then(t=>t.json()).then(t=>{{document.getElementById("last-event").innerText=t.last_event,document.getElementById("queue-size").innerText=t.queue_size;const e=document.querySelector(".log-container");t.recent_log&&t.recent_log.length>0?e.innerHTML=t.recent_log.join("<br>"):e.innerHTML="No log entries yet."}})}}setInterval(updateStatus,3e4),document.addEventListener("DOMContentLoaded",updateStatus)</script></head><body><div class="container"><h1>Radio X to Spotify - Live Status</h1><div class="status-box"><p><strong>Last Event:</strong> <span id="last-event">Loading...</span></p><p><strong>Active Hours:</strong> {{active_hours}}</p><p><strong>Failed Search Queue Size:</strong> <span id="queue-size">Loading...</span></p></div><div class="status-box"><h2>Controls</h2><button onclick="triggerAction('/force_duplicates', this)">Force Duplicate Check</button><button onclick="triggerAction('/force_queue', this)">Process Failed Queue Item</button></div><div class="status-box"><h2>Recent Activity Log</h2><div class="log-container"><p>Loading log...</p></div></div></div></body></html>
+    <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:2em;background-color:#f4f4f9;color:#333}}.container{{max-width:900px;margin:auto;background:white;padding:25px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}}h1,h2{{color:#1DB954;border-bottom:1px solid #eee;padding-bottom:10px}}.status-box{{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:5px;background-color:#fafafa}}.log-container{{height:400px;overflow-y:scroll;border:1px solid #ccc;padding:10px;background-color:#2b2b2b;color:#f1f1f1;font-family:monospace;white-space:pre-wrap;margin-top:10px;border-radius:5px}}button{{background-color:#1DB954;color:white;border:none;padding:10px 15px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px;transition:background-color .2s}}button:hover{{background-color:#1ed760}}</style>
+    <script>
+        function triggerAction(url, button) {{
+            const originalText = button.innerHTML;
+            button.innerHTML = 'Triggering...';
+            button.disabled = true;
+            fetch(url).then(response => response.text()).then(data => {{
+                alert('Action Triggered: ' + data);
+                button.innerHTML = originalText;
+                button.disabled = false;
+                setTimeout(() => location.reload(), 1000); 
+            }}).catch(err => {{
+                alert('Error triggering action: ' + err);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }});
+        }}
+        function updateStatus() {{
+            fetch('/status')
+            .then(response => {{
+                if (!response.ok) {{ throw new Error('Network response was not ok: ' + response.statusText); }}
+                return response.json();
+            }})
+            .then(data => {{
+                document.getElementById('last-event').innerText = data.last_event;
+                document.getElementById('queue-size').innerText = data.queue_size;
+                document.getElementById('last-updated').innerText = new Date().toLocaleTimeString();
+                const logDiv = document.querySelector('.log-container');
+                if (data.recent_log && data.recent_log.length > 0) {{
+                    logDiv.innerHTML = data.recent_log.join('<br>');
+                }} else {{
+                    logDiv.innerHTML = 'Awaiting first event...';
+                }}
+            }})
+            .catch(err => {{
+                console.error('Failed to fetch status:', err);
+                document.getElementById('last-event').innerText = 'Error loading status.';
+            }});
+        }}
+        setInterval(updateStatus, 30000); // Auto-refresh data every 30 seconds
+        document.addEventListener('DOMContentLoaded', updateStatus);
+    </script>
+    </head><body><div class="container"><h1>Radio X to Spotify - Live Status</h1>
+    <div class="status-box">
+        <p><strong>Last Event:</strong> <span id="last-event">Initializing...</span></p>
+        <p><strong>Active Hours:</strong> {{active_hours}}</p>
+        <p><strong>Failed Search Queue Size:</strong> <span id="queue-size">...</span></p>
+        <p><small>Last Updated: <span id="last-updated">Never</span></small></p>
+    </div>
+    <div class="status-box"><h2>Controls</h2>
+        <button onclick="triggerAction('/force_duplicates', this)">Force Duplicate Check</button>
+        <button onclick="triggerAction('/force_queue', this)">Process Failed Queue Item</button>
+    </div>
+    <div class="status-box"><h2>Recent Activity Log</h2><div class="log-container"><p>Initializing log...</p></div></div>
+    </div></body></html>
     """, active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
 
 def start_app():
@@ -536,7 +593,7 @@ def start_app():
     if bot_instance.authenticate_spotify():
         bot_instance.load_state() 
         # Run diagnostics in a separate thread to not block the main app startup
-        threading.Thread(target=bot_instance.run_startup_diagnostics).start()
+        threading.Thread(target=bot_instance.run_startup_diagnostics, daemon=True).start()
         
         monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
         monitor_thread.start()
