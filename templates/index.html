@@ -43,8 +43,13 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Update Last Song Added
+                    // --- CORRECTED LOGIC ---
+                    // Use empty arrays as a fallback if the data is missing from the JSON
+                    const dailyAdded = Array.isArray(data.daily_added) ? data.daily_added : [];
+                    const dailyFailed = Array.isArray(data.daily_failed) ? data.daily_failed : [];
                     const lastSong = data.last_song_added;
+
+                    // Update Last Song Added
                     if (lastSong) {
                         document.getElementById('last-song-art').src = lastSong.album_art_url || 'https://placehold.co/64x64/2b2b2b/f1f1f1?text=?';
                         document.getElementById('last-song-title').innerText = lastSong.radio_title;
@@ -57,20 +62,15 @@
 
                     // Update other stats
                     document.getElementById('queue-size').innerText = data.queue_size || 0;
+                    document.getElementById('added-today-count').innerText = dailyAdded.length;
+                    document.getElementById('failed-today-count').innerText = dailyFailed.length;
                     document.getElementById('last-updated').innerText = new Date().toLocaleTimeString();
 
-                    // --- CORRECTED SECTION ---
-                    const addedSongs = Array.isArray(data.daily_added) ? data.daily_added : [];
-                    const failedSongs = Array.isArray(data.daily_failed) ? data.daily_failed : [];
-
-                    document.getElementById('added-today-count').innerText = addedSongs.length;
-                    document.getElementById('failed-today-count').innerText = failedSongs.length;
-                    
                     // Populate Added Songs Table
                     const addedTable = document.getElementById('added-songs-body');
                     addedTable.innerHTML = ''; // Clear existing rows
-                    if (addedSongs.length > 0) {
-                        addedSongs.forEach(song => {
+                    if (dailyAdded.length > 0) {
+                        dailyAdded.forEach(song => {
                             let row = addedTable.insertRow(0); // Insert at top for most recent
                             let cell1 = row.insertCell(0);
                             let cell2 = row.insertCell(1);
@@ -84,8 +84,8 @@
                     // Populate Failed Songs Table
                     const failedTable = document.getElementById('failed-songs-body');
                     failedTable.innerHTML = ''; // Clear existing rows
-                    if (failedSongs.length > 0) {
-                        failedSongs.forEach(song => {
+                    if (dailyFailed.length > 0) {
+                        dailyFailed.forEach(song => {
                             let row = failedTable.insertRow(0); // Insert at top for most recent
                             row.insertCell(0).innerText = song.radio_title;
                             row.insertCell(1).innerText = song.radio_artist;
