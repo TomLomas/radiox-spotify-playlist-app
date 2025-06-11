@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v6.2 - Full Featured with Corrected UI Data Loading
+# v6.4 - Full Featured with Corrected State Sharing for UI
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -555,6 +555,8 @@ def status():
 
 @app.route('/')
 def index_page():
+    # Now using render_template to serve an external HTML file
+    # This avoids all templating syntax issues within the Python script
     return render_template('index.html', active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
 
 def initialize_bot():
