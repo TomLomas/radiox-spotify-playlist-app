@@ -56,16 +56,21 @@
                     }
 
                     // Update other stats
-                    document.getElementById('queue-size').innerText = data.queue_size;
-                    document.getElementById('added-today-count').innerText = data.daily_added.length;
-                    document.getElementById('failed-today-count').innerText = data.daily_failed.length;
+                    document.getElementById('queue-size').innerText = data.queue_size || 0;
                     document.getElementById('last-updated').innerText = new Date().toLocaleTimeString();
 
+                    // --- CORRECTED SECTION ---
+                    const addedSongs = Array.isArray(data.daily_added) ? data.daily_added : [];
+                    const failedSongs = Array.isArray(data.daily_failed) ? data.daily_failed : [];
+
+                    document.getElementById('added-today-count').innerText = addedSongs.length;
+                    document.getElementById('failed-today-count').innerText = failedSongs.length;
+                    
                     // Populate Added Songs Table
                     const addedTable = document.getElementById('added-songs-body');
                     addedTable.innerHTML = ''; // Clear existing rows
-                    if (data.daily_added.length > 0) {
-                        data.daily_added.forEach(song => {
+                    if (addedSongs.length > 0) {
+                        addedSongs.forEach(song => {
                             let row = addedTable.insertRow(0); // Insert at top for most recent
                             let cell1 = row.insertCell(0);
                             let cell2 = row.insertCell(1);
@@ -79,8 +84,8 @@
                     // Populate Failed Songs Table
                     const failedTable = document.getElementById('failed-songs-body');
                     failedTable.innerHTML = ''; // Clear existing rows
-                    if (data.daily_failed.length > 0) {
-                        data.daily_failed.forEach(song => {
+                    if (failedSongs.length > 0) {
+                        failedSongs.forEach(song => {
                             let row = failedTable.insertRow(0); // Insert at top for most recent
                             row.insertCell(0).innerText = song.radio_title;
                             row.insertCell(1).innerText = song.radio_artist;
