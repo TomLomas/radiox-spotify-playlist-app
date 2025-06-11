@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v6.0 - Final with Stable Web UI and All Features
+# v6.2 - Full Featured with Corrected UI Data Loading
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -546,7 +546,12 @@ def force_queue():
 
 @app.route('/status')
 def status():
-    return jsonify({'last_event': bot_instance.event_log[0] if bot_instance.event_log else "No activity yet.", 'queue_size': len(bot_instance.failed_search_queue), 'recent_log': list(bot_instance.event_log)})
+    return jsonify({
+        'last_song_added': bot_instance.daily_added_songs[-1] if bot_instance.daily_added_songs else None,
+        'queue_size': len(bot_instance.failed_search_queue),
+        'daily_added': bot_instance.daily_added_songs,
+        'daily_failed': bot_instance.daily_search_failures
+    })
 
 @app.route('/')
 def index_page():
