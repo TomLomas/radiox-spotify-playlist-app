@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v5.5.4 - Full Featured with UI/JavaScript Fix
+# v5.6.1 - Full Featured with Corrected Deployment Startup Logic and UI Fix
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -72,6 +72,7 @@ class RadioXBot:
         self.startup_email_sent = False
         self.shutdown_summary_sent = False
         self.current_station_herald_id = None
+        self.is_running = False
 
         # Persistent Data Structures
         self.CACHE_DIR = ".cache"
@@ -530,6 +531,7 @@ def status():
 
 @app.route('/')
 def index_page():
+    # CORRECTED: Escaped all curly braces in the style block
     return render_template_string("""
     <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:2em;background-color:#f4f4f9;color:#333}}.container{{max-width:900px;margin:auto;background:white;padding:25px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}}h1,h2{{color:#1DB954;border-bottom:1px solid #eee;padding-bottom:10px}}.status-box{{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:5px;background-color:#fafafa}}.log-container{{height:400px;overflow-y:scroll;border:1px solid #ccc;padding:10px;background-color:#2b2b2b;color:#f1f1f1;font-family:monospace;white-space:pre-wrap;margin-top:10px;border-radius:5px}}button{{background-color:#1DB954;color:white;border:none;padding:10px 15px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px;transition:background-color .2s}}button:hover{{background-color:#1ed760}}</style>
     <script>
@@ -567,10 +569,10 @@ def index_page():
             }})
             .catch(err => {{
                 console.error('Failed to fetch status:', err);
-                document.getElementById('last-event').innerText = 'Error loading status.';
+                document.getElementById('last-event').innerText = 'Error loading status. Check console for details.';
             }});
         }}
-        setInterval(updateStatus, 30000); // Auto-refresh data every 30 seconds
+        setInterval(updateStatus, 30000);
         document.addEventListener('DOMContentLoaded', updateStatus);
     </script>
     </head><body><div class="container"><h1>Radio X to Spotify - Live Status</h1>
