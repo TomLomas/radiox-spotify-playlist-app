@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v5.5 - Full Featured with Corrected Startup Logic
+# v5.5.1 - Full Featured with Corrected Startup Logic
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -22,9 +22,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from collections import deque, Counter
 import atexit
+import base64 # CORRECTED: Added missing import
 
 # --- Flask App Setup ---
 app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "RadioX to Spotify script is running in the background. Status: OK"
 
 # --- Configuration ---
 SPOTIPY_CLIENT_ID = "89c7e2957a7e465a8eeb9d2476a82a2d"
@@ -157,7 +162,7 @@ class RadioXBot:
     
     # --- API Wrappers and Helpers ---
     def spotify_api_call_with_retry(self, func, *args, **kwargs):
-        # ... (This function remains unchanged)
+        # (This function remains unchanged)
         max_retries=3; base_delay=5; retryable_spotify_exceptions=(500, 502, 503, 504)
         last_exception = None
         for attempt in range(max_retries):
@@ -177,7 +182,6 @@ class RadioXBot:
         if last_exception: raise last_exception
         raise Exception(f"{func.__name__} failed after all retries.")
 
-    # ... other core functions (get_station_herald_id, etc.) ...
     def get_station_herald_id(self, station_slug_to_find):
         if station_slug_to_find in self.herald_id_cache: return self.herald_id_cache[station_slug_to_find]
         url = "https://bff-web-guacamole.musicradio.com/globalplayer/brands"; headers = {'User-Agent': 'RadioXToSpotifyApp/1.0','Accept': 'application/vnd.global.8+json'}
@@ -227,7 +231,6 @@ class RadioXBot:
                 except Exception as e_ws_close: logging.error(f"Error closing WebSocket: {e_ws_close}")
         return None
     
-    # ... all other helper methods like search_song_on_spotify, add_song_to_playlist, etc. ...
     def search_song_on_spotify(self, original_title, artist, radiox_id_for_queue=None, is_retry_from_queue=False):
         if not self.sp: logging.error("Spotify not initialized for search."); return None
         search_attempts_details = []
@@ -261,7 +264,6 @@ class RadioXBot:
         return None
 
     def manage_playlist_size(self, playlist_id):
-        # ... same logic as before ...
         if not self.sp: return False
         try:
             playlist_details = self.spotify_api_call_with_retry(self.sp.playlist, playlist_id, fields='tracks.total')
@@ -280,7 +282,7 @@ class RadioXBot:
                 return False
         except Exception as e: logging.error(f"Error managing playlist size: {e}"); return False
         return True
-    
+
     def add_song_to_playlist(self, radio_x_title, radio_x_artist, spotify_track_id, playlist_id_to_use):
         if not self.sp: return False
         if spotify_track_id in self.RECENTLY_ADDED_SPOTIFY_IDS:
@@ -292,9 +294,7 @@ class RadioXBot:
             track_details = self.spotify_api_call_with_retry(self.sp.track, spotify_track_id)
             if not track_details: raise Exception(f"Could not fetch details for track ID {spotify_track_id}")
             self.spotify_api_call_with_retry(self.sp.playlist_add_items, playlist_id_to_use, [spotify_track_id])
-            spotify_name = track_details.get('name', 'Unknown')
-            spotify_artists_str = ", ".join([a.get('name', '') for a in track_details.get('artists', [])])
-            release_date = track_details.get('album', {}).get('release_date', 'N/A')
+            spotify_name = track_details.get('name', 'Unknown'); spotify_artists_str = ", ".join([a.get('name', '') for a in track_details.get('artists', [])]); release_date = track_details.get('album', {}).get('release_date', 'N/A')
             self.daily_added_songs.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": radio_x_title, "radio_artist": radio_x_artist, "spotify_title": spotify_name, "spotify_artist": spotify_artists_str, "spotify_id": spotify_track_id, "release_date": release_date})
             self.log_event(f"SUCCESS: Added '{BOLD}{radio_x_title}{RESET}' by '{BOLD}{radio_x_artist}{RESET}' to playlist.")
             self.RECENTLY_ADDED_SPOTIFY_IDS.append(spotify_track_id)
@@ -312,7 +312,6 @@ class RadioXBot:
             self.daily_search_failures.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": radio_x_title, "radio_artist": radio_x_artist, "reason": f"Unexpected error during add: {e}"})
             return False
 
-    # ... all other class methods here ...
     def check_and_remove_duplicates(self, playlist_id):
         if not self.sp: return
         self.log_event("Starting periodic duplicate check...")
@@ -334,8 +333,8 @@ class RadioXBot:
                     track_name = next((t['name'] for t in all_tracks if t['id'] == track_id), "Unknown")
                     if track_uri:
                         self.log_event(f"DUPLICATE_CLEANUP: Track '{track_name}' found {count} times. Re-processing.")
-                        self.spotify_api_call_with_retry(self.sp.playlist_remove_all_occurrences_of_items, playlist_id, [track_uri])
-                        time.sleep(0.5); self.spotify_api_call_with_retry(self.sp.playlist_add_items, playlist_id, [track_uri])
+                        self.spotify_api_call_with_retry(self.sp.playlist_remove_all_occurrences_of_items, playlist_id, [uri])
+                        time.sleep(0.5); self.spotify_api_call_with_retry(self.sp.playlist_add_items, playlist_id, [uri])
                         self.RECENTLY_ADDED_SPOTIFY_IDS.append(track_id)
                         time.sleep(1)
         except Exception as e: self.log_event(f"ERROR during duplicate cleanup: {e}")
@@ -355,6 +354,7 @@ class RadioXBot:
             self.log_event(f"PFSQ: Max retries reached for '{item['title']}'. Discarding.")
             self.daily_search_failures.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": item['title'], "radio_artist": item['artist'], "reason": f"Max retries ({MAX_FAILED_SEARCH_ATTEMPTS}) from failed search queue exhausted."})
 
+    # --- Email & Summary Functions ---
     def send_summary_email(self, html_body, subject):
         if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
             self.log_event("Email settings not configured. Skipping email.")
@@ -369,7 +369,6 @@ class RadioXBot:
         except Exception as e: logging.error(f"Failed to send email: {e}"); return False
 
     def get_daily_stats_html(self):
-        # ... (This function is now part of the class) ...
         if not self.daily_added_songs and not self.daily_search_failures: return ""
         try:
             artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
@@ -394,25 +393,43 @@ class RadioXBot:
                     decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
                     total_dated_songs = len(songs_with_dates)
                     decade_breakdown_str = " | ".join([f"<b>{decade}s:</b> {((decade_counts[decade] / total_dated_songs) * 100):.0f}%" for decade in sorted(decade_counts.keys())])
-            stats_html = f"<h3>Daily Stats</h3><p><b>Success Rate:</b> {success_rate:.1f}% ({len(self.daily_added_songs)} added / {total_processed} processed)<br><b>Unique Artists Added:</b> {unique_artist_count}<br><b>Top Artists:</b> {top_artists_str}<br><b>Busiest Hour:</b> {busiest_hour_str}<br><b>Oldest Song Added:</b> {oldest_song_str}<br><b>Newest Song Added:</b> {newest_song_str}<br><b>Decade Breakdown:</b> {decade_breakdown_str}<br><b>Failure Breakdown:</b> {failure_breakdown_str}<br><b>Items in Retry Queue at EOD:</b> {len(self.failed_search_queue)}</p>"
+            stats_html = f"""
+            <h3>Daily Stats</h3>
+            <p><b>Success Rate:</b> {success_rate:.1f}% ({len(self.daily_added_songs)} added / {total_processed} processed)<br>
+            <b>Unique Artists Added:</b> {unique_artist_count}<br>
+            <b>Top Artists:</b> {top_artists_str}<br>
+            <b>Busiest Hour:</b> {busiest_hour_str}<br>
+            <b>Oldest Song Added:</b> {oldest_song_str}<br>
+            <b>Newest Song Added:</b> {newest_song_str}<br>
+            <b>Decade Breakdown:</b> {decade_breakdown_str}<br>
+            <b>Failure Breakdown:</b> {failure_breakdown_str}<br>
+            <b>Items in Retry Queue at EOD:</b> {len(self.failed_search_queue)}</p>
+            """
             return stats_html
         except Exception as e: logging.error(f"Could not generate daily stats: {e}"); return ""
 
     def log_and_send_daily_summary(self):
         summary_date = self.last_summary_log_date.isoformat()
         stats_html = self.get_daily_stats_html()
-        html = f"<html><head><style>body{{font-family:sans-serif;}} table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #ddd;padding:8px}} th{{background-color:#f2f2f2}} h2{{border-bottom:2px solid #ccc;padding-bottom:5px}} h3{{margin-top:20px}}</style></head><body><h2>Radio X Spotify Adder Daily Summary: {summary_date}</h2>{stats_html}<h2><b>ADDED (Total: {len(self.daily_added_songs)})</b></h2>"
-        if self.daily_added_songs: html += "<table><tr><th>Title</th><th>Artist</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td></tr>" for item in self.daily_added_songs]) + "</table>"
+        html = f"""
+        <html><head><style>body{{font-family:sans-serif;}} table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #ddd;padding:8px}} th{{background-color:#f2f2f2}} h2{{border-bottom:2px solid #ccc;padding-bottom:5px}} h3{{margin-top:20px}}</style></head><body>
+            <h2>Radio X Spotify Adder Daily Summary: {summary_date}</h2>{stats_html}<h2><b>ADDED (Total: {len(self.daily_added_songs)})</b></h2>
+        """
+        if self.daily_added_songs:
+            html += "<table><tr><th>Title</th><th>Artist</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td></tr>" for item in self.daily_added_songs]) + "</table>"
         else: html += "<p>No songs were added today.</p>"
         html += f"<br><h2><b>FAILED (Total: {len(self.daily_search_failures)})</b></h2>"
-        if self.daily_search_failures: html += "<table><tr><th>Title</th><th>Artist</th><th>Reason</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td><td>{item['reason']}</td></tr>" for item in self.daily_search_failures]) + "</table>"
+        if self.daily_search_failures:
+            html += "<table><tr><th>Title</th><th>Artist</th><th>Reason</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td><td>{item['reason']}</td></tr>" for item in self.daily_search_failures]) + "</table>"
         else: html += "<p>No unresolved failures today.</p>"
         html += "</body></html>"
         self.send_summary_email(html, subject=f"Radio X Spotify Adder Daily Summary - {summary_date}")
         self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
 
-    def send_startup_notification(self, status_report):
-        if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]): self.log_event("Email settings not configured. Skipping startup notification."); return
+    def send_startup_notification(self, status_report_html_rows):
+        if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
+            self.log_event("Email settings not configured. Skipping startup notification.")
+            return
         self.log_event("Sending startup notification email...")
         now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
         subject = f"Radio X Spotify Adder Service Started"
@@ -421,11 +438,11 @@ class RadioXBot:
         <body><h2>Radio X Spotify Adder: Service Startup Diagnostics</h2>
             <p>The script started successfully at <b>{now_local.strftime("%Y-%m-%d %H:%M:%S %Z")}</b>.</p>
             <h3>System Checks:</h3>
-            <table><tr><th>Check</th><th>Status</th><th>Details</th></tr>{status_report}</table>
+            <table><tr><th>Check</th><th>Status</th><th>Details</th></tr>{status_report_html_rows}</table>
         </body></html>
         """
         self.send_summary_email(html_body, subject=subject)
-        
+
     def run_startup_diagnostics(self):
         self.log_event("--- Running Startup Diagnostics ---")
         results = []
@@ -451,11 +468,10 @@ class RadioXBot:
             try:
                 now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
                 if self.last_summary_log_date < now_local.date():
-                    self.log_event(f"New day detected ({now_local.date().isoformat()}). Resetting daily state.")
+                    self.log_event(f"New day detected ({now_local.date().isoformat()}). Resetting daily flags.")
                     self.startup_email_sent, self.shutdown_summary_sent = False, False
                     self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
                     self.last_summary_log_date = now_local.date()
-
                 if START_TIME <= now_local.time() <= END_TIME:
                     if not self.startup_email_sent:
                         self.log_event("Active hours started. Sending startup notification."); self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
@@ -517,7 +533,7 @@ def status():
 @app.route('/')
 def index_page():
     return render_template_string("""
-    <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:2em;background-color:#f4f4f9;color:#333}.container{max-width:900px;margin:auto;background:white;padding:25px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}h1,h2{color:#1DB954;border-bottom:1px solid #eee;padding-bottom:10px}.status-box{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:5px;background-color:#fafafa}.log-container{height:400px;overflow-y:scroll;border:1px solid #ccc;padding:10px;background-color:#2b2b2b;color:#f1f1f1;font-family:monospace;white-space:pre-wrap;margin-top:10px;border-radius:5px}button{background-color:#1DB954;color:white;border:none;padding:10px 15px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px;transition:background-color .2s}button:hover{background-color:#1ed760}</style><script>function triggerAction(t,e){const o=e.innerHTML;e.innerHTML="Triggering...",e.disabled=!0,fetch(t).then(t=>t.text()).then(t=>{alert("Action Triggered: "+t),e.innerHTML=o,e.disabled=!1,setTimeout(()=>location.reload(),1e3)}).catch(t=>{alert("Error triggering action: "+t),e.innerHTML=o,e.disabled=!1})}function updateStatus(){fetch("/status").then(t=>t.json()).then(t=>{document.getElementById("last-event").innerText=t.last_event,document.getElementById("queue-size").innerText=t.queue_size;const e=document.querySelector(".log-container");t.recent_log&&t.recent_log.length>0?e.innerHTML=t.recent_log.join("<br>"):e.innerHTML="No log entries yet."})}setInterval(updateStatus,3e4),document.addEventListener("DOMContentLoaded",updateStatus)</script></head><body><div class="container"><h1>Radio X to Spotify - Live Status</h1><div class="status-box"><p><strong>Last Event:</strong> <span id="last-event">Loading...</span></p><p><strong>Active Hours:</strong> {{active_hours}}</p><p><strong>Failed Search Queue Size:</strong> <span id="queue-size">Loading...</span></p></div><div class="status-box"><h2>Controls</h2><button onclick="triggerAction('/force_duplicates', this)">Force Duplicate Check</button><button onclick="triggerAction('/force_queue', this)">Process Failed Queue Item</button></div><div class="status-box"><h2>Recent Activity Log</h2><div class="log-container"><p>Loading log...</p></div></div></div></body></html>
+    <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:2em;background-color:#f4f4f9;color:#333}}.container{{max-width:900px;margin:auto;background:white;padding:25px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}}h1,h2{{color:#1DB954;border-bottom:1px solid #eee;padding-bottom:10px}}.status-box{{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:5px;background-color:#fafafa}}.log-container{{height:400px;overflow-y:scroll;border:1px solid #ccc;padding:10px;background-color:#2b2b2b;color:#f1f1f1;font-family:monospace;white-space:pre-wrap;margin-top:10px;border-radius:5px}}button{{background-color:#1DB954;color:white;border:none;padding:10px 15px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px;transition:background-color .2s}}button:hover{{background-color:#1ed760}}</style><script>function triggerAction(t,e){{const o=e.innerHTML;e.innerHTML="Triggering...",e.disabled=!0,fetch(t).then(t=>t.text()).then(t=>{{alert("Action Triggered: "+t),e.innerHTML=o,e.disabled=!1,setTimeout(()=>location.reload(),1e3)}}).catch(t=>{{alert("Error triggering action: "+t),e.innerHTML=o,e.disabled=!1}})}}function updateStatus(){{fetch("/status").then(t=>t.json()).then(t=>{{document.getElementById("last-event").innerText=t.last_event,document.getElementById("queue-size").innerText=t.queue_size;const e=document.querySelector(".log-container");t.recent_log&&t.recent_log.length>0?e.innerHTML=t.recent_log.join("<br>"):e.innerHTML="No log entries yet."}})}}setInterval(updateStatus,3e4),document.addEventListener("DOMContentLoaded",updateStatus)</script></head><body><div class="container"><h1>Radio X to Spotify - Live Status</h1><div class="status-box"><p><strong>Last Event:</strong> <span id="last-event">Loading...</span></p><p><strong>Active Hours:</strong> {{active_hours}}</p><p><strong>Failed Search Queue Size:</strong> <span id="queue-size">Loading...</span></p></div><div class="status-box"><h2>Controls</h2><button onclick="triggerAction('/force_duplicates', this)">Force Duplicate Check</button><button onclick="triggerAction('/force_queue', this)">Process Failed Queue Item</button></div><div class="status-box"><h2>Recent Activity Log</h2><div class="log-container"><p>Loading log...</p></div></div></div></body></html>
     """, active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
 
 def start_app():
@@ -541,6 +557,4 @@ if __name__ == "__main__":
         print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on http://0.0.0.0:{port}")
-    # Note: When running locally, the main thread will be the Flask server. 
-    # The radiox_monitor runs in a daemon thread started by start_app().
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
