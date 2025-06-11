@@ -27,7 +27,9 @@
             const originalText = button.innerHTML;
             button.innerHTML = 'Triggering...';
             button.disabled = true;
-            fetch(url).then(response => response.text()).then(data => {
+            // Use window.location.origin to build the full URL
+            const fullUrl = window.location.origin + url;
+            fetch(fullUrl).then(response => response.text()).then(data => {
                 alert('Action Triggered: ' + data);
                 button.innerHTML = originalText;
                 button.disabled = false;
@@ -42,7 +44,8 @@
             const originalText = button.innerHTML;
             button.innerHTML = 'Skipping...';
             button.disabled = true;
-            fetch(url, {
+            const fullUrl = window.location.origin + url;
+            fetch(fullUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams(data)
@@ -57,7 +60,9 @@
         }
 
         function updateStatus() {
-            fetch('/status')
+            // Use window.location.origin to build the full URL
+            const fullUrl = window.location.origin + '/status';
+            fetch(fullUrl)
                 .then(response => {
                     if (!response.ok) { throw new Error('Network response was not ok: ' + response.statusText); }
                     return response.json();
