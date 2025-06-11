@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v5.9 - Final with Corrected UI Rendering and All Features
+# v6.0 - Final with a Stable Web UI
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -14,7 +14,7 @@ import logging
 import re 
 import websocket 
 import threading 
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, Response
 import datetime
 import pytz 
 import smtplib 
@@ -512,7 +512,7 @@ class RadioXBot:
 
 # --- Flask Routes & Script Execution ---
 bot_instance = RadioXBot()
-atexit.register(bot_instance.save_state) # Ensure state is saved on exit
+atexit.register(bot_instance.save_state)
 
 @app.route('/force_duplicates')
 def force_duplicates():
@@ -532,62 +532,65 @@ def status():
 
 @app.route('/')
 def index_page():
-    # CORRECTED: Escaped all curly braces in the style block for f-string compatibility
+    # CORRECTED: Use {% raw %} and {% endraw %} to prevent Jinja2 from parsing CSS
     return render_template_string("""
-    <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>
-        body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:2em;background-color:#f4f4f9;color:#333}}
-        .container{{max-width:900px;margin:auto;background:white;padding:25px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}}
-        h1,h2{{color:#1DB954;border-bottom:1px solid #eee;padding-bottom:10px}}
-        .status-box{{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:5px;background-color:#fafafa}}
-        .log-container{{height:400px;overflow-y:scroll;border:1px solid #ccc;padding:10px;background-color:#2b2b2b;color:#f1f1f1;font-family:monospace;white-space:pre-wrap;margin-top:10px;border-radius:5px}}
-        button{{background-color:#1DB954;color:white;border:none;padding:10px 15px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px;transition:background-color .2s}}
-        button:hover{{background-color:#1ed760}}
+    <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1">
+    {% raw %}
+    <style>
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:2em;background-color:#f4f4f9;color:#333}
+        .container{max-width:900px;margin:auto;background:white;padding:25px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+        h1,h2{color:#1DB954;border-bottom:1px solid #eee;padding-bottom:10px}
+        .status-box{border:1px solid #ddd;padding:15px;margin-top:20px;border-radius:5px;background-color:#fafafa}
+        .log-container{height:400px;overflow-y:scroll;border:1px solid #ccc;padding:10px;background-color:#2b2b2b;color:#f1f1f1;font-family:monospace;white-space:pre-wrap;margin-top:10px;border-radius:5px}
+        button{background-color:#1DB954;color:white;border:none;padding:10px 15px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:4px 2px;cursor:pointer;border-radius:5px;transition:background-color .2s}
+        button:hover{background-color:#1ed760}
     </style>
+    {% endraw %}
     <script>
-        function triggerAction(url, button) {{
+        function triggerAction(url, button) {
             const originalText = button.innerHTML;
             button.innerHTML = 'Triggering...';
             button.disabled = true;
-            fetch(url).then(response => response.text()).then(data => {{
+            fetch(url).then(response => response.text()).then(data => {
                 alert('Action Triggered: ' + data);
                 button.innerHTML = originalText;
                 button.disabled = false;
                 setTimeout(() => location.reload(), 1000); 
-            }}).catch(err => {{
+            }).catch(err => {
                 alert('Error triggering action: ' + err);
                 button.innerHTML = originalText;
                 button.disabled = false;
-            }});
-        }}
-        function updateStatus() {{
+            });
+        }
+        function updateStatus() {
             fetch('/status')
-            .then(response => {{
-                if (!response.ok) {{ throw new Error('Network response was not ok: ' + response.statusText); }}
+            .then(response => {
+                if (!response.ok) { throw new Error('Network response was not ok: ' + response.statusText); }
                 return response.json();
-            }})
-            .then(data => {{
+            })
+            .then(data => {
                 document.getElementById('last-event').innerText = data.last_event;
                 document.getElementById('queue-size').innerText = data.queue_size;
                 document.getElementById('last-updated').innerText = new Date().toLocaleTimeString();
                 const logDiv = document.querySelector('.log-container');
-                if (data.recent_log && data.recent_log.length > 0) {{
+                if (data.recent_log && data.recent_log.length > 0) {
                     logDiv.innerHTML = data.recent_log.join('<br>');
-                }} else {{
+                } else {
                     logDiv.innerHTML = 'Awaiting first event...';
-                }}
-            }})
-            .catch(err => {{
+                }
+            })
+            .catch(err => {
                 console.error('Failed to fetch status:', err);
                 document.getElementById('last-event').innerText = 'Error loading status. Check console for details.';
-            }});
-        }}
+            });
+        }
         setInterval(updateStatus, 30000);
         document.addEventListener('DOMContentLoaded', updateStatus);
     </script>
     </head><body><div class="container"><h1>Radio X to Spotify - Live Status</h1>
     <div class="status-box">
         <p><strong>Last Event:</strong> <span id="last-event">Initializing...</span></p>
-        <p><strong>Active Hours:</strong> {active_hours}</p>
+        <p><strong>Active Hours:</strong> {{active_hours}}</p>
         <p><strong>Failed Search Queue Size:</strong> <span id="queue-size">...</span></p>
         <p><small>Last Updated: <span id="last-updated">Never</span></small></p>
     </div>
@@ -598,14 +601,6 @@ def index_page():
     <div class="status-box"><h2>Recent Activity Log</h2><div class="log-container"><p>Initializing log...</p></div></div>
     </div></body></html>
     """, active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
-
-def start_app():
-    """Initializes and starts the bot's background thread."""
-    if not bot_instance.is_running:
-        bot_instance.is_running = True
-        # Run all initialization in a background thread to prevent blocking deployment
-        init_thread = threading.Thread(target=initialize_bot, daemon=True)
-        init_thread.start()
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
@@ -619,13 +614,16 @@ def initialize_bot():
     else:
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
 
+# --- Script Execution ---
 # This top-level execution is what Gunicorn runs
-start_app()
+threading.Thread(target=initialize_bot, daemon=True).start()
 
 if __name__ == "__main__":
+    # This block runs for local development
     logging.info("Script being run directly for local testing.")
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on http://0.0.0.0:{port}")
+    # The 'initialize_bot' function is called above, so it will run for local dev too.
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
