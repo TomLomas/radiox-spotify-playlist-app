@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v6.0 - Final with Stable Web UI and All Features
+# v6.2 - Full Featured with Final Startup and UI Fixes
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -76,11 +76,15 @@ class RadioXBot:
 
         # Persistent Data Structures
         self.CACHE_DIR = ".cache"
+        if os.path.isfile(self.CACHE_DIR):
+            logging.warning(f"A file named '{self.CACHE_DIR}' exists. Removing it to create cache directory.")
+            os.remove(self.CACHE_DIR)
+        os.makedirs(self.CACHE_DIR, exist_ok=True)
+        
         self.RECENTLY_ADDED_CACHE_FILE = os.path.join(self.CACHE_DIR, "recent_tracks.json")
         self.FAILED_QUEUE_CACHE_FILE = os.path.join(self.CACHE_DIR, "failed_queue.json")
         self.DAILY_ADDED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_added.json")
         self.DAILY_FAILED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_failed.json")
-        os.makedirs(self.CACHE_DIR, exist_ok=True)
 
         self.RECENTLY_ADDED_SPOTIFY_IDS = deque(maxlen=200) 
         self.failed_search_queue = deque(maxlen=MAX_FAILED_SEARCH_QUEUE_SIZE)
@@ -546,7 +550,6 @@ def initialize_bot():
     else:
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
 
-# --- Script Execution ---
 # This top-level execution is what Gunicorn runs
 threading.Thread(target=initialize_bot, daemon=True).start()
 
