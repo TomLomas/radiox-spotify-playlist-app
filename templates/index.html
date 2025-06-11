@@ -13,7 +13,6 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: left; word-break: break-word; }
         th { font-weight: bold; }
-        .album-art { width: 40px; height: 40px; border-radius: 4px; margin-right: 10px; vertical-align: middle; }
         button { background-color: #1DB954; color: white; border: none; padding: 10px 15px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 5px; transition: background-color .2s; }
         button:hover { background-color: #1ed760; }
         button.pause { background-color: #f44336; }
@@ -49,8 +48,6 @@
                 body: new URLSearchParams(data)
             }).then(r => r.text()).then(d => {
                 alert('Action Triggered: ' + d)
-                button.innerHTML = originalText;
-                button.disabled = false;
                 setTimeout(updateStatus, 1000); 
             }).catch(err => {
                 alert('Error triggering action: ' + err);
