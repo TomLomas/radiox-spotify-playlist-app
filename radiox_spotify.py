@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v6.2 - Full Featured with Final Startup and UI Fixes
+# v6.0 - Final with Stable Web UI and All Features
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -297,8 +297,22 @@ class RadioXBot:
             track_details = self.spotify_api_call_with_retry(self.sp.track, spotify_track_id)
             if not track_details: raise Exception(f"Could not fetch details for track ID {spotify_track_id}")
             self.spotify_api_call_with_retry(self.sp.playlist_add_items, playlist_id_to_use, [spotify_track_id])
-            spotify_name = track_details.get('name', 'Unknown'); spotify_artists_str = ", ".join([a.get('name', '') for a in track_details.get('artists', [])]); release_date = track_details.get('album', {}).get('release_date', 'N/A')
-            self.daily_added_songs.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": radio_x_title, "radio_artist": radio_x_artist, "spotify_title": spotify_name, "spotify_artist": spotify_artists_str, "spotify_id": spotify_track_id, "release_date": release_date})
+            
+            spotify_name = track_details.get('name', 'Unknown')
+            spotify_artists_str = ", ".join([a.get('name', '') for a in track_details.get('artists', [])])
+            release_date = track_details.get('album', {}).get('release_date', 'N/A')
+            album_art_url = track_details['album']['images'][1]['url'] if track_details.get('album', {}).get('images') and len(track_details['album']['images']) > 1 else None
+
+            self.daily_added_songs.append({
+                "timestamp": datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat(),
+                "radio_title": radio_x_title, 
+                "radio_artist": radio_x_artist, 
+                "spotify_title": spotify_name, 
+                "spotify_artist": spotify_artists_str, 
+                "spotify_id": spotify_track_id, 
+                "release_date": release_date,
+                "album_art_url": album_art_url
+            })
             self.log_event(f"SUCCESS: Added '{BOLD}{radio_x_title}{RESET}' by '{BOLD}{radio_x_artist}{RESET}' to playlist.")
             self.RECENTLY_ADDED_SPOTIFY_IDS.append(spotify_track_id)
             return True
@@ -395,10 +409,10 @@ class RadioXBot:
                     newest_song_str = f"{newest_song['spotify_title']} by {newest_song['spotify_artist']} ({newest_song['release_date'][:4]})"
                     decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
                     total_dated_songs = len(songs_with_dates)
-                    decade_breakdown_str = " | ".join([f"<b>{decade}s:</b> {((decade_counts[decade] / total_dated_songs) * 100):.0f}%" for decade in sorted(decade_counts.keys())])
+                    decade_breakdown_str = " | ".join([f"<b>{decade}s:</b> {((decade_counts[decade] / total_dated_songs) * 100):.0f}%%" for decade in sorted(decade_counts.keys())])
             stats_html = f"""
             <h3>Daily Stats</h3>
-            <p><b>Success Rate:</b> {success_rate:.1f}% ({len(self.daily_added_songs)} added / {total_processed} processed)<br>
+            <p><b>Success Rate:</b> {success_rate:.1f}%% ({len(self.daily_added_songs)} added / {total_processed} processed)<br>
             <b>Unique Artists Added:</b> {unique_artist_count}<br>
             <b>Top Artists:</b> {top_artists_str}<br>
             <b>Busiest Hour:</b> {busiest_hour_str}<br>
@@ -550,6 +564,7 @@ def initialize_bot():
     else:
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
 
+# --- Script Execution ---
 # This top-level execution is what Gunicorn runs
 threading.Thread(target=initialize_bot, daemon=True).start()
 
