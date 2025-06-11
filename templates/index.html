@@ -5,22 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2em; background-color: #f4f4f9; color: #333; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, .1); }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, .1); }
         h1, h2 { color: #1DB954; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .status-box { border: 1px solid #ddd; padding: 15px; margin-top: 20px; border-radius: 5px; background-color: #fafafa; }
-        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .list-container { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background-color: #fff; border-radius: 5px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: left; word-break: break-word; }
+        th, td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: left; }
         th { font-weight: bold; }
         .album-art { width: 40px; height: 40px; border-radius: 4px; margin-right: 10px; vertical-align: middle; }
         button { background-color: #1DB954; color: white; border: none; padding: 10px 15px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 5px; transition: background-color .2s; }
         button:hover { background-color: #1ed760; }
-        button.pause { background-color: #f44336; }
-        button.pause:hover { background-color: #d32f2f; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #last-song-container { display: flex; align-items: center; justify-content: space-between; }
-        #last-song-info { flex-grow: 1; }
+        #last-song-container { display: flex; align-items: center; }
+        #last-song-info { margin-left: 15px; }
         #last-song-info p { margin: 0; }
     </style>
     <script>
@@ -39,24 +36,6 @@
                 button.disabled = false;
             });
         }
-        function triggerPostAction(url, data, button) {
-            const originalText = button.innerHTML;
-            button.innerHTML = 'Skipping...';
-            button.disabled = true;
-            fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams(data)
-            }).then(r => r.text()).then(d => {
-                alert('Action Triggered: ' + d)
-                setTimeout(updateStatus, 1000); 
-            }).catch(err => {
-                alert('Error triggering action: ' + err);
-                button.innerHTML = originalText;
-                button.disabled = false;
-            });
-        }
-
         function updateStatus() {
             fetch('/status')
                 .then(response => {
@@ -64,44 +43,56 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Update Last Detected Song & Skip Button
-                    const lastSong = data.last_detected_song;
-                    const skipButton = document.getElementById('skip-button');
-                    if (lastSong && lastSong.id) {
-                        document.getElementById('last-song-title').innerText = lastSong.title;
-                        document.getElementById('last-song-artist').innerText = lastSong.artist;
-                        skipButton.disabled = false;
-                        skipButton.onclick = () => triggerPostAction('/skip_song', { song_id: lastSong.id }, skipButton);
-                    } else {
-                        document.getElementById('last-song-title').innerText = 'No new song detected.';
-                        document.getElementById('last-song-artist').innerText = '';
-                        skipButton.disabled = true;
-                    }
+                    // Use empty arrays as a fallback if the data is missing from the JSON
+                    const dailyAdded = Array.isArray(data.daily_added) ? data.daily_added : [];
+                    const dailyFailed = Array.isArray(data.daily_failed) ? data.daily_failed : [];
+                    const lastSong = data.last_song_added;
 
-                    // Update Pause/Resume Button
-                    const pauseButton = document.getElementById('pause-button');
-                    if(data.is_paused) {
-                        pauseButton.innerHTML = 'Resume Script';
-                        pauseButton.classList.remove('pause');
+                    // Update Last Song Added
+                    if (lastSong) {
+                        document.getElementById('last-song-art').src = lastSong.album_art_url || 'https://placehold.co/64x64/2b2b2b/f1f1f1?text=?';
+                        document.getElementById('last-song-title').innerText = lastSong.radio_title;
+                        document.getElementById('last-song-artist').innerText = lastSong.radio_artist;
                     } else {
-                        pauseButton.innerHTML = 'Pause Script';
-                        pauseButton.classList.add('pause');
+                        document.getElementById('last-song-title').innerText = 'No songs added yet today.';
+                        document.getElementById('last-song-artist').innerText = '';
+                        document.getElementById('last-song-art').src = 'https://placehold.co/64x64/2b2b2b/f1f1f1?text=?';
                     }
 
                     // Update other stats
-                    const dailyAdded = data.daily_added || [];
-                    const dailyFailed = data.daily_failed || [];
-                    const failedQueue = data.failed_queue || [];
-                    
+                    document.getElementById('queue-size').innerText = data.queue_size || 0;
                     document.getElementById('added-today-count').innerText = dailyAdded.length;
                     document.getElementById('failed-today-count').innerText = dailyFailed.length;
-                    document.getElementById('queue-size').innerText = failedQueue.length;
                     document.getElementById('last-updated').innerText = new Date().toLocaleTimeString();
 
-                    // Populate tables
-                    populateTable('added-songs-body', dailyAdded, ['radio_title', 'radio_artist']);
-                    populateTable('failed-songs-body', dailyFailed, ['radio_title', 'radio_artist', 'reason']);
-                    populateTable('failed-queue-body', failedQueue, ['title', 'artist', 'attempts']);
+                    // Populate Added Songs Table
+                    const addedTable = document.getElementById('added-songs-body');
+                    addedTable.innerHTML = ''; // Clear existing rows
+                    if (dailyAdded.length > 0) {
+                        dailyAdded.forEach(song => {
+                            let row = addedTable.insertRow(0); // Insert at top for most recent
+                            let cell1 = row.insertCell(0);
+                            let cell2 = row.insertCell(1);
+                            cell1.innerHTML = `<img src="${song.album_art_url || 'https://placehold.co/40x40/2b2b2b/f1f1f1?text=?'}" class="album-art"> ${song.radio_title}`;
+                            cell2.innerText = song.radio_artist;
+                        });
+                    } else {
+                        addedTable.innerHTML = '<tr><td colspan="2">No songs added yet today.</td></tr>';
+                    }
+
+                    // Populate Failed Songs Table
+                    const failedTable = document.getElementById('failed-songs-body');
+                    failedTable.innerHTML = ''; // Clear existing rows
+                    if (dailyFailed.length > 0) {
+                        dailyFailed.forEach(song => {
+                            let row = failedTable.insertRow(0); // Insert at top for most recent
+                            row.insertCell(0).innerText = song.radio_title;
+                            row.insertCell(1).innerText = song.radio_artist;
+                            row.insertCell(2).innerText = song.reason;
+                        });
+                    } else {
+                        failedTable.innerHTML = '<tr><td colspan="3">No songs have failed today.</td></tr>';
+                    }
                 })
                 .catch(err => {
                     console.error('Failed to fetch status:', err);
@@ -109,22 +100,6 @@
                     container.innerHTML = `<h1>Error</h1><p>Could not load status from the server. Please check the application logs. Error: ${err.message}</p>`;
                 });
         }
-        
-        function populateTable(tbodyId, items, columns) {
-            const tableBody = document.getElementById(tbodyId);
-            tableBody.innerHTML = ''; // Clear existing rows
-            if (items && items.length > 0) {
-                items.forEach(item => {
-                    let row = tableBody.insertRow();
-                    columns.forEach(col => {
-                        row.insertCell(-1).innerText = item[col];
-                    });
-                });
-            } else {
-                tableBody.innerHTML = `<tr><td colspan="${columns.length}">None</td></tr>`;
-            }
-        }
-
         setInterval(updateStatus, 60000);
         document.addEventListener('DOMContentLoaded', updateStatus);
     </script>
@@ -134,42 +109,45 @@
         <h1>Radio X to Spotify - Live Status</h1>
         <div class="status-box">
             <div id="last-song-container">
+                <img id="last-song-art" src="https://placehold.co/64x64/2b2b2b/f1f1f1?text=?" alt="Album Art" style="width: 64px; height: 64px; border-radius: 4px;">
                 <div id="last-song-info">
-                    <p><strong>Last Detected Song:</strong></p>
-                    <p id="last-song-title" style="font-size: 1.1em;">Initializing...</p>
-                    <p id="last-song-artist" style="color: #666;"></p>
+                    <p style="margin: 0; font-weight: bold;">Last Song Added:</p>
+                    <p id="last-song-title" style="margin: 0; font-size: 1.1em;">Initializing...</p>
+                    <p id="last-song-artist" style="margin: 0; color: #666;"></p>
                 </div>
-                <button id="skip-button" disabled>Skip This Song</button>
             </div>
             <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
             <p><strong>Active Hours:</strong> {{ active_hours }}</p>
+            <p><strong>Failed Search Queue Size:</strong> <span id="queue-size">...</span></p>
             <p><small>Last Updated: <span id="last-updated">Never</span></small></p>
         </div>
         <div class="status-box">
             <h2>Controls</h2>
-            <button id="pause-button" onclick="triggerAction('/toggle_pause', this)">Pause/Resume</button>
             <button onclick="triggerAction('/force_duplicates', this)">Force Duplicate Check</button>
             <button onclick="triggerAction('/force_queue', this)">Process Failed Queue Item</button>
-            <button onclick="triggerAction('/email_summary', this)">Email Daily Summary Now</button>
             <button onclick="triggerAction('/force_diagnostics', this)">Run & Email Diagnostics</button>
         </div>
         <div class="grid-container">
             <div class="status-box">
                 <h2>Songs Added Today (<span id="added-today-count">0</span>)</h2>
                 <div class="list-container">
-                    <table><thead><tr><th>Title</th><th>Artist</th></tr></thead><tbody id="added-songs-body"></tbody></table>
+                    <table>
+                        <thead><tr><th>Title</th><th>Artist</th></tr></thead>
+                        <tbody id="added-songs-body">
+                            <tr><td colspan="2">Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
             <div class="status-box">
                 <h2>Songs That Failed Today (<span id="failed-today-count">0</span>)</h2>
                 <div class="list-container">
-                    <table><thead><tr><th>Title</th><th>Artist</th><th>Reason</th></tr></thead><tbody id="failed-songs-body"></tbody></table>
-                </div>
-            </div>
-            <div class="status-box">
-                <h2>Failed Search Queue (<span id="queue-size">0</span>)</h2>
-                <div class="list-container">
-                    <table><thead><tr><th>Title</th><th>Artist</th><th>Attempts</th></tr></thead><tbody id="failed-queue-body"></tbody></table>
+                    <table>
+                        <thead><tr><th>Title</th><th>Artist</th><th>Reason</th></tr></thead>
+                        <tbody id="failed-songs-body">
+                            <tr><td colspan="3">Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
