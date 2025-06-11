@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v5.5.1 - Full Featured with Corrected Startup Logic
+# v5.5.2 - Full Featured with Corrected Startup Logic and UI Fix
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -22,14 +22,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from collections import deque, Counter
 import atexit
-import base64 # CORRECTED: Added missing import
+import base64
 
 # --- Flask App Setup ---
 app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "RadioX to Spotify script is running in the background. Status: OK"
 
 # --- Configuration ---
 SPOTIPY_CLIENT_ID = "89c7e2957a7e465a8eeb9d2476a82a2d"
@@ -162,7 +158,6 @@ class RadioXBot:
     
     # --- API Wrappers and Helpers ---
     def spotify_api_call_with_retry(self, func, *args, **kwargs):
-        # (This function remains unchanged)
         max_retries=3; base_delay=5; retryable_spotify_exceptions=(500, 502, 503, 504)
         last_exception = None
         for attempt in range(max_retries):
@@ -333,8 +328,8 @@ class RadioXBot:
                     track_name = next((t['name'] for t in all_tracks if t['id'] == track_id), "Unknown")
                     if track_uri:
                         self.log_event(f"DUPLICATE_CLEANUP: Track '{track_name}' found {count} times. Re-processing.")
-                        self.spotify_api_call_with_retry(self.sp.playlist_remove_all_occurrences_of_items, playlist_id, [uri])
-                        time.sleep(0.5); self.spotify_api_call_with_retry(self.sp.playlist_add_items, playlist_id, [uri])
+                        self.spotify_api_call_with_retry(self.sp.playlist_remove_all_occurrences_of_items, playlist_id, [track_uri])
+                        time.sleep(0.5); self.spotify_api_call_with_retry(self.sp.playlist_add_items, playlist_id, [track_uri])
                         self.RECENTLY_ADDED_SPOTIFY_IDS.append(track_id)
                         time.sleep(1)
         except Exception as e: self.log_event(f"ERROR during duplicate cleanup: {e}")
@@ -442,7 +437,7 @@ class RadioXBot:
         </body></html>
         """
         self.send_summary_email(html_body, subject=subject)
-
+        
     def run_startup_diagnostics(self):
         self.log_event("--- Running Startup Diagnostics ---")
         results = []
