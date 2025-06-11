@@ -13,6 +13,7 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: left; word-break: break-word; }
         th { font-weight: bold; }
+        .album-art { width: 40px; height: 40px; border-radius: 4px; margin-right: 10px; vertical-align: middle; }
         button { background-color: #1DB954; color: white; border: none; padding: 10px 15px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 5px; transition: background-color .2s; }
         button:hover { background-color: #1ed760; }
         button.pause { background-color: #f44336; }
@@ -27,9 +28,7 @@
             const originalText = button.innerHTML;
             button.innerHTML = 'Triggering...';
             button.disabled = true;
-            // Use window.location.origin to build the full URL
-            const fullUrl = window.location.origin + url;
-            fetch(fullUrl).then(response => response.text()).then(data => {
+            fetch(url).then(response => response.text()).then(data => {
                 alert('Action Triggered: ' + data);
                 button.innerHTML = originalText;
                 button.disabled = false;
@@ -44,8 +43,7 @@
             const originalText = button.innerHTML;
             button.innerHTML = 'Skipping...';
             button.disabled = true;
-            const fullUrl = window.location.origin + url;
-            fetch(fullUrl, {
+            fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams(data)
@@ -60,9 +58,7 @@
         }
 
         function updateStatus() {
-            // Use window.location.origin to build the full URL
-            const fullUrl = window.location.origin + '/status';
-            fetch(fullUrl)
+            fetch('/status')
                 .then(response => {
                     if (!response.ok) { throw new Error('Network response was not ok: ' + response.statusText); }
                     return response.json();
