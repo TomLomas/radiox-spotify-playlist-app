@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v5.8 - Final with All Features and Fixes
+# v5.9 - Final with Corrected UI Rendering and All Features
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -473,7 +473,7 @@ class RadioXBot:
                     self.last_summary_log_date = now_local.date()
                 if START_TIME <= now_local.time() <= END_TIME:
                     if not self.startup_email_sent:
-                        self.log_event("Active hours started. Sending startup notification."); self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
+                        self.log_event("Active hours started."); self.startup_email_sent = True; self.shutdown_summary_sent = False
                     self.process_main_cycle()
                 else:
                     self.log_event(f"Outside of active hours. Pausing...")
@@ -619,7 +619,7 @@ def initialize_bot():
     else:
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
 
-# This top-level execution is what Gunicorn runs on Render
+# This top-level execution is what Gunicorn runs
 start_app()
 
 if __name__ == "__main__":
