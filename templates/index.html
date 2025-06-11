@@ -52,6 +52,7 @@
                     } else {
                         document.getElementById('last-song-title').innerText = 'No songs added yet today.';
                         document.getElementById('last-song-artist').innerText = '';
+                        document.getElementById('last-song-art').src = 'https://placehold.co/64x64/2b2b2b/f1f1f1?text=?';
                     }
 
                     // Update other stats
@@ -91,7 +92,8 @@
                 })
                 .catch(err => {
                     console.error('Failed to fetch status:', err);
-                    document.getElementById('last-song-title').innerText = 'Error loading status. Check console for details.';
+                    const container = document.querySelector('.container');
+                    container.innerHTML = `<h1>Error</h1><p>Could not load status from the server. Please check the application logs. Error: ${err.message}</p>`;
                 });
         }
         setInterval(updateStatus, 60000);
