@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v6.4 - Full Featured with Corrected State Sharing for UI
+# v6.0 - Final with Stable Web UI and All Features
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -92,6 +92,7 @@ class RadioXBot:
         self.daily_search_failures = [] 
         self.event_log = deque(maxlen=50)
         self.log_event("Application instance created. Waiting for initialization.")
+        self.file_lock = threading.Lock()
 
     def log_event(self, message):
         """Adds an event to the global log for the web UI and standard logging."""
@@ -102,36 +103,38 @@ class RadioXBot:
     # --- Persistent State Management ---
     def save_state(self):
         """Saves the queues and daily summaries to disk."""
-        try:
-            with open(self.RECENTLY_ADDED_CACHE_FILE, 'w') as f: json.dump(list(self.RECENTLY_ADDED_SPOTIFY_IDS), f)
-            with open(self.FAILED_QUEUE_CACHE_FILE, 'w') as f: json.dump(list(self.failed_search_queue), f)
-            with open(self.DAILY_ADDED_CACHE_FILE, 'w') as f: json.dump(self.daily_added_songs, f)
-            with open(self.DAILY_FAILED_CACHE_FILE, 'w') as f: json.dump(self.daily_search_failures, f)
-            logging.debug("Successfully saved application state to disk.")
-        except Exception as e:
-            logging.error(f"Failed to save state to disk: {e}")
+        with self.file_lock:
+            try:
+                with open(self.RECENTLY_ADDED_CACHE_FILE, 'w') as f: json.dump(list(self.RECENTLY_ADDED_SPOTIFY_IDS), f)
+                with open(self.FAILED_QUEUE_CACHE_FILE, 'w') as f: json.dump(list(self.failed_search_queue), f)
+                with open(self.DAILY_ADDED_CACHE_FILE, 'w') as f: json.dump(self.daily_added_songs, f)
+                with open(self.DAILY_FAILED_CACHE_FILE, 'w') as f: json.dump(self.daily_search_failures, f)
+                logging.debug("Successfully saved application state to disk.")
+            except Exception as e:
+                logging.error(f"Failed to save state to disk: {e}")
 
     def load_state(self):
         """Loads the queues and daily summaries from disk on startup."""
-        try:
-            if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
-                with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
-                    self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=200)
-                    logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
-            if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
-                with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
-                    self.failed_search_queue = deque(json.load(f), maxlen=MAX_FAILED_SEARCH_QUEUE_SIZE)
-                    logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
-            if os.path.exists(self.DAILY_ADDED_CACHE_FILE):
-                with open(self.DAILY_ADDED_CACHE_FILE, 'r') as f:
-                    self.daily_added_songs = json.load(f)
-                    logging.info(f"Loaded {len(self.daily_added_songs)} daily added songs from cache.")
-            if os.path.exists(self.DAILY_FAILED_CACHE_FILE):
-                with open(self.DAILY_FAILED_CACHE_FILE, 'r') as f:
-                    self.daily_search_failures = json.load(f)
-                    logging.info(f"Loaded {len(self.daily_search_failures)} daily failed searches from cache.")
-        except Exception as e:
-            logging.error(f"Failed to load state from disk: {e}")
+        with self.file_lock:
+            try:
+                if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
+                    with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
+                        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=200)
+                        logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
+                if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
+                    with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
+                        self.failed_search_queue = deque(json.load(f), maxlen=MAX_FAILED_SEARCH_QUEUE_SIZE)
+                        logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
+                if os.path.exists(self.DAILY_ADDED_CACHE_FILE):
+                    with open(self.DAILY_ADDED_CACHE_FILE, 'r') as f:
+                        self.daily_added_songs = json.load(f)
+                        logging.info(f"Loaded {len(self.daily_added_songs)} daily added songs from cache.")
+                if os.path.exists(self.DAILY_FAILED_CACHE_FILE):
+                    with open(self.DAILY_FAILED_CACHE_FILE, 'r') as f:
+                        self.daily_search_failures = json.load(f)
+                        logging.info(f"Loaded {len(self.daily_search_failures)} daily failed searches from cache.")
+            except Exception as e:
+                logging.error(f"Failed to load state from disk: {e}")
 
     # --- Authentication ---
     def authenticate_spotify(self):
@@ -460,7 +463,7 @@ class RadioXBot:
         """
         self.send_summary_email(html_body, subject=subject)
         
-    def run_startup_diagnostics(self):
+    def run_startup_diagnostics(self, send_email=False):
         self.log_event("--- Running Startup Diagnostics ---")
         results = []
         try:
@@ -474,7 +477,9 @@ class RadioXBot:
             else: results.append("<tr><td>Email Configuration</td><td style='color:orange;'>WARNING</td><td>One or more email environment variables are missing.</td></tr>")
         except Exception as e:
             results.append(f"<tr><td colspan='3' style='color:red;'>A diagnostic check failed critically: {e}</td></tr>")
-        self.send_startup_notification("".join(results))
+        
+        if send_email:
+            self.send_startup_notification("".join(results))
 
     # --- Main Application Loop ---
     def run(self):
@@ -491,7 +496,7 @@ class RadioXBot:
                     self.last_summary_log_date = now_local.date()
                 if START_TIME <= now_local.time() <= END_TIME:
                     if not self.startup_email_sent:
-                        self.log_event("Active hours started."); self.startup_email_sent = True; self.shutdown_summary_sent = False
+                        self.log_event("Active hours started."); self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
                     self.process_main_cycle()
                 else:
                     self.log_event(f"Outside of active hours. Pausing...")
@@ -544,19 +549,36 @@ def force_queue():
     threading.Thread(target=bot_instance.process_failed_search_queue).start()
     return "Processing of one item from the failed search queue has been triggered. Check logs for progress."
 
+@app.route('/force_diagnostics')
+def force_diagnostics():
+    bot_instance.log_event("Diagnostic check manually triggered via web.")
+    threading.Thread(target=bot_instance.run_startup_diagnostics, kwargs={'send_email': True}).start()
+    return "Diagnostic check has been triggered. Results will be emailed shortly."
+
 @app.route('/status')
 def status():
+    # Corrected: Reads state from files to ensure consistency across processes
+    try:
+        with bot_instance.file_lock:
+            with open(bot_instance.DAILY_ADDED_CACHE_FILE, 'r') as f: daily_added = json.load(f)
+            with open(bot_instance.DAILY_FAILED_CACHE_FILE, 'r') as f: daily_failed = json.load(f)
+            with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: failed_queue = json.load(f)
+    except FileNotFoundError:
+        # Handle case where cache files don't exist yet
+        daily_added, daily_failed, failed_queue = [], [], []
+    except Exception as e:
+        logging.error(f"Error reading state for /status endpoint: {e}")
+        daily_added, daily_failed, failed_queue = [], [], []
+
     return jsonify({
-        'last_song_added': bot_instance.daily_added_songs[-1] if bot_instance.daily_added_songs else None,
-        'queue_size': len(bot_instance.failed_search_queue),
-        'daily_added': bot_instance.daily_added_songs,
-        'daily_failed': bot_instance.daily_search_failures
+        'last_song_added': daily_added[-1] if daily_added else None,
+        'queue_size': len(failed_queue),
+        'daily_added': daily_added,
+        'daily_failed': daily_failed
     })
 
 @app.route('/')
 def index_page():
-    # Now using render_template to serve an external HTML file
-    # This avoids all templating syntax issues within the Python script
     return render_template('index.html', active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
 
 def initialize_bot():
@@ -564,7 +586,7 @@ def initialize_bot():
     logging.info("Background initialization started.")
     if bot_instance.authenticate_spotify():
         bot_instance.load_state() 
-        bot_instance.run_startup_diagnostics()
+        bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
         
         monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
         monitor_thread.start()
@@ -572,13 +594,15 @@ def initialize_bot():
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
 
 # --- Script Execution ---
-# This top-level execution is what Gunicorn runs
-threading.Thread(target=initialize_bot, daemon=True).start()
-
 if __name__ == "__main__":
+    # This block runs for local development
     logging.info("Script being run directly for local testing.")
+    initialize_bot()
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on http://0.0.0.0:{port}")
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
+else:
+    # This block runs when deployed on Gunicorn (like on Render)
+    threading.Thread(target=initialize_bot, daemon=True).start()
