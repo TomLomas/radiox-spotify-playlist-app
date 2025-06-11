@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v6.0 - Final with a Stable Web UI
+# v6.0 - Final with Stable Web UI and All Features
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -14,7 +14,7 @@ import logging
 import re 
 import websocket 
 import threading 
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, render_template
 import datetime
 import pytz 
 import smtplib 
@@ -532,8 +532,9 @@ def status():
 
 @app.route('/')
 def index_page():
-    # CORRECTED: Use {% raw %} and {% endraw %} to prevent Jinja2 from parsing CSS
-    return render_template_string("""
+    # CORRECTED: Use {% raw %} tags to prevent Jinja2 from parsing CSS in the template string
+    # This is the standard and correct way to handle this.
+    html_template = """
     <!doctype html><html><head><title>RadioX Script Status</title><meta name="viewport" content="width=device-width, initial-scale=1">
     {% raw %}
     <style>
@@ -600,7 +601,8 @@ def index_page():
     </div>
     <div class="status-box"><h2>Recent Activity Log</h2><div class="log-container"><p>Initializing log...</p></div></div>
     </div></body></html>
-    """, active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
+    """
+    return render_template_string(html_template, active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
@@ -615,15 +617,15 @@ def initialize_bot():
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
 
 # --- Script Execution ---
-# This top-level execution is what Gunicorn runs
-threading.Thread(target=initialize_bot, daemon=True).start()
-
 if __name__ == "__main__":
     # This block runs for local development
     logging.info("Script being run directly for local testing.")
+    initialize_bot()
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on http://0.0.0.0:{port}")
-    # The 'initialize_bot' function is called above, so it will run for local dev too.
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
+else:
+    # This block runs when deployed on Gunicorn (like on Render)
+    threading.Thread(target=initialize_bot, daemon=True).start()
