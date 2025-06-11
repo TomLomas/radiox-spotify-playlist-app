@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+.spotipy_cache
+.DS_Store

@@ -1,0 +1,5 @@
+$env:SPOTIPY_CLIENT_ID = "89c7e2957a7e465a8eeb9d2476a82a2d"
+$env:SPOTIPY_CLIENT_SECRET = "f8dc109892b9464ab44fba3b2502a7eb"
+$env:SPOTIPY_REDIRECT_URI = "http://127.0.0.1:8888/callback"
+$env:SPOTIFY_PLAYLIST_ID = "5i13fDRDoW0gu60f74cysp?si=25e72ccc13774d19" 
+$env:RADIOX_STATION_NAME = "radiox" # Or your desired station slug
