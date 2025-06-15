@@ -77,6 +77,7 @@ class RadioXBot:
         self.current_station_herald_id = None
         self.is_running = False
         self.override_paused = False  # Manual pause/resume override
+        self.manual_override_active = False  # Tracks if user has manually resumed out of hours
         self.override_reset_day = datetime.date.today()
         self.next_check_time = time.time() + CHECK_INTERVAL
 
@@ -531,32 +532,46 @@ class RadioXBot:
             self.send_startup_notification("".join(results))
 
     def should_run(self):
-        """Determines if the bot should run based on manual override and active hours."""
+        """Determines if the bot should run based on manual override, active hours, and pause state."""
         now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
-        # Reset override at the start of a new day
-        if self.override_reset_day < now_local.date():
+        # Move 'new day' reset to 07:00
+        reset_time = datetime.time(7, 0)
+        if (now_local.date() > self.override_reset_day or
+            (now_local.date() == self.override_reset_day and now_local.time() >= reset_time and not hasattr(self, '_reset_done_today'))):
             self.override_paused = False
+            self.manual_override_active = False
             self.override_reset_day = now_local.date()
+            self._reset_done_today = True
+        elif now_local.time() < reset_time:
+            # Allow reset again after midnight but before 07:00
+            if hasattr(self, '_reset_done_today'):
+                del self._reset_done_today
         # If manually paused, always pause
         if self.override_paused:
             return False
-        # If manually resumed (override_paused is False), always run
-        return True
+        # If in hours, run
+        if START_TIME <= now_local.time() <= END_TIME:
+            return True
+        # If out of hours, only run if manually resumed
+        return self.manual_override_active
 
     def toggle_pause_override(self):
         """Toggles the pause/resume override with correct logic for out-of-hours and manual override."""
         now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
         in_hours = START_TIME <= now_local.time() <= END_TIME
-        # If currently manually paused, always resume
+        # If currently manually paused, always resume and clear manual override
         if self.override_paused:
             self.override_paused = False
+            self.manual_override_active = False
             return self.override_paused
         # If out of hours and not manually paused, clicking should resume (override)
         if not in_hours and not self.override_paused:
             self.override_paused = False  # Explicitly set to False (manual resume)
+            self.manual_override_active = True
             return self.override_paused
-        # If running (in hours or manually resumed), clicking should pause
+        # If running (in hours or manually resumed), clicking should pause and clear manual override
         self.override_paused = True
+        self.manual_override_active = False
         return self.override_paused
 
     def retry_all_failed_songs(self):
