@@ -31,7 +31,7 @@ app = Flask(__name__)
 SPOTIPY_CLIENT_ID = "89c7e2957a7e465a8eeb9d2476a82a2d"
 SPOTIPY_CLIENT_SECRET = "f8dc109892b9464ab44fba3b2502a7eb"
 SPOTIPY_REDIRECT_URI = "http://127.0.0.1:8888/callback" 
-SPOTIFY_PLAYLIST_ID = "5i13fDRDoW0gu60f74cysp" 
+SPOTIFY_PLAYLIST_ID = "13FFERyXq62mgtWinRloOv" 
 RADIOX_STATION_SLUG = "radiox" 
 
 # Script Operation Settings
