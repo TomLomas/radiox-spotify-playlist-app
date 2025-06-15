@@ -3,7 +3,7 @@
 This app takes 'Now Playing' tracks from Radio X and adds them to a Spotify playlist automatically. It features a web UI for live status, manual controls, and daily email summaries.
 
 ## Versioning
-- **Current Beta Version:** v6.1-beta
+- **Current Beta Version:** v6.3-beta
 - See the changelog below for details on each beta release.
 
 ## Features
@@ -40,7 +40,19 @@ See `.env` for all required variables (Spotify, email, etc.).
 
 ## Changelog
 
-### v6.2-beta (Latest)
+### v6.3-beta (Latest)
+- **State Persistence:**
+  - `manual_override_active` and `override_paused` are now saved to and loaded from disk (`bot_state.json`) for robust cross-thread/process state sharing.
+  - The main loop reloads state from disk at the start of every tick, ensuring admin actions are always respected immediately.
+- **Debug Logging:**
+  - Both the main loop and `toggle_pause_override` log process and thread IDs, as well as the state of `manual_override_active` and `override_paused` before and after changes.
+- **Testing Improvements:**
+  - Temporarily set `CHECK_INTERVAL` to 10 seconds for rapid testing, then restored to 120 seconds for production.
+  - Confirmed that manual override now persists and the main loop runs as expected out of hours.
+- **Reliability:**
+  - Ensured that admin controls and main loop are robust and reliable, even after restarts or in multi-threaded environments.
+
+### v6.2-beta
 - **Manual Override System:**
   - Added `manual_override_active` flag to allow the service to run out of hours when manually resumed.
   - Manual override and pause state now reset at 07:00 each day (instead of 00:00).
