@@ -40,7 +40,23 @@ See `.env` for all required variables (Spotify, email, etc.).
 
 ## Changelog
 
-### v6.1-beta (Latest)
+### v6.2-beta (Latest)
+- **Manual Override System:**
+  - Added `manual_override_active` flag to allow the service to run out of hours when manually resumed.
+  - Manual override and pause state now reset at 07:00 each day (instead of 00:00).
+  - Backend `/status` endpoint now returns both `override_paused` and `manual_override_active` for accurate UI state.
+  - When "Resume Service" is clicked, the backend immediately triggers a track check (no need to wait for the next interval).
+- **Logging & Diagnostics:**
+  - Main loop now logs `should_run()`, `manual_override_active`, `override_paused`, and in-hours status every cycle for easier debugging.
+  - Improved log clarity for admin actions and service state transitions.
+- **UI/UX:**
+  - (Planned/required) UI update to use new backend state for correct play/pause button logic and tooltips.
+  - Button will show "Pause Service" if running (in hours or manual override), "Resume Service" if paused.
+- **Bugfixes:**
+  - Fixed issue where service would not run out of hours after manual resume.
+  - Ensured all admin actions provide immediate feedback and update UI state.
+
+### v6.1-beta
 - **UI/UX:**
   - Play/Pause and Refresh icons now appear in the top-right of the status area for instant control.
   - Pause/Resume button shows a play icon and context-aware tooltip if paused (manual or out-of-hours).

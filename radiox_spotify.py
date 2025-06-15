@@ -37,7 +37,7 @@ SPOTIFY_PLAYLIST_ID = os.getenv("SPOTIFY_PLAYLIST_ID")
 RADIOX_STATION_SLUG = "radiox" 
 
 # Script Operation Settings
-CHECK_INTERVAL = 120  
+CHECK_INTERVAL = 10  # seconds (was 120)
 DUPLICATE_CHECK_INTERVAL = 30 * 60 
 MAX_PLAYLIST_SIZE = 500
 MAX_FAILED_SEARCH_QUEUE_SIZE = 30 
@@ -109,7 +109,14 @@ class RadioXBot:
 
     # --- Persistent State Management ---
     def save_state(self):
-        """Saves the queues and daily summaries to disk."""
+        """Save critical state to disk."""
+        state = {
+            'manual_override_active': self.manual_override_active,
+            'override_paused': self.override_paused,
+            # ... add other state as needed ...
+        }
+        with open('bot_state.json', 'w') as f:
+            json.dump(state, f)
         with self.file_lock:
             try:
                 with open(self.RECENTLY_ADDED_CACHE_FILE, 'w') as f: json.dump(list(self.RECENTLY_ADDED_SPOTIFY_IDS), f)
@@ -121,7 +128,14 @@ class RadioXBot:
                 logging.error(f"Failed to save state to disk: {e}")
 
     def load_state(self):
-        """Loads the queues and daily summaries from disk on startup."""
+        """Load critical state from disk."""
+        try:
+            with open('bot_state.json', 'r') as f:
+                state = json.load(f)
+                self.manual_override_active = state.get('manual_override_active', False)
+                self.override_paused = state.get('override_paused', False)
+        except FileNotFoundError:
+            pass
         with self.file_lock:
             try:
                 if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
@@ -559,19 +573,26 @@ class RadioXBot:
         """Toggles the pause/resume override with correct logic for out-of-hours and manual override."""
         now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
         in_hours = START_TIME <= now_local.time() <= END_TIME
+        logging.info(f"[toggle_pause_override] PID={os.getpid()} TID={threading.get_ident()} BEFORE: manual_override_active={self.manual_override_active}, override_paused={self.override_paused}, in_hours={in_hours}")
         # If currently manually paused, always resume and clear manual override
         if self.override_paused:
             self.override_paused = False
             self.manual_override_active = False
+            self.save_state()
+            logging.info(f"[toggle_pause_override] AFTER: manual_override_active={self.manual_override_active}, override_paused={self.override_paused}")
             return self.override_paused
         # If out of hours and not manually paused, clicking should resume (override)
         if not in_hours and not self.override_paused:
             self.override_paused = False  # Explicitly set to False (manual resume)
             self.manual_override_active = True
+            self.save_state()
+            logging.info(f"[toggle_pause_override] AFTER: manual_override_active={self.manual_override_active}, override_paused={self.override_paused}")
             return self.override_paused
         # If running (in hours or manually resumed), clicking should pause and clear manual override
         self.override_paused = True
         self.manual_override_active = False
+        self.save_state()
+        logging.info(f"[toggle_pause_override] AFTER: manual_override_active={self.manual_override_active}, override_paused={self.override_paused}")
         return self.override_paused
 
     def retry_all_failed_songs(self):
@@ -592,9 +613,10 @@ class RadioXBot:
     def run(self):
         """Main monitoring loop. Checks for new tracks at intervals if should_run() is True."""
         while True:
+            self.load_state()  # Always reload state at the start of each tick
             now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
             in_hours = START_TIME <= now_local.time() <= END_TIME
-            logging.info(f"[Main Loop] should_run={self.should_run()}, manual_override_active={self.manual_override_active}, override_paused={self.override_paused}, in_hours={in_hours}")
+            logging.info(f"[Main Loop] PID={os.getpid()} TID={threading.get_ident()} should_run={self.should_run()}, manual_override_active={self.manual_override_active}, override_paused={self.override_paused}, in_hours={in_hours}")
             if self.should_run():
                 self.process_main_cycle()
             else:
