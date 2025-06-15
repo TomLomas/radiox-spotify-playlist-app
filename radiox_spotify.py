@@ -23,15 +23,17 @@ from email.mime.multipart import MIMEMultipart
 from collections import deque, Counter
 import atexit
 import base64
+from dotenv import load_dotenv
 
 # --- Flask App Setup ---
 app = Flask(__name__)
 
 # --- Configuration ---
-SPOTIPY_CLIENT_ID = "89c7e2957a7e465a8eeb9d2476a82a2d"
-SPOTIPY_CLIENT_SECRET = "f8dc109892b9464ab44fba3b2502a7eb"
-SPOTIPY_REDIRECT_URI = "http://127.0.0.1:8888/callback" 
-SPOTIFY_PLAYLIST_ID = "13FFERyXq62mgtWinRloOv" 
+load_dotenv()
+SPOTIPY_CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
+SPOTIPY_CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
+SPOTIPY_REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
+SPOTIFY_PLAYLIST_ID = os.getenv("SPOTIFY_PLAYLIST_ID")
 RADIOX_STATION_SLUG = "radiox" 
 
 # Script Operation Settings
@@ -57,12 +59,13 @@ BOLD = '\033[1m'
 RESET = '\033[0m'
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[logging.StreamHandler(), logging.FileHandler('app.log', encoding='utf-8')])
 
 # --- Main Application Class ---
 
 class RadioXBot:
     def __init__(self):
+        """Initializes the RadioXBot with state variables, persistent cache setup, and logging."""
         # State Variables
         self.sp = None
         self.last_added_radiox_track_id = None
@@ -73,6 +76,9 @@ class RadioXBot:
         self.shutdown_summary_sent = False
         self.current_station_herald_id = None
         self.is_running = False
+        self.override_paused = False  # Manual pause/resume override
+        self.override_reset_day = datetime.date.today()
+        self.next_check_time = time.time() + CHECK_INTERVAL
 
         # Persistent Data Structures
         self.CACHE_DIR = ".cache"
@@ -138,7 +144,7 @@ class RadioXBot:
 
     # --- Authentication ---
     def authenticate_spotify(self):
-        """Initializes and authenticates the Spotipy client."""
+        """Initializes and authenticates the Spotipy client using environment variables and cache."""
         def write_cache():
             cache_content_b64 = os.getenv("SPOTIPY_CACHE_BASE64")
             if cache_content_b64:
@@ -169,6 +175,7 @@ class RadioXBot:
     
     # --- API Wrappers and Helpers ---
     def spotify_api_call_with_retry(self, func, *args, **kwargs):
+        """Wraps Spotify API calls with retry logic for network and rate limit errors."""
         max_retries=3; base_delay=5; retryable_spotify_exceptions=(500, 502, 503, 504)
         last_exception = None
         for attempt in range(max_retries):
@@ -189,6 +196,7 @@ class RadioXBot:
         raise Exception(f"{func.__name__} failed after all retries.")
 
     def get_station_herald_id(self, station_slug_to_find):
+        """Fetches the heraldId for a given station slug from the Radio X API, with caching."""
         if station_slug_to_find in self.herald_id_cache: return self.herald_id_cache[station_slug_to_find]
         url = "https://bff-web-guacamole.musicradio.com/globalplayer/brands"; headers = {'User-Agent': 'RadioXToSpotifyApp/1.0','Accept': 'application/vnd.global.8+json'}
         self.log_event(f"Fetching heraldId for {station_slug_to_find}...")
@@ -204,6 +212,7 @@ class RadioXBot:
         except Exception as e: self.log_event(f"ERROR: Error fetching brands: {e}"); return None
 
     def get_current_radiox_song(self, station_herald_id):
+        """Connects to the Radio X WebSocket and retrieves the current song info."""
         if not station_herald_id: return None
         websocket_url = "wss://metadata.musicradio.com/v2/now-playing"
         logging.info(f"Connecting to WebSocket: {websocket_url}")
@@ -238,6 +247,7 @@ class RadioXBot:
         return None
     
     def search_song_on_spotify(self, original_title, artist, radiox_id_for_queue=None, is_retry_from_queue=False):
+        """Attempts to find a song on Spotify using several title cleaning strategies."""
         if not self.sp: logging.error("Spotify not initialized for search."); return None
         search_attempts_details = []
         def _attempt_search_spotify(title_to_search, attempt_description):
@@ -270,6 +280,7 @@ class RadioXBot:
         return None
 
     def manage_playlist_size(self, playlist_id):
+        """Ensures the playlist does not exceed the maximum size by removing the oldest track if needed."""
         if not self.sp: return False
         try:
             playlist_details = self.spotify_api_call_with_retry(self.sp.playlist, playlist_id, fields='tracks.total')
@@ -290,6 +301,7 @@ class RadioXBot:
         return True
 
     def add_song_to_playlist(self, radio_x_title, radio_x_artist, spotify_track_id, playlist_id_to_use):
+        """Adds a song to the Spotify playlist, handling duplicates and logging results."""
         if not self.sp: return False
         if spotify_track_id in self.RECENTLY_ADDED_SPOTIFY_IDS:
             self.log_event(f"Track '{radio_x_title}' recently processed. Skipping add.")
@@ -333,6 +345,7 @@ class RadioXBot:
             return False
 
     def check_and_remove_duplicates(self, playlist_id):
+        """Checks for and removes duplicate tracks in the playlist."""
         if not self.sp: return
         self.log_event("Starting periodic duplicate check...")
         try:
@@ -360,6 +373,7 @@ class RadioXBot:
         except Exception as e: self.log_event(f"ERROR during duplicate cleanup: {e}")
 
     def process_failed_search_queue(self):
+        """Attempts to re-search and add songs that previously failed to be found on Spotify."""
         if not self.failed_search_queue: return
         self.log_event(f"PFSQ: Processing 1 item from queue (size: {len(self.failed_search_queue)}).")
         item = self.failed_search_queue.popleft()
@@ -376,6 +390,7 @@ class RadioXBot:
 
     # --- Email & Summary Functions ---
     def send_summary_email(self, html_body, subject):
+        """Sends a summary email with the given HTML body and subject."""
         if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
             self.log_event("Email settings not configured. Skipping email.")
             return False
@@ -389,6 +404,7 @@ class RadioXBot:
         except Exception as e: logging.error(f"Failed to send email: {e}"); return False
 
     def get_daily_stats_html(self):
+        """Generates an HTML summary of daily stats for email or web display."""
         if not self.daily_added_songs and not self.daily_search_failures: return ""
         try:
             artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
@@ -429,24 +445,41 @@ class RadioXBot:
         except Exception as e: logging.error(f"Could not generate daily stats: {e}"); return ""
 
     def log_and_send_daily_summary(self):
+        """Logs and sends the daily summary email if new songs or failures occurred."""
+        if not self.daily_added_songs and not self.daily_search_failures:
+            self.log_event("No songs or failures today. Skipping summary email.")
+            self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
+            return
         summary_date = self.last_summary_log_date.isoformat()
         stats_html = self.get_daily_stats_html()
         html = f"""
-        <html><head><style>body{{font-family:sans-serif;}} table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #ddd;padding:8px}} th{{background-color:#f2f2f2}} h2{{border-bottom:2px solid #ccc;padding-bottom:5px}} h3{{margin-top:20px}}</style></head><body>
-            <h2>Radio X Spotify Adder Daily Summary: {summary_date}</h2>{stats_html}<h2><b>ADDED (Total: {len(self.daily_added_songs)})</b></h2>
+        <html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>
+        body{{font-family:sans-serif;background:#f4f4f9;margin:0;padding:0;}}
+        .container{{max-width:600px;margin:auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.08);}}
+        h2{{color:#1DB954;border-bottom:2px solid #eee;padding-bottom:8px;}}
+        h3{{margin-top:24px;color:#333;}}
+        table{{border-collapse:collapse;width:100%;margin-top:10px;}}
+        th,td{{border:1px solid #ddd;padding:8px;text-align:left;}}
+        th{{background:#f2f2f2;}}
+        tr:nth-child(even){{background:#fafafa;}}
+        .stat{{font-size:1.1em;margin-bottom:8px;}}
+        @media (max-width:700px){{.container{{padding:5px;}}table,th,td{{font-size:0.95em;}}}}
+        </style></head><body><div class='container'>
+            <h2>Radio X Spotify Adder Daily Summary: {summary_date}</h2>{stats_html}<h3>ADDED (Total: {len(self.daily_added_songs)})</h3>
         """
         if self.daily_added_songs:
             html += "<table><tr><th>Title</th><th>Artist</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td></tr>" for item in self.daily_added_songs]) + "</table>"
         else: html += "<p>No songs were added today.</p>"
-        html += f"<br><h2><b>FAILED (Total: {len(self.daily_search_failures)})</b></h2>"
+        html += f"<h3>FAILED (Total: {len(self.daily_search_failures)})</h3>"
         if self.daily_search_failures:
             html += "<table><tr><th>Title</th><th>Artist</th><th>Reason</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td><td>{item['reason']}</td></tr>" for item in self.daily_search_failures]) + "</table>"
         else: html += "<p>No unresolved failures today.</p>"
-        html += "</body></html>"
+        html += "</div></body></html>"
         self.send_summary_email(html, subject=f"Radio X Spotify Adder Daily Summary - {summary_date}")
         self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
 
     def send_startup_notification(self, status_report_html_rows):
+        """Sends a startup notification email with diagnostic results."""
         if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
             self.log_event("Email settings not configured. Skipping startup notification.")
             return
@@ -464,6 +497,7 @@ class RadioXBot:
         self.send_summary_email(html_body, subject=subject)
         
     def run_startup_diagnostics(self, send_email=False):
+        """Runs startup diagnostics and optionally emails the results."""
         self.log_event("--- Running Startup Diagnostics ---")
         results = []
         try:
@@ -481,8 +515,39 @@ class RadioXBot:
         if send_email:
             self.send_startup_notification("".join(results))
 
+    def should_run(self):
+        """Determines if the bot should run based on active hours and override."""
+        now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+        # Reset override at the start of a new day
+        if self.override_reset_day < now_local.date():
+            self.override_paused = False
+            self.override_reset_day = now_local.date()
+        if self.override_paused:
+            return False
+        return START_TIME <= now_local.time() <= END_TIME
+
+    def toggle_pause_override(self):
+        """Toggles the pause/resume override."""
+        self.override_paused = not self.override_paused
+        return self.override_paused
+
+    def retry_all_failed_songs(self):
+        """Attempts to re-process all failed song searches in the queue."""
+        self.log_event("Admin: Retrying all failed songs in the queue.")
+        while self.failed_search_queue:
+            self.process_failed_search_queue()
+
+    def update_next_check_time(self):
+        """Set the next check time to now + CHECK_INTERVAL."""
+        self.next_check_time = time.time() + CHECK_INTERVAL
+
+    def get_seconds_until_next_check(self):
+        """Return seconds until the next scheduled check."""
+        return max(0, int(self.next_check_time - time.time()))
+
     # --- Main Application Loop ---
     def run(self):
+        """Main loop for the bot, running periodic checks and updates."""
         self.log_event("--- run_radio_monitor thread initiated. ---")
         if not self.sp: self.log_event("ERROR: Spotify client is None. Thread cannot perform Spotify actions."); return
         if self.last_summary_log_date is None: self.last_summary_log_date = datetime.date.today()
@@ -494,19 +559,28 @@ class RadioXBot:
                     self.startup_email_sent, self.shutdown_summary_sent = False, False
                     self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
                     self.last_summary_log_date = now_local.date()
-                if START_TIME <= now_local.time() <= END_TIME:
+                    self.override_paused = False  # Reset override at new day
+                    self.override_reset_day = now_local.date()
+                if self.should_run():
                     if not self.startup_email_sent:
                         self.log_event("Active hours started."); self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
                     self.process_main_cycle()
                 else:
-                    self.log_event(f"Outside of active hours. Pausing...")
+                    if self.override_paused:
+                        self.log_event("Service is manually paused via override. Pausing...")
+                    else:
+                        self.log_event(f"Outside of active hours. Pausing...")
                     if not self.shutdown_summary_sent:
                         self.log_event("End of active day. Generating and sending daily summary."); self.log_and_send_daily_summary(); self.shutdown_summary_sent = True; self.startup_email_sent = False
+                    self.update_next_check_time()
                     time.sleep(CHECK_INTERVAL * 5); continue
             except Exception as e: logging.error(f"CRITICAL UNHANDLED ERROR in main loop: {e}", exc_info=True); time.sleep(CHECK_INTERVAL * 2) 
-            self.log_event(f"Cycle complete. Waiting {CHECK_INTERVAL}s..."); time.sleep(CHECK_INTERVAL)
+            self.log_event(f"Cycle complete. Waiting {CHECK_INTERVAL}s...");
+            self.update_next_check_time()
+            time.sleep(CHECK_INTERVAL)
 
     def process_main_cycle(self):
+        """Processes the main cycle: fetches now playing, searches Spotify, adds to playlist, and saves state."""
         if not self.current_station_herald_id: self.current_station_herald_id = self.get_station_herald_id(RADIOX_STATION_SLUG)
         if not self.current_station_herald_id: return
         
@@ -539,47 +613,114 @@ atexit.register(bot_instance.save_state)
 
 @app.route('/force_duplicates')
 def force_duplicates():
+    """Manually triggers a duplicate check on the playlist."""
     bot_instance.log_event("Duplicate check manually triggered via web.")
     threading.Thread(target=bot_instance.check_and_remove_duplicates, args=(SPOTIFY_PLAYLIST_ID,)).start()
     return "Duplicate check has been triggered. Check logs for progress."
 
 @app.route('/force_queue')
 def force_queue():
+    """Manually processes one item from the failed search queue."""
     bot_instance.log_event("Failed queue processing manually triggered via web.")
     threading.Thread(target=bot_instance.process_failed_search_queue).start()
     return "Processing of one item from the failed search queue has been triggered. Check logs for progress."
 
 @app.route('/force_diagnostics')
 def force_diagnostics():
+    """Manually runs diagnostics and emails the results."""
     bot_instance.log_event("Diagnostic check manually triggered via web.")
     threading.Thread(target=bot_instance.run_startup_diagnostics, kwargs={'send_email': True}).start()
     return "Diagnostic check has been triggered. Results will be emailed shortly."
 
 @app.route('/status')
 def status():
-    # Corrected: Reads state from files to ensure consistency across processes
+    """Returns the current status for the web UI, reading state from files for consistency."""
     try:
         with bot_instance.file_lock:
             with open(bot_instance.DAILY_ADDED_CACHE_FILE, 'r') as f: daily_added = json.load(f)
             with open(bot_instance.DAILY_FAILED_CACHE_FILE, 'r') as f: daily_failed = json.load(f)
             with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: failed_queue = json.load(f)
     except FileNotFoundError:
-        # Handle case where cache files don't exist yet
         daily_added, daily_failed, failed_queue = [], [], []
     except Exception as e:
         logging.error(f"Error reading state for /status endpoint: {e}")
         daily_added, daily_failed, failed_queue = [], [], []
 
+    # Compute stats for frontend
+    artist_counts = Counter(item['radio_artist'] for item in daily_added)
+    most_common = artist_counts.most_common(3)
+    top_artists = ", ".join([f"{artist} ({count})" for artist, count in most_common]) if most_common else "N/A"
+    unique_artists = len(artist_counts)
+    failure_reasons = Counter(item['reason'] for item in daily_failed)
+    most_common_failure = failure_reasons.most_common(1)[0][0] if failure_reasons else "N/A"
+    total_processed = len(daily_added) + len(daily_failed)
+    success_rate = (len(daily_added) / total_processed * 100) if total_processed > 0 else 100
+    stats = {
+        'top_artists': top_artists,
+        'unique_artists': unique_artists,
+        'most_common_failure': most_common_failure,
+        'success_rate': f"{success_rate:.1f}%",
+        'service_paused': bot_instance.override_paused
+    }
+
     return jsonify({
         'last_song_added': daily_added[-1] if daily_added else None,
         'queue_size': len(failed_queue),
         'daily_added': daily_added,
-        'daily_failed': daily_failed
+        'daily_failed': daily_failed,
+        'stats': stats,
+        'seconds_until_next_check': bot_instance.get_seconds_until_next_check()
     })
 
 @app.route('/')
 def index_page():
+    """Renders the main web UI page."""
     return render_template('index.html', active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
+
+@app.route('/health')
+def health():
+    """Health check endpoint for deployment platforms."""
+    return jsonify({"status": "ok"}), 200
+
+@app.route('/admin/send_summary', methods=['POST'])
+def admin_send_summary():
+    """Manually send the daily summary email now."""
+    bot_instance.log_event("Admin: Manual summary email triggered via web.")
+    bot_instance.log_and_send_daily_summary()
+    return "Summary email sent."
+
+@app.route('/admin/retry_failed', methods=['POST'])
+def admin_retry_failed():
+    """Manually retry all failed songs in the queue."""
+    threading.Thread(target=bot_instance.retry_all_failed_songs).start()
+    return "Retrying all failed songs."
+
+@app.route('/admin/force_duplicates', methods=['POST'])
+def admin_force_duplicates():
+    """Manually trigger a duplicate check on the playlist."""
+    threading.Thread(target=bot_instance.check_and_remove_duplicates, args=(SPOTIFY_PLAYLIST_ID,)).start()
+    return "Duplicate check triggered."
+
+@app.route('/admin/pause_resume', methods=['POST'])
+def admin_pause_resume():
+    """Toggle pause/resume override for the service."""
+    paused = bot_instance.toggle_pause_override()
+    status = "paused" if paused else "resumed"
+    bot_instance.log_event(f"Admin: Service {status} via web override.")
+    return f"Service {status}."
+
+@app.route('/admin/refresh', methods=['GET'])
+def admin_refresh():
+    """Return the latest status (same as /status, for refresh button)."""
+    return status()
+
+@app.route('/admin/force_check', methods=['POST'])
+def admin_force_check():
+    """Immediately perform a new track check and reset the check timer."""
+    bot_instance.log_event("Admin: Manual force check triggered via web.")
+    bot_instance.process_main_cycle()
+    bot_instance.update_next_check_time()
+    return "Track check performed and timer reset."
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
