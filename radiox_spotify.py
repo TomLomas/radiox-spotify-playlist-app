@@ -527,8 +527,19 @@ class RadioXBot:
         return START_TIME <= now_local.time() <= END_TIME
 
     def toggle_pause_override(self):
-        """Toggles the pause/resume override."""
-        self.override_paused = not self.override_paused
+        """Toggles the pause/resume override with correct logic for out-of-hours and manual override."""
+        now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+        in_hours = START_TIME <= now_local.time() <= END_TIME
+        # If currently manually paused, always resume
+        if self.override_paused:
+            self.override_paused = False
+            return self.override_paused
+        # If out of hours and not manually paused, clicking should resume (override)
+        if not in_hours and not self.override_paused:
+            self.override_paused = False  # Explicitly set to False (manual resume)
+            return self.override_paused
+        # If running (in hours or manually resumed), clicking should pause
+        self.override_paused = True
         return self.override_paused
 
     def retry_all_failed_songs(self):
@@ -581,6 +592,12 @@ class RadioXBot:
 
     def process_main_cycle(self):
         """Processes the main cycle: fetches now playing, searches Spotify, adds to playlist, and saves state."""
+        # Ensure Spotify is authenticated
+        if self.sp is None:
+            self.log_event("Spotify client not initialized. Attempting to authenticate...")
+            if not self.authenticate_spotify():
+                self.log_event("ERROR: Could not authenticate with Spotify. Skipping cycle.")
+                return
         if not self.current_station_herald_id: self.current_station_herald_id = self.get_station_herald_id(RADIOX_STATION_SLUG)
         if not self.current_station_herald_id: return
         
@@ -704,13 +721,27 @@ def admin_send_summary():
 @app.route('/admin/retry_failed', methods=['POST'])
 def admin_retry_failed():
     """Manually retry all failed songs in the queue in a background thread."""
-    threading.Thread(target=bot_instance.retry_all_failed_songs).start()
+    def do_retry_failed():
+        if bot_instance.sp is None:
+            bot_instance.log_event("Spotify client not initialized. Attempting to authenticate...")
+            if not bot_instance.authenticate_spotify():
+                bot_instance.log_event("ERROR: Could not authenticate with Spotify. Skipping retry failed.")
+                return
+        bot_instance.retry_all_failed_songs()
+    threading.Thread(target=do_retry_failed).start()
     return "Retrying all failed songs in background. Check logs for progress."
 
 @app.route('/admin/force_duplicates', methods=['POST'])
 def admin_force_duplicates():
     """Manually trigger a duplicate check on the playlist in a background thread."""
-    threading.Thread(target=bot_instance.check_and_remove_duplicates, args=(SPOTIFY_PLAYLIST_ID,)).start()
+    def do_force_duplicates():
+        if bot_instance.sp is None:
+            bot_instance.log_event("Spotify client not initialized. Attempting to authenticate...")
+            if not bot_instance.authenticate_spotify():
+                bot_instance.log_event("ERROR: Could not authenticate with Spotify. Skipping duplicate check.")
+                return
+        bot_instance.check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID)
+    threading.Thread(target=do_force_duplicates).start()
     return "Duplicate check started in background. Check logs for progress."
 
 @app.route('/admin/pause_resume', methods=['POST'])
@@ -729,8 +760,16 @@ def admin_refresh():
 @app.route('/admin/force_check', methods=['POST'])
 def admin_force_check():
     """Immediately perform a new track check and reset the check timer in a background thread."""
+    def do_force_check():
+        if bot_instance.sp is None:
+            bot_instance.log_event("Spotify client not initialized. Attempting to authenticate...")
+            if not bot_instance.authenticate_spotify():
+                bot_instance.log_event("ERROR: Could not authenticate with Spotify. Skipping force check.")
+                return
+        bot_instance.process_main_cycle()
+        bot_instance.update_next_check_time()
     bot_instance.log_event("Admin: Manual force check triggered via web.")
-    threading.Thread(target=lambda: [bot_instance.process_main_cycle(), bot_instance.update_next_check_time()]).start()
+    threading.Thread(target=do_force_check).start()
     return "Track check started in background. Check logs for progress."
 
 def initialize_bot():
