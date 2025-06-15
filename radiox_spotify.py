@@ -531,15 +531,17 @@ class RadioXBot:
             self.send_startup_notification("".join(results))
 
     def should_run(self):
-        """Determines if the bot should run based on active hours and override."""
+        """Determines if the bot should run based on manual override and active hours."""
         now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
         # Reset override at the start of a new day
         if self.override_reset_day < now_local.date():
             self.override_paused = False
             self.override_reset_day = now_local.date()
+        # If manually paused, always pause
         if self.override_paused:
             return False
-        return START_TIME <= now_local.time() <= END_TIME
+        # If manually resumed (override_paused is False), always run
+        return True
 
     def toggle_pause_override(self):
         """Toggles the pause/resume override with correct logic for out-of-hours and manual override."""
