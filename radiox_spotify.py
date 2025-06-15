@@ -590,36 +590,15 @@ class RadioXBot:
 
     # --- Main Application Loop ---
     def run(self):
-        """Main loop for the bot, running periodic checks and updates."""
-        self.log_event("--- run_radio_monitor thread initiated. ---")
-        if not self.sp: self.log_event("ERROR: Spotify client is None. Thread cannot perform Spotify actions."); return
-        if self.last_summary_log_date is None: self.last_summary_log_date = datetime.date.today()
+        """Main monitoring loop. Checks for new tracks at intervals if should_run() is True."""
         while True:
-            try:
-                now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
-                if self.last_summary_log_date < now_local.date():
-                    self.log_event(f"New day detected ({now_local.date().isoformat()}). Resetting daily flags.")
-                    self.startup_email_sent, self.shutdown_summary_sent = False, False
-                    self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
-                    self.last_summary_log_date = now_local.date()
-                    self.override_paused = False  # Reset override at new day
-                    self.override_reset_day = now_local.date()
-                if self.should_run():
-                    if not self.startup_email_sent:
-                        self.log_event("Active hours started."); self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
-                    self.process_main_cycle()
-                else:
-                    if self.override_paused:
-                        self.log_event("Service is manually paused via override. Pausing...")
-                    else:
-                        self.log_event(f"Outside of active hours. Pausing...")
-                    if not self.shutdown_summary_sent:
-                        self.log_event("End of active day. Generating and sending daily summary."); self.log_and_send_daily_summary(); self.shutdown_summary_sent = True; self.startup_email_sent = False
-                    self.update_next_check_time()
-                    time.sleep(CHECK_INTERVAL * 5); continue
-            except Exception as e: logging.error(f"CRITICAL UNHANDLED ERROR in main loop: {e}", exc_info=True); time.sleep(CHECK_INTERVAL * 2) 
-            self.log_event(f"Cycle complete. Waiting {CHECK_INTERVAL}s...");
-            self.update_next_check_time()
+            now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+            in_hours = START_TIME <= now_local.time() <= END_TIME
+            logging.info(f"[Main Loop] should_run={self.should_run()}, manual_override_active={self.manual_override_active}, override_paused={self.override_paused}, in_hours={in_hours}")
+            if self.should_run():
+                self.process_main_cycle()
+            else:
+                logging.info("[Main Loop] Service is paused (manual or out of hours). Skipping check.")
             time.sleep(CHECK_INTERVAL)
 
     def process_main_cycle(self):
@@ -730,7 +709,9 @@ def status():
         'daily_added': daily_added,
         'daily_failed': daily_failed,
         'stats': stats,
-        'seconds_until_next_check': bot_instance.get_seconds_until_next_check()
+        'seconds_until_next_check': bot_instance.get_seconds_until_next_check(),
+        'override_paused': bot_instance.override_paused,
+        'manual_override_active': bot_instance.manual_override_active
     })
 
 @app.route('/')
@@ -778,10 +759,14 @@ def admin_force_duplicates():
 
 @app.route('/admin/pause_resume', methods=['POST'])
 def admin_pause_resume():
-    """Toggle pause/resume override for the service."""
+    """Toggle pause/resume override for the service. If resuming, immediately trigger a check."""
+    was_paused = bot_instance.override_paused or not bot_instance.should_run()
     paused = bot_instance.toggle_pause_override()
     status = "paused" if paused else "resumed"
     bot_instance.log_event(f"Admin: Service {status} via web override.")
+    # If we just resumed, trigger a check immediately
+    if was_paused and not paused:
+        threading.Thread(target=bot_instance.process_main_cycle).start()
     return f"Service {status}."
 
 @app.route('/admin/refresh', methods=['GET'])
