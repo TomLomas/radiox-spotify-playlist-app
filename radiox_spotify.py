@@ -655,12 +655,24 @@ def status():
     most_common_failure = failure_reasons.most_common(1)[0][0] if failure_reasons else "N/A"
     total_processed = len(daily_added) + len(daily_failed)
     success_rate = (len(daily_added) / total_processed * 100) if total_processed > 0 else 100
+
+    # Determine pause reason
+    now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+    in_hours = START_TIME <= now_local.time() <= END_TIME
+    if bot_instance.override_paused:
+        paused_reason = 'manual'
+    elif not in_hours:
+        paused_reason = 'out_of_hours'
+    else:
+        paused_reason = 'none'
+
     stats = {
         'top_artists': top_artists,
         'unique_artists': unique_artists,
         'most_common_failure': most_common_failure,
         'success_rate': f"{success_rate:.1f}%",
-        'service_paused': bot_instance.override_paused
+        'service_paused': bot_instance.override_paused or not in_hours,
+        'paused_reason': paused_reason
     }
 
     return jsonify({

@@ -2,6 +2,10 @@
 
 This app takes 'Now Playing' tracks from Radio X and adds them to a Spotify playlist automatically. It features a web UI for live status, manual controls, and daily email summaries.
 
+## Versioning
+- **Current Beta Version:** v6.1-beta
+- See the changelog below for details on each beta release.
+
 ## Features
 - Monitors Radio X for new tracks
 - Adds tracks to a Spotify playlist
@@ -34,38 +38,42 @@ See `.env` for all required variables (Spotify, email, etc.).
 - The `Procfile` is set up for web service deployment.
 - Health check endpoint: `/health`
 
-## Changelog: Major Additions, Removals, and Improvements
+## Changelog
 
-### Added
-- **Admin Controls in Web UI:**
-  - Refresh Status (immediate track check & timer reset)
-  - Send Summary Email Now
-  - Retry Failed Songs
-  - Check for Duplicates
-  - Pause/Resume Service (with auto-reset at new day)
-- **Live Countdown Timer:** Shows time until next scheduled check, synced with backend.
-- **Stats Section:** Top artists, unique artists, most common failure, and more, both in UI and `/status` API.
-- **Mobile-Friendly Tables:** Song lists are scrollable and usable on mobile.
-- **Toast Feedback:** All admin actions show a status message.
-- **Cleaner, Modern Email Summary:** Redesigned for clarity and mobile use.
-- **.env and app.log in .gitignore** for security.
-- **/health endpoint** for deployment health checks.
+### v6.1-beta (Latest)
+- **UI/UX:**
+  - Play/Pause and Refresh icons now appear in the top-right of the status area for instant control.
+  - Pause/Resume button shows a play icon and context-aware tooltip if paused (manual or out-of-hours).
+  - If no songs have been added today, the status area now displays a message indicating if the service is paused (manual or out-of-hours).
+  - Admin controls remain at the top, but the main controls are now more accessible and visually clear.
+- **Feedback:**
+  - Improved clarity on why the service is paused and what action the play/pause button will take.
+  - Immediate feedback in the UI for all admin actions.
 
-### Improved
-- **UI Simplification:** Removed confusing/unused manual triggers; focused on status, stats, and admin controls.
-- **Accessibility:** Added ARIA labels and improved layout for screen readers.
-- **Backend Security:** All secrets/configs now use environment variables and `python-dotenv`.
-- **Error Handling:** More robust logging and error surfacing.
-- **Summary Email Logic:** No more empty emails at midnight; only sends if there's something to report.
-- **Code Documentation:** Added docstrings and comments throughout backend.
-
-### Removed
-- **Old Manual Trigger Buttons:** (force duplicates, force queue, diagnostics) from main UI.
-- **Unnecessary UI Complexity:** Controls now grouped in a clear "Admin Controls" section.
+### v6.0-beta
+- Major UI/UX and backend improvements: admin controls, timer, stats, email, and more (see previous changelog section for details).
 
 ## Notes
 - Do not commit your `.env` or `app.log` files.
 - For local development, use `python-dotenv` to load environment variables.
+
+## Pushing Your Changes to GitHub
+1. Make sure you are in your project directory:
+   ```sh
+   cd C:\Users\Tomlo\radiox-spotify-playlist-app
+   ```
+2. Stage your changes:
+   ```sh
+   git add .
+   ```
+3. Commit your changes with a message (update the version number as needed):
+   ```sh
+   git commit -m "v6.1-beta: UI/UX improvements, play/pause/refresh icons, context-aware pause messaging"
+   ```
+4. Push to GitHub:
+   ```sh
+   git push
+   ```
 
 ## License
 MIT 
