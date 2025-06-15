@@ -144,7 +144,13 @@ class RadioXBot:
 
     # --- Authentication ---
     def authenticate_spotify(self):
-        """Initializes and authenticates the Spotipy client using environment variables and cache."""
+        """Initializes and authenticates the Spotipy client using environment variables and cache, with detailed logging."""
+        def mask_secret(val):
+            if not val:
+                return 'MISSING'
+            if len(val) <= 6:
+                return '*' * len(val)
+            return val[:2] + '*' * (len(val)-4) + val[-2:]
         def write_cache():
             cache_content_b64 = os.getenv("SPOTIPY_CACHE_BASE64")
             if cache_content_b64:
@@ -156,6 +162,11 @@ class RadioXBot:
             return False
 
         scope = "playlist-modify-public playlist-modify-private user-library-read"
+        # Log all relevant environment variables (masking secrets)
+        logging.info(f"SPOTIPY_CLIENT_ID: {mask_secret(SPOTIPY_CLIENT_ID)}")
+        logging.info(f"SPOTIPY_CLIENT_SECRET: {mask_secret(SPOTIPY_CLIENT_SECRET)}")
+        logging.info(f"SPOTIPY_REDIRECT_URI: {SPOTIPY_REDIRECT_URI if SPOTIPY_REDIRECT_URI else 'MISSING'}")
+        logging.info(f"SPOTIFY_PLAYLIST_ID: {SPOTIFY_PLAYLIST_ID if SPOTIFY_PLAYLIST_ID else 'MISSING'}")
         try:
             write_cache()
             auth_manager = SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET, redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, cache_path=".spotipy_cache") 
@@ -171,6 +182,10 @@ class RadioXBot:
         except Exception as e:
             self.sp = None
             logging.critical(f"CRITICAL Error during Spotify Authentication: {e}", exc_info=True)
+            logging.error(f"SPOTIPY_CLIENT_ID: {mask_secret(SPOTIPY_CLIENT_ID)}")
+            logging.error(f"SPOTIPY_CLIENT_SECRET: {mask_secret(SPOTIPY_CLIENT_SECRET)}")
+            logging.error(f"SPOTIPY_REDIRECT_URI: {SPOTIPY_REDIRECT_URI if SPOTIPY_REDIRECT_URI else 'MISSING'}")
+            logging.error(f"SPOTIFY_PLAYLIST_ID: {SPOTIFY_PLAYLIST_ID if SPOTIFY_PLAYLIST_ID else 'MISSING'}")
         return False
     
     # --- API Wrappers and Helpers ---
