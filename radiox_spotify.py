@@ -703,15 +703,15 @@ def admin_send_summary():
 
 @app.route('/admin/retry_failed', methods=['POST'])
 def admin_retry_failed():
-    """Manually retry all failed songs in the queue."""
+    """Manually retry all failed songs in the queue in a background thread."""
     threading.Thread(target=bot_instance.retry_all_failed_songs).start()
-    return "Retrying all failed songs."
+    return "Retrying all failed songs in background. Check logs for progress."
 
 @app.route('/admin/force_duplicates', methods=['POST'])
 def admin_force_duplicates():
-    """Manually trigger a duplicate check on the playlist."""
+    """Manually trigger a duplicate check on the playlist in a background thread."""
     threading.Thread(target=bot_instance.check_and_remove_duplicates, args=(SPOTIFY_PLAYLIST_ID,)).start()
-    return "Duplicate check triggered."
+    return "Duplicate check started in background. Check logs for progress."
 
 @app.route('/admin/pause_resume', methods=['POST'])
 def admin_pause_resume():
@@ -728,11 +728,10 @@ def admin_refresh():
 
 @app.route('/admin/force_check', methods=['POST'])
 def admin_force_check():
-    """Immediately perform a new track check and reset the check timer."""
+    """Immediately perform a new track check and reset the check timer in a background thread."""
     bot_instance.log_event("Admin: Manual force check triggered via web.")
-    bot_instance.process_main_cycle()
-    bot_instance.update_next_check_time()
-    return "Track check performed and timer reset."
+    threading.Thread(target=lambda: [bot_instance.process_main_cycle(), bot_instance.update_next_check_time()]).start()
+    return "Track check started in background. Check logs for progress."
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
