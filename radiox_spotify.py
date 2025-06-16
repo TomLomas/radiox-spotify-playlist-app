@@ -27,7 +27,10 @@ from dotenv import load_dotenv
 import enum
 
 # --- Flask App Setup ---
-app = Flask(__name__)
+app = Flask(__name__, 
+    static_folder='frontend/build',
+    static_url_path='')
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching
 
 # --- Configuration ---
 load_dotenv()
@@ -755,42 +758,10 @@ def status():
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_react(path):
-    build_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frontend', 'build'))
-    static_dir = os.path.join(build_dir, 'static')
-    print(f"Requested path: {path}")
-    print(f"Build directory: {build_dir}")
-    print(f"Static directory: {static_dir}")
-    
-    # Add cache control headers
-    response_headers = {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-    }
-    
-    if path.startswith('static/'):
-        # Remove 'static/' prefix and serve from static directory
-        static_path = path[len('static/'):]
-        full_path = os.path.join(static_dir, static_path)
-        print(f"Attempting to serve static file: {full_path}")
-        if os.path.exists(full_path):
-            print(f"File exists, serving: {full_path}")
-            response = send_file(full_path)
-            response.headers.update(response_headers)
-            return response
-        else:
-            print(f"File not found: {full_path}")
-            return "File not found", 404
-    elif path != "" and os.path.exists(os.path.join(build_dir, path)):
-        print(f"Serving build file: {os.path.join(build_dir, path)}")
-        response = send_file(os.path.join(build_dir, path))
-        response.headers.update(response_headers)
-        return response
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
     else:
-        print(f"Serving index.html from: {build_dir}")
-        response = send_file(os.path.join(build_dir, 'index.html'))
-        response.headers.update(response_headers)
-        return response
+        return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/health')
 def health():
