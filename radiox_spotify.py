@@ -1055,6 +1055,18 @@ def admin_stats():
             'daily_failed': []
         }), 500
 
+@app.route('/admin/settings', methods=['GET'])
+def admin_settings():
+    def seconds_to_mmss(seconds):
+        m = seconds // 60
+        s = seconds % 60
+        return f"{m:02}:{s:02}"
+    return jsonify({
+        'check_interval': seconds_to_mmss(CHECK_INTERVAL),
+        'duplicate_check_interval': seconds_to_mmss(DUPLICATE_CHECK_INTERVAL),
+        'max_playlist_size': MAX_PLAYLIST_SIZE
+    })
+
 def start_background_tasks():
     """Start background tasks in a non-daemon thread"""
     def run_bot():
