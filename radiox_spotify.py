@@ -954,91 +954,102 @@ def admin_resume():
 def admin_stats():
     """Return detailed admin statistics."""
     try:
-        with bot_instance.file_lock:
-            with open(bot_instance.DAILY_ADDED_CACHE_FILE, 'r') as f: daily_added = json.load(f)
-            with open(bot_instance.DAILY_FAILED_CACHE_FILE, 'r') as f: daily_failed = json.load(f)
-    except FileNotFoundError:
-        daily_added, daily_failed = [], []
-    except Exception as e:
-        logging.error(f"Error reading state for /admin/stats endpoint: {e}")
-        daily_added, daily_failed = [], []
-
-    # Compute detailed stats
-    total_songs_added = len(daily_added)
-    total_failures = len(daily_failed)
-    success_rate = (total_songs_added / (total_songs_added + total_failures) * 100) if (total_songs_added + total_failures) > 0 else 100
-
-    # Calculate average songs per day (based on last 7 days)
-    now = datetime.datetime.now(pytz.timezone(TIMEZONE))
-    seven_days_ago = now - datetime.timedelta(days=7)
-    songs_last_week = [song for song in daily_added if datetime.datetime.fromtimestamp(song.get('timestamp', 0), pytz.timezone(TIMEZONE)) > seven_days_ago]
-    average_songs_per_day = len(songs_last_week) / 7
-
-    # Most common patterns
-    artist_counts = Counter(item['radio_artist'] for item in daily_added)
-    most_common_artist = artist_counts.most_common(1)[0][0] if artist_counts else "N/A"
-    
-    failure_reasons = Counter(item['reason'] for item in daily_failed)
-    most_common_failure = failure_reasons.most_common(1)[0][0] if failure_reasons else "N/A"
-
-    # Format times
-    last_check_time = datetime.datetime.fromtimestamp(bot_instance.last_check_time).strftime('%H:%M:%S') if bot_instance.last_check_time else "N/A"
-    next_check_time = datetime.datetime.fromtimestamp(bot_instance.next_check_time).strftime('%H:%M:%S') if bot_instance.next_check_time else "N/A"
-
-    # Calculate average_duration, decade_spread, newest_song, oldest_song
-    average_duration = 0
-    if daily_added:
-        durations = [s.get('duration', 0) for s in daily_added if s.get('duration')]
-        if durations:
-            average_duration = sum(durations) / len(durations)
-        years = [int(s.get('year', 0)) for s in daily_added if s.get('year')]
-        decade_spread = {}
-        if years:
-            from collections import Counter
-            decades = [str((y // 10) * 10) + 's' for y in years if y > 0]
-            c = Counter(decades)
-            total = sum(c.values())
-            decade_spread = {k: round(v * 100 / total, 1) for k, v in c.items()}
-            newest_year = max(years)
-            oldest_year = min(years)
-            newest_song = next((s for s in daily_added if int(s.get('year', 0)) == newest_year), None)
-            oldest_song = next((s for s in daily_added if int(s.get('year', 0)) == oldest_year), None)
-        else:
-            decade_spread = {}
-            newest_song = None
-            oldest_song = None
-    else:
-        decade_spread = {}
+        # Get current time in local timezone
+        now = datetime.datetime.now(pytz.timezone(TIMEZONE))
+        seven_days_ago = now - datetime.timedelta(days=7)
+        
+        # Get daily stats
+        daily_added = get_daily_added()
+        daily_failed = get_daily_failed()
+        
+        # Convert string/float/int timestamps to datetime objects for comparison
+        def parse_timestamp(ts):
+            try:
+                if isinstance(ts, str):
+                    ts = float(ts)
+                return datetime.datetime.fromtimestamp(ts, pytz.timezone(TIMEZONE))
+            except Exception:
+                return datetime.datetime.min.replace(tzinfo=pytz.timezone(TIMEZONE))
+        
+        songs_last_week = [
+            song for song in daily_added 
+            if parse_timestamp(song.get('timestamp', 0)) > seven_days_ago
+        ]
+        
+        failed_last_week = [
+            song for song in daily_failed 
+            if parse_timestamp(song.get('timestamp', 0)) > seven_days_ago
+        ]
+        
+        # Compute stats for frontend
+        artist_counts = Counter(item['radio_artist'] for item in daily_added)
+        most_common = artist_counts.most_common(3)
+        top_artists = ", ".join([f"{artist} ({count})" for artist, count in most_common]) if most_common else "N/A"
+        unique_artists = len(artist_counts)
+        failure_reasons = Counter(item['reason'] for item in daily_failed)
+        most_common_failure = failure_reasons.most_common(1)[0][0] if failure_reasons else "N/A"
+        total_processed = len(daily_added) + len(daily_failed)
+        success_rate = (len(daily_added) / total_processed * 100) if total_processed > 0 else 100
+        
+        # Calculate average songs per day (based on last 7 days)
+        songs_last_week_count = len(songs_last_week)
+        average_songs_per_day = songs_last_week_count / 7 if songs_last_week_count > 0 else 0
+        
+        # Calculate song insights
+        song_durations = []
+        song_years = []
         newest_song = None
         oldest_song = None
-
-    stats = {
-        'total_songs_added': total_songs_added,
-        'total_failures': total_failures,
-        'success_rate': round(success_rate, 1),
-        'average_songs_per_day': round(average_songs_per_day, 1),
-        'most_common_artist': most_common_artist,
-        'most_common_failure': most_common_failure,
-        'last_check_time': last_check_time,
-        'next_check_time': next_check_time,
-        'average_duration': average_duration,
-        'decade_spread': decade_spread,
-        'newest_song': {
-            'title': newest_song['radio_title'],
-            'artist': newest_song['radio_artist'],
-            'year': newest_song['year']
-        } if newest_song else None,
-        'oldest_song': {
-            'title': oldest_song['radio_title'],
-            'artist': oldest_song['radio_artist'],
-            'year': oldest_song['year']
-        } if oldest_song else None
-    }
-
-    return jsonify({
-        'stats': stats,
-        'daily_failed': daily_failed
-    })
+        
+        for song in daily_added:
+            if 'duration_ms' in song:
+                song_durations.append(song['duration_ms'] / 1000)  # Convert to seconds
+            if 'year' in song:
+                year = int(song['year'])
+                song_years.append(year)
+                if not newest_song or year > int(newest_song['year']):
+                    newest_song = song
+                if not oldest_song or year < int(oldest_song['year']):
+                    oldest_song = song
+        
+        # Calculate decade spread
+        decade_counts = Counter()
+        for year in song_years:
+            decade = (year // 10) * 10
+            decade_counts[decade] += 1
+        
+        total_songs = len(song_years)
+        decade_spread = {
+            f"{decade}s": round((count / total_songs * 100) if total_songs > 0 else 0, 1)
+            for decade, count in decade_counts.items()
+        }
+        
+        stats = {
+            'total_songs_added': len(daily_added),
+            'total_failures': len(daily_failed),
+            'success_rate': round(success_rate, 1),
+            'average_songs_per_day': round(average_songs_per_day, 1),
+            'most_common_artist': top_artists,
+            'unique_artists': unique_artists,
+            'most_common_failure': most_common_failure,
+            'average_duration': round(sum(song_durations) / len(song_durations)) if song_durations else None,
+            'decade_spread': decade_spread,
+            'newest_song': newest_song,
+            'oldest_song': oldest_song,
+            'last_check_time': now.strftime('%H:%M:%S'),
+            'next_check_time': (now + datetime.timedelta(seconds=CHECK_INTERVAL)).strftime('%H:%M:%S')
+        }
+        
+        return jsonify({
+            'stats': stats,
+            'daily_failed': daily_failed
+        })
+    except Exception as e:
+        logging.error(f"Error reading state for /admin/stats endpoint: {e}")
+        return jsonify({
+            'stats': {},
+            'daily_failed': []
+        }), 500
 
 def start_background_tasks():
     """Start background tasks in a non-daemon thread"""
