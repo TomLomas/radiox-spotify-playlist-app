@@ -8,14 +8,6 @@ interface Song {
   reason?: string;
   [key: string]: any;
 }
-interface Stats {
-  top_artists: string;
-  unique_artists: number;
-  most_common_failure: string;
-  success_rate: string;
-  service_paused: boolean;
-  paused_reason: string;
-}
 
 // Accent color palettes
 const PURPLES = ['#B266C8', '#a259c6', '#c77dff', '#7c3aed', '#a21caf', '#f472b6'];
@@ -52,14 +44,6 @@ const App: React.FC = () => {
   const [manualOverride, setManualOverride] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
-  const [stats, setStats] = useState<Stats>({
-    top_artists: '',
-    unique_artists: 0,
-    most_common_failure: '',
-    success_rate: '',
-    service_paused: false,
-    paused_reason: '',
-  });
   const [dailyAdded, setDailyAdded] = useState<Song[]>([]);
   const [dailyFailed, setDailyFailed] = useState<Song[]>([]);
   const [lastSong, setLastSong] = useState<Song | null>(null);
@@ -90,7 +74,6 @@ const App: React.FC = () => {
       if (!response.ok) throw new Error('Failed to fetch status');
       const data = await response.json();
       setServiceState(data.service_state);
-      setStats(data.stats);
       setDailyAdded(data.daily_added);
       setDailyFailed(data.daily_failed);
       setLastSong(data.last_song_added || null);
