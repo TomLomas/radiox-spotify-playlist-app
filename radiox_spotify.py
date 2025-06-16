@@ -764,13 +764,18 @@ def status():
         'paused_reason': paused_reason
     }
 
+    seconds_until_next_check = bot_instance.get_seconds_until_next_check()
+    if seconds_until_next_check == 0:
+        bot_instance.update_next_check_time()
+        seconds_until_next_check = bot_instance.get_seconds_until_next_check()
+
     return jsonify({
         'last_song_added': daily_added[-1] if daily_added else None,
         'queue_size': len(failed_queue),
         'daily_added': daily_added,
         'daily_failed': daily_failed,
         'stats': stats,
-        'seconds_until_next_check': bot_instance.get_seconds_until_next_check(),
+        'seconds_until_next_check': seconds_until_next_check,
         'service_state': bot_instance.service_state.value,
         'state_history': list(bot_instance.state_history)
     })
