@@ -1,210 +1,222 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Button } from './App';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Song, AdminStats, ScriptSettings } from './types';
 
-interface Song {
-  radio_title: string;
-  radio_artist: string;
-  album_art_url?: string;
-  reason?: string;
-  [key: string]: any;
-}
+// UI Components
+const Button: React.FC<{ onClick: () => void; accent: string; children: React.ReactNode }> = ({ onClick, accent, children }) => (
+  <button
+    onClick={onClick}
+    className="px-4 py-2 rounded-lg border transition-colors"
+    style={{ borderColor: accent, color: accent }}
+  >
+    {children}
+  </button>
+);
 
-interface AdminStats {
-  total_songs_added: number;
-  total_failures: number;
-  success_rate: number;
-  average_songs_per_day: number;
-  most_common_artist: string;
-  most_common_failure: string;
-  last_check_time: string;
-  next_check_time: string;
-}
-
-interface ScriptSettings {
-  check_interval: number;
-  duplicate_check_interval: number;
-  max_playlist_size: number;
-}
-
-// Helper functions for mm:ss <-> seconds
-function secondsToMMSS(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-function mmssToSeconds(mmss: string) {
-  const [m, s] = mmss.split(':').map(Number);
-  return (m || 0) * 60 + (s || 0);
-}
+const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className = '', children }) => (
+  <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg ${className}`}>
+    {children}
+  </div>
+);
 
 const AdminPage: React.FC = () => {
-  const [dailyFailed, setDailyFailed] = useState<Song[]>([]);
+  const navigate = useNavigate();
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [checkInterval, setCheckInterval] = useState('05:00');
+  const [duplicateCheckInterval, setDuplicateCheckInterval] = useState('24:00');
+  const [maxPlaylistSize, setMaxPlaylistSize] = useState('100');
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [failedSongs, setFailedSongs] = useState<Song[]>([]);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
-  const [settingsDraft, setSettingsDraft] = useState<ScriptSettings | null>(null);
-
-  const triggerToast = (msg: string) => {
-    setToastMsg(msg);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2500);
-  };
-
-  const adminAction = async (url: string, method: string = 'POST') => {
-    try {
-      const res = await fetch(url, { method });
-      const text = await res.text();
-      triggerToast(text);
-      fetchAdminData();
-    } catch (e) {
-      triggerToast('Admin action failed');
-    }
-  };
-
-  const fetchAdminData = useCallback(async () => {
-    try {
-      const response = await fetch('/admin/stats');
-      if (!response.ok) {
-        throw new Error('Failed to fetch admin data');
-      }
-      const data = await response.json();
-      setStats(data.stats);
-      setDailyFailed(data.daily_failed);
-      if (data.settings) {
-        setSettingsDraft(data.settings);
-      }
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
-      triggerToast('Failed to fetch admin data');
-    }
-  }, []);
+  const accent = theme === 'dark' ? '#9333ea' : '#22c55e';
 
   useEffect(() => {
-    fetchAdminData();
-  }, [fetchAdminData]);
+    const fetchData = async () => {
+      try {
+        const [statsRes, failedRes] = await Promise.all([
+          fetch('/admin/stats'),
+          fetch('/admin/failed')
+        ]);
+        const statsData = await statsRes.json();
+        const failedData = await failedRes.json();
+        setStats(statsData.stats);
+        setFailedSongs(failedData.failed_songs || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          check_interval: checkInterval,
+          duplicate_check_interval: duplicateCheckInterval,
+          max_playlist_size: parseInt(maxPlaylistSize)
+        })
+      });
+      if (response.ok) {
+        setToastMsg('Settings updated successfully');
+        setShowToast(true);
+      } else {
+        setToastMsg('Failed to update settings');
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      setToastMsg('Error updating settings');
+      setShowToast(true);
+    }
+  };
+
+  const adminAction = async (action: string) => {
+    try {
+      const response = await fetch(`/admin/${action}`, { method: 'POST' });
+      if (response.ok) {
+        setToastMsg(`${action} completed successfully`);
+        setShowToast(true);
+      } else {
+        setToastMsg(`Failed to ${action}`);
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error(`Error performing ${action}:`, error);
+      setToastMsg(`Error performing ${action}`);
+      setShowToast(true);
+    }
+  };
 
   return (
-    <div className="min-h-screen w-full bg-background-light dark:bg-background-dark transition-colors duration-300 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Admin Controls</h1>
-          <Button accent="#1DB954" onClick={() => window.location.href = '/'}>Back to Main</Button>
+          <div className="flex gap-4">
+            <Button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} accent={accent}>
+              {theme === 'dark' ? '🌞' : '🌙'}
+            </Button>
+            <Button onClick={() => navigate('/')} accent={accent}>
+              Back to Dashboard
+            </Button>
+          </div>
         </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card accent="#1DB954">
-            <h2 className="text-xl font-bold mb-4">Performance Stats</h2>
-            {stats && (
-              <div className="text-left">
-                <p>Total Songs Added: {stats.total_songs_added}</p>
-                <p>Total Failures: {stats.total_failures}</p>
-                <p>Success Rate: {stats.success_rate}%</p>
-                <p>Avg Songs/Day: {stats.average_songs_per_day}</p>
-              </div>
-            )}
-          </Card>
-
-          <Card accent="#1DB954">
-            <h2 className="text-xl font-bold mb-4">Common Patterns</h2>
-            {stats && (
-              <div className="text-left">
-                <p>Most Common Artist: {stats.most_common_artist}</p>
-                <p>Most Common Failure: {stats.most_common_failure}</p>
-              </div>
-            )}
-          </Card>
-
-          <Card accent="#1DB954">
-            <h2 className="text-xl font-bold mb-4">Service Status</h2>
-            {stats && (
-              <div className="text-left">
-                <p>Last Check: {stats.last_check_time}</p>
-                <p>Next Check: {stats.next_check_time}</p>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Script Settings */}
-        <Card accent="#1DB954" className="mb-8">
-          <h2 className="text-xl font-bold mb-4">Script Settings</h2>
-          {settingsDraft ? (
-            <form className="flex flex-col gap-4 max-w-md mx-auto" onSubmit={async (e) => {
-              e.preventDefault();
-              // Save settings to backend (convert mm:ss to seconds)
-              await fetch('/admin/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  ...settingsDraft,
-                  check_interval: mmssToSeconds(settingsDraft.check_interval as any),
-                  duplicate_check_interval: mmssToSeconds(settingsDraft.duplicate_check_interval as any),
-                }),
-              });
-              triggerToast('Settings updated!');
-            }}>
-              <label className="flex flex-col">
-                Check Interval (mm:ss):
-                <input type="text" pattern="\\d{2}:\\d{2}" className="border rounded p-2" value={secondsToMMSS(Number(settingsDraft.check_interval))} onChange={e => setSettingsDraft({ ...settingsDraft, check_interval: mmssToSeconds(e.target.value) })} />
-              </label>
-              <label className="flex flex-col">
-                Duplicate Check Interval (mm:ss):
-                <input type="text" pattern="\\d{2}:\\d{2}" className="border rounded p-2" value={secondsToMMSS(Number(settingsDraft.duplicate_check_interval))} onChange={e => setSettingsDraft({ ...settingsDraft, duplicate_check_interval: mmssToSeconds(e.target.value) })} />
-              </label>
-              <label className="flex flex-col">
-                Max Playlist Size:
-                <input type="number" className="border rounded p-2" value={settingsDraft.max_playlist_size} onChange={e => setSettingsDraft({ ...settingsDraft, max_playlist_size: Number(e.target.value) })} />
-              </label>
-              <Button accent="#1DB954" type="submit">Save Settings</Button>
-            </form>
-          ) : (
-            <div className="text-gray-500">Loading...</div>
-          )}
-        </Card>
 
         {/* Admin Actions */}
-        <Card accent="#1DB954" className="mb-8">
-          <h2 className="text-xl font-bold mb-4">Admin Actions</h2>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Button accent="#1DB954" onClick={() => adminAction('/admin/send_summary_email')}>Send Summary Email</Button>
-            <Button accent="#1DB954" onClick={() => adminAction('/admin/retry_failed')}>Retry Failed Songs</Button>
-            <Button accent="#1DB954" onClick={() => adminAction('/admin/check_duplicates')}>Check for Duplicates</Button>
-            <Button accent="#1DB954" onClick={() => adminAction('/admin/force_check')}>Force Check</Button>
+        <Card className="mb-8 p-6">
+          <h2 className="text-xl font-semibold mb-4">Admin Actions</h2>
+          <div className="flex flex-wrap gap-4">
+            <Button onClick={() => adminAction('check')} accent={accent}>
+              Check Now
+            </Button>
+            <Button onClick={() => adminAction('clear-failed')} accent={accent}>
+              Clear Failed Songs
+            </Button>
+            <Button onClick={() => adminAction('clear-added')} accent={accent}>
+              Clear Added Songs
+            </Button>
           </div>
         </Card>
 
+        {/* Script Settings */}
+        <Card className="mb-8 p-6">
+          <h2 className="text-xl font-semibold mb-4">Script Settings</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Check Interval (mm:ss)</label>
+              <input
+                type="text"
+                value={checkInterval}
+                onChange={(e) => setCheckInterval(e.target.value)}
+                pattern="\d{2}:\d{2}"
+                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Duplicate Check Interval (mm:ss)</label>
+              <input
+                type="text"
+                value={duplicateCheckInterval}
+                onChange={(e) => setDuplicateCheckInterval(e.target.value)}
+                pattern="\d{2}:\d{2}"
+                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Max Playlist Size</label>
+              <input
+                type="number"
+                value={maxPlaylistSize}
+                onChange={(e) => setMaxPlaylistSize(e.target.value)}
+                min="1"
+                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700"
+                required
+              />
+            </div>
+            <Button onClick={handleSubmit} accent={accent}>
+              Save Settings
+            </Button>
+          </form>
+        </Card>
+
+        {/* Stats */}
+        <Card className="mb-8 p-6">
+          <h2 className="text-xl font-semibold mb-4">Stats</h2>
+          {stats ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Songs Added</p>
+                <p className="text-lg">{stats.total_songs_added}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Failures</p>
+                <p className="text-lg">{stats.total_failures}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Success Rate</p>
+                <p className="text-lg">{stats.success_rate}%</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Average Songs/Day</p>
+                <p className="text-lg">{stats.average_songs_per_day}</p>
+              </div>
+            </div>
+          ) : (
+            <p>Loading stats...</p>
+          )}
+        </Card>
+
         {/* Failed Songs */}
-        <Card accent="#ef4444">
-          <h2 className="text-xl font-bold mb-4">Failed Songs Today</h2>
-          <div className="w-full">
-            {dailyFailed.length > 0 ? (
-              dailyFailed.map((song, index) => (
-                <div key={index} className="flex items-start gap-4 mb-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
-                  {song.album_art_url && (
-                    <img src={song.album_art_url} alt="Album Art" className="w-16 h-16 rounded shadow" />
-                  )}
-                  <div className="flex-1">
-                    <div className="font-semibold text-lg">{song.radio_title}</div>
-                    <div className="text-gray-500">{song.radio_artist}</div>
-                    {song.reason && (
-                      <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded text-red-700 dark:text-red-300">
-                        <strong>Error:</strong> {song.reason}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
+        <Card>
+          <h2 className="text-xl font-semibold mb-4 p-6 pb-0">Failed Songs</h2>
+          <div className="p-6 pt-0">
+            {failedSongs.length > 0 ? (
+              <ul className="space-y-4">
+                {failedSongs.map((song, index) => (
+                  <li key={index} className="border-b pb-4 last:border-b-0">
+                    <p className="font-medium">{song.radio_title}</p>
+                    <p className="text-sm text-muted-foreground">{song.radio_artist}</p>
+                    <p className="text-sm text-red-500 mt-1">{song.reason}</p>
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <div className="text-gray-500">No failures today</div>
+              <p className="text-muted-foreground">No failed songs</p>
             )}
           </div>
         </Card>
       </div>
 
-      {/* Toast Notification */}
+      {/* Toast */}
       {showToast && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-lg">
           {toastMsg}
         </div>
       )}

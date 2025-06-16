@@ -1,252 +1,189 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AdminPage from './AdminPage';
+import { Song, AdminStats } from './types';
 
-// Type definitions
-interface Song {
-  radio_title: string;
-  radio_artist: string;
-  album_art_url?: string;
-  reason?: string;
-  [key: string]: any;
-}
-
-const XLogo: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
-  <img
-    src={darkMode ? '/x-purple.png' : '/x-green.png'}
-    alt="RadioX Logo"
-    className="w-16 h-16 mx-auto mb-2 drop-shadow-lg transition-all"
-    style={{ filter: darkMode ? 'drop-shadow(0 0 8px #a259c6)' : 'drop-shadow(0 0 8px #22c55e)' }}
-  />
-);
-
-export const Card: React.FC<{ children: React.ReactNode; className?: string; accent?: string }> = ({ children, className = '', accent }) => (
-  <div
-    className={`rounded-lg shadow-md p-4 bg-white dark:bg-gray-800 ${className}`}
-    style={accent ? { borderTop: `4px solid ${accent}` } : undefined}
-  >
-    {children}
-  </div>
-);
-
-export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { accent: string }> = ({ accent, children, ...props }) => (
+// UI Components
+const Button: React.FC<{ onClick: () => void; accent: string; children: React.ReactNode }> = ({ onClick, accent, children }) => (
   <button
-    {...props}
-    className={`px-4 py-2 rounded-lg font-semibold shadow transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 mb-2 mx-1`}
-    style={{ background: accent, color: '#fff', opacity: props.disabled ? 0.5 : 1 }}
+    onClick={onClick}
+    className="px-4 py-2 rounded-lg border transition-colors"
+    style={{ borderColor: accent, color: accent }}
   >
     {children}
   </button>
 );
 
+const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className = '', children }) => (
+  <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg ${className}`}>
+    {children}
+  </div>
+);
+
 const App: React.FC = () => {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check localStorage for saved theme preference
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme === 'dark';
-  });
-  const [serviceState, setServiceState] = useState('paused');
-  const [manualOverride, setManualOverride] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [status, setStatus] = useState<any>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [dailyAdded, setDailyAdded] = useState<Song[]>([]);
-  const [lastSong, setLastSong] = useState<Song | null>(null);
-  const [lastCheckCompleteTime, setLastCheckCompleteTime] = useState<number>(0);
-  const [secondsUntilNextCheck, setSecondsUntilNextCheck] = useState(0);
-  const CHECK_INTERVAL = 120; // seconds
+  const accent = theme === 'dark' ? '#9333ea' : '#22c55e';
 
-  // Dynamic accent color based on theme
-  const accent = isDarkMode ? '#a259c6' : '#1DB954';
-
-  // Timer effect: recalculate remaining time based on backend's last_check_complete_time
   useEffect(() => {
-    if (!lastCheckCompleteTime) {
-      console.log('[Timer] No last check complete time available');
-      return;
-    }
-    
-    const updateTimer = () => {
-      const now = Date.now() / 1000;
-      const elapsed = now - lastCheckCompleteTime;
-      const remaining = Math.max(0, Math.ceil(CHECK_INTERVAL - elapsed));
-      console.log(`[Timer] Update - Now: ${new Date(now * 1000).toLocaleTimeString()}, Last Check: ${new Date(lastCheckCompleteTime * 1000).toLocaleTimeString()}, Elapsed: ${elapsed.toFixed(1)}s, Remaining: ${remaining}s`);
-      setSecondsUntilNextCheck(remaining);
-    };
-    
-    updateTimer();
-    const intervalId = setInterval(updateTimer, 1000);
-    return () => clearInterval(intervalId);
-  }, [lastCheckCompleteTime]);
-
-  // Fetch status from backend
-  const fetchStatus = useCallback(async () => {
-    try {
-      const response = await fetch('/status');
-      if (!response.ok) throw new Error('Failed to fetch status');
-      const data = await response.json();
-      setServiceState(data.service_state);
-      setDailyAdded(data.daily_added);
-      setLastSong(data.last_song_added || null);
-      setManualOverride(data.service_state === 'manual_override');
-      
-      // Only update lastCheckCompleteTime if we get a valid timestamp
-      if (data.last_check_complete_time && data.last_check_complete_time > 0) {
-        console.log('[Timer] Received check complete time:', new Date(data.last_check_complete_time * 1000).toLocaleString());
-        console.log('[Timer] Seconds until next check:', data.seconds_until_next_check);
-        setLastCheckCompleteTime(data.last_check_complete_time);
-      } else {
-        console.log('[Timer] Invalid check complete time received:', data.last_check_complete_time);
+    const fetchData = async () => {
+      try {
+        const [statusRes, statsRes] = await Promise.all([
+          fetch('/status'),
+          fetch('/admin/stats')
+        ]);
+        const statusData = await statusRes.json();
+        const statsData = await statsRes.json();
+        setStatus(statusData);
+        setStats(statsData.stats);
+        setDailyAdded(statusData.daily_added || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
       }
-    } catch (error) {
-      console.error('Error fetching status:', error);
-      triggerToast('Failed to fetch status');
-    }
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Fetch status every 30 seconds (30000ms)
-  useEffect(() => {
-    // Initial fetch
-    fetchStatus();
-    
-    // Set up interval for subsequent fetches
-    const fetchInterval = setInterval(fetchStatus, 30000);
-    
-    // Cleanup on unmount
-    return () => {
-      clearInterval(fetchInterval);
-    };
-  }, [fetchStatus]);
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
-
-  const triggerToast = (msg: string) => {
-    setToastMsg(msg);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2500);
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
-
-  // Play/Pause logic
-  const canPlay = serviceState === 'paused' || serviceState === 'out_of_hours';
-  const canPause = serviceState === 'playing' || serviceState === 'manual_override';
-
-  // Admin actions
-  const adminAction = async (url: string, method: string = 'POST') => {
-    try {
-      const res = await fetch(url, { method });
-      const text = await res.text();
-      triggerToast(text);
-      fetchStatus();
-    } catch (e) {
-      triggerToast('Admin action failed');
-    }
-  };
-
-  // Timer display
-  const min = Math.floor(secondsUntilNextCheck / 60);
-  const sec = secondsUntilNextCheck % 60;
 
   return (
     <Router>
       <Routes>
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/" element={
-          <div className="min-h-screen w-full bg-background-light dark:bg-background-dark transition-colors duration-300 p-8">
-            <div className="max-w-6xl mx-auto">
-              {/* Header with X logo and theme toggle */}
-              <div className="flex flex-col items-center mb-8">
-                <XLogo darkMode={isDarkMode} />
-                <div className="flex items-center justify-end w-full">
-                  <button
-                    className="border px-4 py-1 rounded-full text-sm font-semibold shadow"
-                    onClick={() => setIsDarkMode((d) => !d)}
-                    aria-label="Toggle dark mode"
-                    style={{ borderColor: accent, color: accent }}
-                  >
-                    {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-                  </button>
+          <div className="min-h-screen bg-background text-foreground">
+            <div className="container mx-auto px-4 py-8">
+              <div className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold">Radio X Spotify Playlist</h1>
+                <div className="flex gap-4">
+                  <Button onClick={toggleTheme} accent={accent}>
+                    {theme === 'dark' ? '🌞' : '🌙'}
+                  </Button>
+                  <Button onClick={() => window.location.href = '/admin'} accent={accent}>
+                    Admin Controls
+                  </Button>
                 </div>
               </div>
 
-              {/* Card grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {/* Service Status Card */}
-                <Card accent={accent}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="inline-block w-3 h-3 rounded-full" style={{ background: accent }}></span>
-                    <span className="font-bold text-lg">{serviceState.charAt(0).toUpperCase() + serviceState.slice(1)}</span>
-                    <span className="ml-2 text-xs text-gray-400">{manualOverride ? 'Manual Override' : ''}</span>
-                  </div>
-                  <div className="flex gap-2 mb-2">
-                    <Button accent={accent} disabled={!canPlay} onClick={() => adminAction('/admin/resume')}>▶️ Play</Button>
-                    <Button accent={accent} disabled={!canPause} onClick={() => adminAction('/admin/pause')}>⏸ Pause</Button>
-                  </div>
-                  <div className="text-xs text-gray-500">Next check in: <span style={{ color: accent }}>{min}:{sec.toString().padStart(2, '0')}</span></div>
+              {/* Status Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <Card className="flex flex-col items-center justify-center p-6">
+                  <h2 className="text-xl font-semibold mb-2">Playing</h2>
+                  <p className="text-2xl">{status?.current_song || 'Nothing playing'}</p>
                 </Card>
-
-                {/* Last Song Added Card */}
-                <Card accent={accent}>
-                  <div className="font-bold text-lg mb-2">Last Song Added</div>
-                  {lastSong ? (
-                    <>
-                      <div className="font-semibold">{lastSong.radio_title}</div>
-                      <div className="text-sm text-gray-500">{lastSong.radio_artist}</div>
-                      {lastSong.album_art_url && <img src={lastSong.album_art_url} alt="Album Art" className="w-16 h-16 mt-2 rounded shadow" />}
-                    </>
-                  ) : (
-                    <div className="text-gray-500">No songs added yet</div>
-                  )}
+                <Card className="flex flex-col items-center justify-center p-6">
+                  <h2 className="text-xl font-semibold mb-2">Last Song Added:</h2>
+                  <p className="text-2xl">{status?.last_added || 'No songs added yet'}</p>
                 </Card>
               </div>
 
-              {/* Daily Songs Grid */}
-              <div className="mt-8">
-                <div className="grid grid-cols-1 gap-6">
-                  {/* Added Songs */}
-                  <Card accent={accent}>
-                    <div className="font-bold text-lg mb-4">Added Today</div>
-                    <div className="w-full">
-                      {dailyAdded.length > 0 ? (
-                        dailyAdded.map((song, index) => (
-                          <div key={index} className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
-                            {song.album_art_url && (
-                              <img src={song.album_art_url} alt="Album Art" className="w-12 h-12 rounded shadow" />
-                            )}
-                            <div>
-                              <div className="font-semibold">{song.radio_title}</div>
-                              <div className="text-sm text-gray-500">{song.radio_artist}</div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-gray-500">No songs added today</div>
-                      )}
+              {/* Statistics Card */}
+              <Card className="mb-8 p-6">
+                <h2 className="text-xl font-semibold mb-4">Statistics</h2>
+                {/* Performance Stats */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Performance Stats</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Songs Added</p>
+                      <p className="text-lg">{stats?.total_songs_added ?? 'N/A'}</p>
                     </div>
-                  </Card>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Failures</p>
+                      <p className="text-lg">{stats?.total_failures ?? 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Success Rate</p>
+                      <p className="text-lg">{stats?.success_rate != null ? `${stats.success_rate}%` : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Avg Songs/Day</p>
+                      <p className="text-lg">{stats?.average_songs_per_day ?? 'N/A'}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              {/* Admin and Debug Buttons */}
-              <div className="mt-8 flex justify-center gap-4">
-                <Link to="/admin">
-                  <Button accent={accent}>Admin Controls</Button>
-                </Link>
-                <Button accent={accent} onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</Button>
-              </div>
-
-              {/* Toast Notification */}
-              {showToast && (
-                <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
-                  {toastMsg}
+                <hr className="my-4 border-t border-gray-300 dark:border-gray-700" />
+                {/* Song Insights */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Song Insights</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Average Duration</p>
+                      <p className="text-lg">
+                        {stats?.average_duration 
+                          ? `${Math.floor(stats.average_duration / 60)}:${String(Math.round(stats.average_duration % 60)).padStart(2, '0')}`
+                          : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Decade Spread</p>
+                      <p className="text-lg">
+                        {stats?.decade_spread 
+                          ? Object.entries(stats.decade_spread)
+                              .map(([decade, percent]) => `${decade}: ${percent}%`)
+                              .join(', ')
+                          : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Newest Song</p>
+                      <p className="text-lg">
+                        {stats?.newest_song 
+                          ? `${stats.newest_song.radio_title} (${stats.newest_song.year})`
+                          : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Oldest Song</p>
+                      <p className="text-lg">
+                        {stats?.oldest_song 
+                          ? `${stats.oldest_song.radio_title} (${stats.oldest_song.year})`
+                          : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              )}
+                <hr className="my-4 border-t border-gray-300 dark:border-gray-700" />
+                {/* Service Status */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Service Status</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Last Check</p>
+                      <p className="text-lg">{status?.last_check_complete_time ? new Date(status.last_check_complete_time).toLocaleString() : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Next Check</p>
+                      <p className="text-lg">{status?.next_check_time ? new Date(status.next_check_time).toLocaleString() : 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Added Today */}
+              <Card>
+                <h2 className="text-xl font-semibold mb-4 p-6 pb-0">Added Today</h2>
+                <div className="p-6 pt-0">
+                  {dailyAdded.length > 0 ? (
+                    <ul className="space-y-2">
+                      {dailyAdded.map((song, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <span className="text-accent">•</span>
+                          {song.radio_title}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-muted-foreground">No songs added today</p>
+                  )}
+                </div>
+              </Card>
             </div>
           </div>
         } />
