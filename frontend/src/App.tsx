@@ -11,9 +11,6 @@ interface Song {
   [key: string]: any;
 }
 
-// Accent color palettes
-const RED = '#ef4444';
-
 const XLogo: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
   <img
     src={darkMode ? '/x-purple.png' : '/x-green.png'}
@@ -57,6 +54,9 @@ const App: React.FC = () => {
   const [lastCheckCompleteTime, setLastCheckCompleteTime] = useState<number>(0);
   const [secondsUntilNextCheck, setSecondsUntilNextCheck] = useState(0);
   const CHECK_INTERVAL = 120; // seconds
+
+  // Dynamic accent color based on theme
+  const accent = isDarkMode ? '#a259c6' : '#1DB954';
 
   // Timer effect: recalculate remaining time based on backend's last_check_complete_time
   useEffect(() => {
@@ -148,10 +148,6 @@ const App: React.FC = () => {
       triggerToast('Admin action failed');
     }
   };
-
-  // Dynamic accent color based on theme
-  const accent = isDarkMode ? '#a259c6' : '#1DB954';
-  const accent2 = '#FF6B6B'; // Coral red
 
   // Timer display
   const min = Math.floor(secondsUntilNextCheck / 60);
