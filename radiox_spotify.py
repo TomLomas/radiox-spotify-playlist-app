@@ -758,15 +758,29 @@ def serve_react(path):
     build_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frontend', 'build'))
     static_dir = os.path.join(build_dir, 'static')
     print(f"Requested path: {path}")
+    
+    # Add cache control headers
+    response_headers = {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    }
+    
     if path.startswith('static/'):
         print(f"Serving static file: {os.path.join(static_dir, path[len('static/'):])}")
-        return send_from_directory(static_dir, path[len('static/'):])
+        response = send_from_directory(static_dir, path[len('static/'):])
+        response.headers.update(response_headers)
+        return response
     elif path != "" and os.path.exists(os.path.join(build_dir, path)):
         print(f"Serving build file: {os.path.join(build_dir, path)}")
-        return send_from_directory(build_dir, path)
+        response = send_from_directory(build_dir, path)
+        response.headers.update(response_headers)
+        return response
     else:
         print(f"Serving index.html from: {build_dir}")
-        return send_from_directory(build_dir, 'index.html')
+        response = send_from_directory(build_dir, 'index.html')
+        response.headers.update(response_headers)
+        return response
 
 @app.route('/health')
 def health():
