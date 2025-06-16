@@ -93,7 +93,11 @@ const App: React.FC = () => {
       setDailyFailed(data.daily_failed || []);
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
-      setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
+      
+      // Only update timer if we get a new value from backend
+      if (data.seconds_until_next_check !== undefined) {
+        setSecondsUntilNextCheck(data.seconds_until_next_check);
+      }
       
       return data;
     } catch (e) {
@@ -124,20 +128,19 @@ const App: React.FC = () => {
       lastTick = now;
 
       setSecondsUntilNextCheck(prev => {
-        const newValue = Math.max(0, prev - elapsed);
-        
-        // Only fetch if we're transitioning from >0 to 0
-        if (newValue <= 0 && !timerAtZero) {
-          timerAtZero = true;
+        // If we're at 0, don't decrement further
+        if (prev <= 0) {
           // Only fetch if we haven't fetched recently and aren't currently fetching
-          if (Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
+          if (!timerAtZero && Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
+            timerAtZero = true;
             fetchStatus();
           }
           return 0;
-        } else if (newValue > 0) {
-          timerAtZero = false;
         }
-        return newValue;
+        
+        // Otherwise decrement as normal
+        timerAtZero = false;
+        return Math.max(0, prev - elapsed);
       });
     };
 
