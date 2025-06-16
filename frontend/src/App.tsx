@@ -128,12 +128,16 @@ const App: React.FC = () => {
       lastTick = now;
 
       setSecondsUntilNextCheck(prev => {
-        // If we're at 0, don't decrement further
+        // If we're at 0, trigger a fetch and reset the timer
         if (prev <= 0) {
-          // Only fetch if we haven't fetched recently and aren't currently fetching
           if (!timerAtZero && Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
             timerAtZero = true;
-            fetchStatus();
+            fetchStatus().then(data => {
+              if (data && data.seconds_until_next_check !== undefined) {
+                setSecondsUntilNextCheck(data.seconds_until_next_check);
+                timerAtZero = false;
+              }
+            });
           }
           return 0;
         }
