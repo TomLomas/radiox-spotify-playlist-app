@@ -109,6 +109,7 @@ class RadioXBot:
         self.startup_email_sent = False
         self.shutdown_summary_sent = False
         self.current_station_herald_id = None
+        self.current_song_info = None
         self.is_running = False
         self.state_history = deque(maxlen=100)  # Track state transitions
         self.override_reset_day = datetime.date.today()
@@ -697,6 +698,7 @@ class RadioXBot:
         logging.info(f"[Timer] Starting check at {datetime.datetime.fromtimestamp(self.last_check_time).strftime('%H:%M:%S')}")
         
         current_song_info = self.get_current_radiox_song(self.current_station_herald_id)
+        self.current_song_info = current_song_info
         song_added = False
         if current_song_info:
             title, artist, radiox_id = current_song_info["title"], current_song_info["artist"], current_song_info["id"]
@@ -807,6 +809,7 @@ def status():
 
     return jsonify({
         'last_song_added': daily_added[-1] if daily_added else None,
+        'current_song': bot_instance.current_song_info["title"] + " - " + bot_instance.current_song_info["artist"] if bot_instance.current_song_info else None,
         'queue_size': len(failed_queue),
         'daily_added': daily_added,
         'daily_failed': daily_failed,
