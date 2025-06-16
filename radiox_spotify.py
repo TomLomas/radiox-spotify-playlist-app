@@ -64,10 +64,11 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(),  # Console (stdout)
-        logging.FileHandler('app.log', encoding='utf-8')
-    ]
+        logging.StreamHandler()
+    ],
+    force=True
 )
+print("PRINT TEST: Startup reached")
 logging.info("LOGGING CONFIGURED: Startup log from main process.")
 
 # --- Main Application Class ---
