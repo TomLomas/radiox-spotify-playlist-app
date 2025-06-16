@@ -54,7 +54,7 @@ const AdminPage: React.FC = () => {
       setDailyFailed(data.daily_failed);
     } catch (error) {
       console.error('Error fetching admin data:', error);
-      triggerToast('Failed to fetch admin data', 'error');
+      triggerToast('Failed to fetch admin data');
     }
   }, []);
 
