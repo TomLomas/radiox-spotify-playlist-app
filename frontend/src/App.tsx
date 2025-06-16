@@ -146,7 +146,7 @@ const App: React.FC = () => {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, []); // Empty dependency array - we don't want this to re-run
+  }, [fetchStatus]);
 
   useEffect(() => {
     if (darkMode) {
