@@ -83,31 +83,40 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Timer effect
+  useEffect(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    const updateTimer = () => {
+      setSecondsUntilNextCheck(prev => {
+        if (prev <= 0) {
+          // When timer reaches 0, wait 5 seconds then refresh
+          setTimeout(() => {
+            fetchStatus();
+          }, 5000);
+          return 0;
+        }
+        return prev - 1;
+      });
+    };
+
+    timerRef.current = setInterval(updateTimer, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [fetchStatus]);
+
+  // Initial fetch and periodic refresh
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 60000);
     return () => clearInterval(interval);
   }, [fetchStatus]);
-
-  useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    
-    if (secondsUntilNextCheck > 0) {
-      timerRef.current = setInterval(() => {
-        setSecondsUntilNextCheck((s) => (s > 0 ? s - 1 : 0));
-      }, 1000);
-    } else {
-      // When countdown reaches 0, wait 5 seconds then refresh
-      const refreshTimeout = setTimeout(() => {
-        fetchStatus();
-      }, 5000);
-      return () => clearTimeout(refreshTimeout);
-    }
-    
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [secondsUntilNextCheck, fetchStatus]);
 
   useEffect(() => {
     if (darkMode) {
