@@ -70,12 +70,14 @@ const App: React.FC = () => {
   // Timer effect: recalculate remaining time based on backend's last_check_complete_time
   useEffect(() => {
     if (!lastCheckCompleteTime) return;
+    
     const updateTimer = () => {
       const now = Date.now() / 1000;
       const elapsed = now - lastCheckCompleteTime;
       const remaining = Math.max(0, Math.ceil(CHECK_INTERVAL - elapsed));
       setSecondsUntilNextCheck(remaining);
     };
+    
     updateTimer();
     const intervalId = setInterval(updateTimer, 1000);
     return () => clearInterval(intervalId);
@@ -93,7 +95,9 @@ const App: React.FC = () => {
       setDailyFailed(data.daily_failed);
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
-      setLastCheckCompleteTime(data.last_check_complete_time || 0);
+      if (data.last_check_complete_time) {
+        setLastCheckCompleteTime(data.last_check_complete_time);
+      }
     } catch (error) {
       console.error('Error fetching status:', error);
       triggerToast('Failed to fetch status');
@@ -203,26 +207,15 @@ const App: React.FC = () => {
           </Card>
         </div>
 
-        {/* Stats Card */}
+        {/* Admin Actions Card */}
         <Card accent={accent2}>
-          <div className="font-bold text-lg mb-4">Stats</div>
-          <div className="grid grid-cols-2 gap-4 w-full">
-            <div>
-              <div className="text-sm text-gray-500">Top Artist</div>
-              <div className="font-semibold">{stats.top_artists}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Unique Artists</div>
-              <div className="font-semibold">{stats.unique_artists}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Success Rate</div>
-              <div className="font-semibold">{stats.success_rate}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Most Common Failure</div>
-              <div className="font-semibold">{stats.most_common_failure}</div>
-            </div>
+          <div className="font-bold text-lg mb-2">Admin Actions</div>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <Button accent={accent2} onClick={() => adminAction('/admin/send_summary_email')}>Send Summary Email</Button>
+            <Button accent={accent2} onClick={() => adminAction('/admin/retry_failed')}>Retry Failed Songs</Button>
+            <Button accent={accent2} onClick={() => adminAction('/admin/check_duplicates')}>Check for Duplicates</Button>
+            <Button accent={accent2} onClick={() => adminAction('/admin/force_check')}>Force Check</Button>
+            <Button accent={accent2} onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</Button>
           </div>
         </Card>
 
