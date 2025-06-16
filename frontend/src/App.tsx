@@ -12,8 +12,6 @@ interface Song {
 }
 
 // Accent color palettes
-const PURPLES = ['#B266C8', '#a259c6', '#c77dff', '#7c3aed', '#a21caf', '#f472b6'];
-const GREENS = ['#1DB954', '#22c55e', '#4ade80', '#16a34a', '#bbf7d0', '#166534'];
 const RED = '#ef4444';
 
 const XLogo: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
@@ -45,7 +43,7 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { 
 );
 
 const App: React.FC = () => {
-  const [darkMode, setDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [serviceState, setServiceState] = useState('paused');
   const [manualOverride, setManualOverride] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -116,12 +114,12 @@ const App: React.FC = () => {
   }, [fetchStatus]);
 
   useEffect(() => {
-    if (darkMode) {
+    if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [darkMode]);
+  }, [isDarkMode]);
 
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
@@ -161,15 +159,15 @@ const App: React.FC = () => {
           <div className={`min-h-screen w-full bg-background-light dark:bg-background-dark transition-colors duration-300`}>  
             {/* Header with X logo and theme toggle */}
             <div className="flex flex-col items-center mb-8">
-              <XLogo darkMode={darkMode} />
+              <XLogo darkMode={isDarkMode} />
               <div className="flex items-center justify-end w-full max-w-2xl">
                 <button
                   className="border px-4 py-1 rounded-full text-sm font-semibold shadow"
-                  onClick={() => setDarkMode((d) => !d)}
+                  onClick={() => setIsDarkMode((d) => !d)}
                   aria-label="Toggle dark mode"
                   style={{ borderColor: accent, color: accent }}
                 >
-                  {darkMode ? 'Light Mode' : 'Dark Mode'}
+                  {isDarkMode ? 'Light Mode' : 'Dark Mode'}
                 </button>
               </div>
             </div>

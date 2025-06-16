@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Button } from './App';
 
 interface Song {
@@ -43,18 +43,20 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  const fetchAdminData = async () => {
+  const fetchAdminData = useCallback(async () => {
     try {
       const response = await fetch('/admin/stats');
-      if (!response.ok) throw new Error('Failed to fetch admin data');
+      if (!response.ok) {
+        throw new Error('Failed to fetch admin data');
+      }
       const data = await response.json();
-      setDailyFailed(data.daily_failed);
       setStats(data.stats);
+      setDailyFailed(data.daily_failed);
     } catch (error) {
       console.error('Error fetching admin data:', error);
-      triggerToast('Failed to fetch admin data');
+      triggerToast('Failed to fetch admin data', 'error');
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchAdminData();
