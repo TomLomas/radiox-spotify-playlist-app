@@ -77,6 +77,7 @@ const App: React.FC = () => {
       setDailyFailed(data.daily_failed || []);
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
+      setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
       return data;
     } catch (e) {
       triggerToast('Failed to fetch status from backend');
@@ -86,36 +87,26 @@ const App: React.FC = () => {
 
   // Timer effect
   useEffect(() => {
-    // Clear any existing interval
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
-    const updateTimer = () => {
-      setSecondsUntilNextCheck(prev => {
-        if (prev <= 0) {
-          // When timer reaches 0, fetch status and return the new value
-          fetchStatus().then(data => {
-            if (data) {
-              setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
-            }
-          });
-          return 0;
-        }
-        return prev - 1;
-      });
-    };
-
-    // Start the timer
-    timerRef.current = setInterval(updateTimer, 1000);
-
     // Initial fetch
     fetchStatus();
 
+    // Set up interval for timer updates
+    const intervalId = setInterval(() => {
+      setSecondsUntilNextCheck(prev => {
+        const newValue = prev - 1;
+        if (newValue <= 0) {
+          // Only fetch when we actually hit zero
+          fetchStatus();
+          return 0;
+        }
+        return newValue;
+      });
+    }, 1000);
+
+    timerRef.current = intervalId;
+
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      clearInterval(intervalId);
     };
   }, [fetchStatus]);
 
