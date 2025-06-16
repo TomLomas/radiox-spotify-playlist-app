@@ -69,6 +69,7 @@ const App: React.FC = () => {
   const isFetching = useRef<boolean>(false);
   const targetTimeRef = useRef<number>(Date.now() + secondsUntilNextCheck * 1000);
   const lastCheckTimeRef = useRef<number>(0);
+  const checkCompleteRef = useRef<boolean>(true);
 
   // Fetch status from backend
   const fetchStatus = useCallback(async () => {
@@ -87,12 +88,20 @@ const App: React.FC = () => {
       setDailyFailed(data.daily_failed);
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
-      setSecondsUntilNextCheck(data.seconds_until_next_check);
 
-      // If we're checking or just started a check, update the timer
-      if (data.is_checking || data.last_check_time !== lastCheckTimeRef.current) {
-        lastCheckTimeRef.current = data.last_check_time;
+      // Handle timer state
+      if (data.is_checking) {
+        // If a check is in progress, pause the timer
+        setSecondsUntilNextCheck(0);
+        checkCompleteRef.current = false;
+      } else if (!checkCompleteRef.current && data.check_complete) {
+        // If the check just completed, start a new timer
+        checkCompleteRef.current = true;
         targetTimeRef.current = Date.now() + data.seconds_until_next_check * 1000;
+        setSecondsUntilNextCheck(data.seconds_until_next_check);
+      } else if (checkCompleteRef.current) {
+        // If we're in a normal countdown, update the timer
+        setSecondsUntilNextCheck(data.seconds_until_next_check);
       }
 
       lastFetchTime.current = Date.now();
@@ -111,14 +120,17 @@ const App: React.FC = () => {
     const updateTimer = () => {
       if (!isActive) return;
 
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((targetTimeRef.current - now) / 1000));
+      // Only update timer if we're not checking
+      if (checkCompleteRef.current) {
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((targetTimeRef.current - now) / 1000));
 
-      setSecondsUntilNextCheck(remaining);
+        setSecondsUntilNextCheck(remaining);
 
-      // If we're at 0, trigger a fetch and reset the timer
-      if (remaining === 0 && Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
-        fetchStatus();
+        // If we're at 0, trigger a fetch
+        if (remaining === 0 && Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
+          fetchStatus();
+        }
       }
     };
 

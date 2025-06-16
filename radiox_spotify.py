@@ -106,6 +106,7 @@ class RadioXBot:
         self.next_check_time = time.time() + CHECK_INTERVAL
         self.last_check_time = 0  # Track when the last check was performed
         self.is_checking = False  # Flag to indicate if a check is in progress
+        self.check_complete = True  # Flag to indicate if the last check completed successfully
         
         # Initialize service state based on current time
         now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
@@ -675,6 +676,7 @@ class RadioXBot:
         if not self.current_station_herald_id: return
         
         self.is_checking = True
+        self.check_complete = False
         self.last_check_time = time.time()
         
         current_song_info = self.get_current_radiox_song(self.current_station_herald_id)
@@ -700,6 +702,7 @@ class RadioXBot:
         self.update_next_check_time()  # Update the next check time after processing
         self.save_state()
         self.is_checking = False
+        self.check_complete = True
 
 
 # --- Flask Routes & Script Execution ---
@@ -789,7 +792,8 @@ def status():
         'service_state': bot_instance.service_state.value,
         'state_history': list(bot_instance.state_history),
         'last_check_time': bot_instance.last_check_time,
-        'is_checking': bot_instance.is_checking
+        'is_checking': bot_instance.is_checking,
+        'check_complete': bot_instance.check_complete
     })
 
 @app.route('/', defaults={'path': ''})
