@@ -97,9 +97,17 @@ class RadioXBot:
         self.shutdown_summary_sent = False
         self.current_station_herald_id = None
         self.is_running = False
-        self.service_state = ServiceState.PAUSED  # Default state
+        
+        # Initialize service state based on current time
+        now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+        if START_TIME <= now_local.time() <= END_TIME:
+            self.service_state = ServiceState.PLAYING
+            self.log_state_transition(self.service_state, reason="Startup during active hours")
+        else:
+            self.service_state = ServiceState.OUT_OF_HOURS
+            self.log_state_transition(self.service_state, reason="Startup outside active hours")
+            
         self.state_history = deque(maxlen=100)  # Track state transitions
-        self.log_state_transition(self.service_state, reason="Startup")
         self.override_reset_day = datetime.date.today()
         self.next_check_time = time.time() + CHECK_INTERVAL
 
@@ -584,14 +592,26 @@ class RadioXBot:
             (now_local.date() == self.override_reset_day and now_local.time() >= reset_time and not hasattr(self, '_reset_done_today'))):
             self.override_reset_day = now_local.date()
             self._reset_done_today = True
+            self.set_service_state(ServiceState.PLAYING, "Daily reset")
+        
         # If manually paused, always pause
         if self.service_state == ServiceState.PAUSED:
             return False
+            
         # If in hours, run
         if START_TIME <= now_local.time() <= END_TIME:
+            if self.service_state != ServiceState.PLAYING:
+                self.set_service_state(ServiceState.PLAYING, "In hours")
             return True
+            
         # If out of hours, only run if manually resumed
-        return self.service_state == ServiceState.MANUAL_OVERRIDE
+        if self.service_state == ServiceState.MANUAL_OVERRIDE:
+            return True
+            
+        # Otherwise, mark as out of hours
+        if self.service_state != ServiceState.OUT_OF_HOURS:
+            self.set_service_state(ServiceState.OUT_OF_HOURS, "Out of hours")
+        return False
 
     def toggle_pause(self, reason="Admin toggle"):
         if self.service_state == ServiceState.PLAYING:
