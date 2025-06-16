@@ -63,43 +63,27 @@ const App: React.FC = () => {
   const [dailyAdded, setDailyAdded] = useState<Song[]>([]);
   const [dailyFailed, setDailyFailed] = useState<Song[]>([]);
   const [lastSong, setLastSong] = useState<Song | null>(null);
+  const [lastCheckCompleteTime, setLastCheckCompleteTime] = useState<number>(0);
   const [secondsUntilNextCheck, setSecondsUntilNextCheck] = useState(0);
+  const CHECK_INTERVAL = 120; // seconds
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const targetTimeRef = useRef<number>(Date.now() + 120000); // 120 seconds in milliseconds
   const isCheckingRef = useRef<boolean>(false);
   const checkCompleteRef = useRef<boolean>(false);
 
-  // Timer effect
+  // Timer effect: recalculate remaining time based on backend's last_check_complete_time
   useEffect(() => {
+    if (!lastCheckCompleteTime) return;
     const updateTimer = () => {
-      if (isCheckingRef.current) {
-        // If we're checking, don't update the timer
-        console.log('Timer paused - waiting for check completion');
-        return;
-      }
-
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((targetTimeRef.current - now) / 1000));
+      const now = Date.now() / 1000;
+      const elapsed = now - lastCheckCompleteTime;
+      const remaining = Math.max(0, Math.ceil(CHECK_INTERVAL - elapsed));
       setSecondsUntilNextCheck(remaining);
-
-      if (remaining === 0) {
-        // Timer reached zero, wait for check completion
-        console.log('Timer reached zero - waiting for check completion');
-        isCheckingRef.current = true;
-        setSecondsUntilNextCheck(0);
-      }
     };
-
-    // Set up interval for timer updates
+    updateTimer();
     const intervalId = setInterval(updateTimer, 1000);
-    timerRef.current = intervalId;
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, []); // Empty dependency array since we only want to set up the timer once
+    return () => clearInterval(intervalId);
+  }, [lastCheckCompleteTime]);
 
   // Fetch status from backend
   const fetchStatus = useCallback(async () => {
@@ -107,25 +91,13 @@ const App: React.FC = () => {
       const response = await fetch('/status');
       if (!response.ok) throw new Error('Failed to fetch status');
       const data = await response.json();
-      
-      // Update state with new data
       setServiceState(data.service_state);
       setStats(data.stats);
       setDailyAdded(data.daily_added);
       setDailyFailed(data.daily_failed);
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
-
-      // Handle check completion
-      if (isCheckingRef.current && data.check_complete) {
-        console.log('Check complete received - starting new timer');
-        isCheckingRef.current = false;
-        checkCompleteRef.current = true;
-        targetTimeRef.current = Date.now() + 120000; // Start new 120s timer
-        setSecondsUntilNextCheck(120);
-      } else if (isCheckingRef.current) {
-        console.log('Still waiting for check completion...');
-      }
+      setLastCheckCompleteTime(data.last_check_complete_time || 0);
     } catch (error) {
       console.error('Error fetching status:', error);
       triggerToast('Failed to fetch status');

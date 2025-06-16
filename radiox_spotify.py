@@ -36,9 +36,17 @@ logging.basicConfig(
     ]
 )
 
-# Reduce Werkzeug access log noise
+# Reduce Werkzeug access log noise - suppress GET /status logs
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+
+# Custom log filter to suppress /status logs
+class StatusLogFilter(logging.Filter):
+    def filter(self, record):
+        if 'GET /status' in record.getMessage():
+            return False
+        return True
+log.addFilter(StatusLogFilter())
 
 # --- Flask App Setup ---
 app = Flask(__name__, 
@@ -108,6 +116,7 @@ class RadioXBot:
         self.last_check_time = 0  # Track when the last check was performed
         self.is_checking = False  # Flag to indicate if a check is in progress
         self.check_complete = True  # Flag to indicate if the last check completed successfully
+        self.last_check_complete_time = 0  # Timestamp of last check completion
         
         # Initialize service state based on current time
         now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
@@ -704,6 +713,7 @@ class RadioXBot:
         self.save_state()
         self.is_checking = False
         self.check_complete = True
+        self.last_check_complete_time = time.time()  # Set when check completes
 
 
 # --- Flask Routes & Script Execution ---
@@ -794,7 +804,8 @@ def status():
         'state_history': list(bot_instance.state_history),
         'last_check_time': bot_instance.last_check_time,
         'is_checking': bot_instance.is_checking,
-        'check_complete': bot_instance.check_complete
+        'check_complete': bot_instance.check_complete,
+        'last_check_complete_time': bot_instance.last_check_complete_time
     })
 
 @app.route('/', defaults={'path': ''})
