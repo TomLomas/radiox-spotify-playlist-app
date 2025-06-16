@@ -37,10 +37,7 @@ const AdminPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, failedRes] = await Promise.all([
-          fetch('/admin/stats'),
-          fetch('/admin/stats')  // Use the same endpoint, it includes failed songs
-        ]);
+        const statsRes = await fetch('/admin/stats');
         const statsData = await statsRes.json();
         setStats(statsData.stats);
         setFailedSongs(statsData.daily_failed || []);
