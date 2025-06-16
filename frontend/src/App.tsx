@@ -65,12 +65,28 @@ const App: React.FC = () => {
   const [lastSong, setLastSong] = useState<Song | null>(null);
   const [secondsUntilNextCheck, setSecondsUntilNextCheck] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchTime = useRef<number>(0);
+  const isFetching = useRef<boolean>(false);
 
   // Fetch status from backend
   const fetchStatus = useCallback(async () => {
+    const now = Date.now();
+    // Prevent fetching more often than every 5 seconds or if already fetching
+    if (now - lastFetchTime.current < 5000 || isFetching.current) {
+      return null;
+    }
+
+    isFetching.current = true;
+    lastFetchTime.current = now;
+
     try {
       const res = await fetch('/status');
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
+      
+      // Batch state updates
       setServiceState(data.service_state);
       setStats(data.stats || {});
       setDailyAdded(data.daily_added || []);
@@ -78,37 +94,59 @@ const App: React.FC = () => {
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
       setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
+      
       return data;
     } catch (e) {
+      console.error('Status fetch failed:', e);
       triggerToast('Failed to fetch status from backend');
+      // On error, retry after 5 seconds
+      setTimeout(() => {
+        isFetching.current = false;
+        fetchStatus();
+      }, 5000);
       return null;
+    } finally {
+      isFetching.current = false;
     }
   }, []);
 
   // Timer effect
   useEffect(() => {
-    // Initial fetch
-    fetchStatus();
+    let isActive = true;
+    let lastTick = Date.now();
 
-    // Set up interval for timer updates
-    const intervalId = setInterval(() => {
+    const updateTimer = () => {
+      if (!isActive) return;
+
+      const now = Date.now();
+      const elapsed = Math.floor((now - lastTick) / 1000);
+      lastTick = now;
+
       setSecondsUntilNextCheck(prev => {
-        const newValue = prev - 1;
+        const newValue = Math.max(0, prev - elapsed);
         if (newValue <= 0) {
-          // Only fetch when we actually hit zero
-          fetchStatus();
+          // Only fetch if we haven't fetched recently and aren't currently fetching
+          if (Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
+            fetchStatus();
+          }
           return 0;
         }
         return newValue;
       });
-    }, 1000);
+    };
 
+    // Initial fetch
+    fetchStatus();
+
+    // Set up interval for timer updates
+    const intervalId = setInterval(updateTimer, 1000);
     timerRef.current = intervalId;
 
     return () => {
+      isActive = false;
       clearInterval(intervalId);
     };
-  }, [fetchStatus]);
+  }, []); // Empty dependency array - we don't want this to re-run
 
   useEffect(() => {
     if (darkMode) {
