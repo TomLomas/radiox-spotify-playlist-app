@@ -4,12 +4,13 @@ import AdminPage from './AdminPage';
 import { Song, AdminStats } from './types';
 
 // UI Components
-const Button: React.FC<{ onClick?: () => void; accent: string; children: React.ReactNode; type?: 'button' | 'submit' | 'reset' }> = ({ onClick, accent, children, type = 'button' }) => (
+const Button: React.FC<{ onClick?: () => void; accent: string; children: React.ReactNode; type?: 'button' | 'submit' | 'reset'; disabled?: boolean }> = ({ onClick, accent, children, type = 'button', disabled }) => (
   <button
     onClick={onClick}
     type={type}
     className="px-4 py-2 rounded-lg border transition-colors"
     style={{ borderColor: accent, color: accent }}
+    disabled={disabled}
   >
     {children}
   </button>
@@ -129,10 +130,20 @@ const App: React.FC = () => {
               {/* Playing Card */}
               <Card className="flex-1 flex flex-col items-center justify-center p-6 min-w-[260px]">
                 <h2 className="text-xl font-semibold mb-2">Playing</h2>
-                <p className="text-2xl mb-4">{status?.current_song || 'Nothing playing'}</p>
                 <div className="flex items-center gap-4 mt-2">
-                  <Button onClick={handlePlayPause} accent={accent}>
-                    {isPlaying ? '⏸ Pause' : '▶️ Play'}
+                  <Button
+                    onClick={async () => { await fetch('/admin/resume', { method: 'POST' }); setIsPlaying(true); }}
+                    accent={accent}
+                    disabled={isPlaying}
+                  >
+                    ▶️ Play
+                  </Button>
+                  <Button
+                    onClick={async () => { await fetch('/admin/pause', { method: 'POST' }); setIsPlaying(false); }}
+                    accent={accent}
+                    disabled={!isPlaying}
+                  >
+                    ⏸ Pause
                   </Button>
                   <span className="text-lg font-mono">{formatTime(timer)}</span>
                 </div>
@@ -140,11 +151,19 @@ const App: React.FC = () => {
               {/* Last Song Added Card */}
               <Card className="flex-1 flex flex-col items-center justify-center p-6 min-w-[260px]">
                 <h2 className="text-xl font-semibold mb-2">Last Song Added:</h2>
-                <p className="text-2xl">
-                  {status?.last_song_added 
-                    ? `${status.last_song_added.radio_title} - ${status.last_song_added.radio_artist}`
-                    : 'No songs added yet'}
-                </p>
+                {status?.last_song_added ? (
+                  <div className="flex items-center gap-4">
+                    {status.last_song_added.album_art_url && (
+                      <img src={status.last_song_added.album_art_url} alt="Album Art" className="w-12 h-12 rounded shadow" />
+                    )}
+                    <div>
+                      <p className="text-lg font-semibold">{status.last_song_added.radio_title}</p>
+                      <p className="text-sm text-muted-foreground">{status.last_song_added.radio_artist}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No songs added yet</p>
+                )}
               </Card>
             </div>
 
@@ -158,19 +177,19 @@ const App: React.FC = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Total Songs Added</p>
-                      <p className="text-lg">{stats?.total_songs_added ?? 'N/A'}</p>
+                      <p className="text-lg">{typeof stats?.total_songs_added === 'number' ? stats.total_songs_added : 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Total Failures</p>
-                      <p className="text-lg">{stats?.total_failures ?? 'N/A'}</p>
+                      <p className="text-lg">{typeof stats?.total_failures === 'number' ? stats.total_failures : 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Success Rate</p>
-                      <p className="text-lg">{stats?.success_rate != null ? `${stats.success_rate}%` : 'N/A'}</p>
+                      <p className="text-lg">{typeof stats?.success_rate === 'number' ? `${stats.success_rate}%` : 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Avg Songs/Day</p>
-                      <p className="text-lg">{stats?.average_songs_per_day ?? 'N/A'}</p>
+                      <p className="text-lg">{typeof stats?.average_songs_per_day === 'number' ? stats.average_songs_per_day : 'N/A'}</p>
                     </div>
                   </div>
                 </div>
@@ -241,9 +260,14 @@ const App: React.FC = () => {
                   {dailyAdded.length > 0 ? (
                     <ul className="space-y-2">
                       {dailyAdded.map((song, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <span className="text-accent">•</span>
-                          {song.radio_title}
+                        <li key={index} className="flex items-center gap-4">
+                          {song.album_art_url && (
+                            <img src={song.album_art_url} alt="Album Art" className="w-10 h-10 rounded shadow" />
+                          )}
+                          <div>
+                            <span className="font-semibold">{song.radio_title}</span>
+                            <span className="ml-2 text-muted-foreground">{song.radio_artist}</span>
+                          </div>
                         </li>
                       ))}
                     </ul>
