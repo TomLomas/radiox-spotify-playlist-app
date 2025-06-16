@@ -627,6 +627,7 @@ class RadioXBot:
     def run(self):
         logging.info("[Main Loop] Entered run() method. Main loop starting.")
         while True:
+            logging.info("[Main Loop] Heartbeat - main loop is alive.")
             self.load_state()  # Always reload state at the start of each tick
             now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
             in_hours = START_TIME <= now_local.time() <= END_TIME
@@ -871,8 +872,7 @@ def initialize_bot():
     if bot_instance.authenticate_spotify():
         bot_instance.load_state() 
         bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
-        
-        monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
+        monitor_thread = threading.Thread(target=bot_instance.run)
         monitor_thread.start()
     else:
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
