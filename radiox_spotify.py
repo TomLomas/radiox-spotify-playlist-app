@@ -32,6 +32,10 @@ app = Flask(__name__,
     static_url_path='')
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching
 
+# Reduce Werkzeug access log noise
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 # --- Configuration ---
 load_dotenv()
 SPOTIPY_CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
