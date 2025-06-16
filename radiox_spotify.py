@@ -950,6 +950,57 @@ def admin_resume():
         return "Service resumed."
     return "Service already running."
 
+@app.route('/admin/stats')
+def admin_stats():
+    """Return detailed admin statistics."""
+    try:
+        with bot_instance.file_lock:
+            with open(bot_instance.DAILY_ADDED_CACHE_FILE, 'r') as f: daily_added = json.load(f)
+            with open(bot_instance.DAILY_FAILED_CACHE_FILE, 'r') as f: daily_failed = json.load(f)
+    except FileNotFoundError:
+        daily_added, daily_failed = [], []
+    except Exception as e:
+        logging.error(f"Error reading state for /admin/stats endpoint: {e}")
+        daily_added, daily_failed = [], []
+
+    # Compute detailed stats
+    total_songs_added = len(daily_added)
+    total_failures = len(daily_failed)
+    success_rate = (total_songs_added / (total_songs_added + total_failures) * 100) if (total_songs_added + total_failures) > 0 else 100
+
+    # Calculate average songs per day (based on last 7 days)
+    now = datetime.datetime.now(pytz.timezone(TIMEZONE))
+    seven_days_ago = now - datetime.timedelta(days=7)
+    songs_last_week = [song for song in daily_added if datetime.datetime.fromtimestamp(song.get('timestamp', 0), pytz.timezone(TIMEZONE)) > seven_days_ago]
+    average_songs_per_day = len(songs_last_week) / 7
+
+    # Most common patterns
+    artist_counts = Counter(item['radio_artist'] for item in daily_added)
+    most_common_artist = artist_counts.most_common(1)[0][0] if artist_counts else "N/A"
+    
+    failure_reasons = Counter(item['reason'] for item in daily_failed)
+    most_common_failure = failure_reasons.most_common(1)[0][0] if failure_reasons else "N/A"
+
+    # Format times
+    last_check_time = datetime.datetime.fromtimestamp(bot_instance.last_check_time).strftime('%H:%M:%S') if bot_instance.last_check_time else "N/A"
+    next_check_time = datetime.datetime.fromtimestamp(bot_instance.next_check_time).strftime('%H:%M:%S') if bot_instance.next_check_time else "N/A"
+
+    stats = {
+        'total_songs_added': total_songs_added,
+        'total_failures': total_failures,
+        'success_rate': round(success_rate, 1),
+        'average_songs_per_day': round(average_songs_per_day, 1),
+        'most_common_artist': most_common_artist,
+        'most_common_failure': most_common_failure,
+        'last_check_time': last_check_time,
+        'next_check_time': next_check_time
+    }
+
+    return jsonify({
+        'stats': stats,
+        'daily_failed': daily_failed
+    })
+
 def start_background_tasks():
     """Start background tasks in a non-daemon thread"""
     def run_bot():

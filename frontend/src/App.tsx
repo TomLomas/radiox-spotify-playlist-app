@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import AdminPage from './AdminPage';
 
 // Type definitions
 interface Song {
@@ -12,6 +14,7 @@ interface Song {
 // Accent color palettes
 const PURPLES = ['#B266C8', '#a259c6', '#c77dff', '#7c3aed', '#a21caf', '#f472b6'];
 const GREENS = ['#1DB954', '#22c55e', '#4ade80', '#16a34a', '#bbf7d0', '#166534'];
+const RED = '#ef4444';
 
 const XLogo: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
   <img
@@ -22,8 +25,8 @@ const XLogo: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
   />
 );
 
-const Card: React.FC<{ children: React.ReactNode; accent: string }> = ({ children, accent }) => (
-  <div className="rounded-2xl shadow-lg p-6 bg-card-light dark:bg-card-dark flex flex-col items-center border-t-4" style={{ borderColor: accent }}>
+const Card: React.FC<{ children: React.ReactNode; accent: string; className?: string }> = ({ children, accent, className = '' }) => (
+  <div className={`rounded-2xl shadow-lg p-6 bg-card-light dark:bg-card-dark flex flex-col items-center border-t-4 ${className}`} style={{ borderColor: accent }}>
     {children}
   </div>
 );
@@ -151,127 +154,104 @@ const App: React.FC = () => {
   const sec = secondsUntilNextCheck % 60;
 
   return (
-    <div className={`min-h-screen w-full bg-background-light dark:bg-background-dark transition-colors duration-300`}>  
-      <div className="max-w-5xl mx-auto py-8 px-2">
-        {/* Header with X logo and theme toggle */}
-        <div className="flex flex-col items-center mb-8">
-          <XLogo darkMode={darkMode} />
-          <div className="flex items-center justify-between w-full max-w-2xl">
-            <h1 className="text-4xl font-extrabold tracking-widest" style={{ color: accent }}>RadioX</h1>
-            <button
-              className="border px-4 py-1 rounded-full text-sm font-semibold shadow"
-              onClick={() => setDarkMode((d) => !d)}
-              aria-label="Toggle dark mode"
-              style={{ borderColor: accent, color: accent }}
-            >
-              {darkMode ? 'Light Mode' : 'Dark Mode'}
-            </button>
-          </div>
-        </div>
-
-        {/* Card grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Service Status Card */}
-          <Card accent={accent}>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="inline-block w-3 h-3 rounded-full" style={{ background: accent2 }}></span>
-              <span className="font-bold text-lg">{serviceState.charAt(0).toUpperCase() + serviceState.slice(1)}</span>
-              <span className="ml-2 text-xs text-gray-400">{manualOverride ? 'Manual Override' : ''}</span>
+    <Router>
+      <Routes>
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/" element={
+          <div className={`min-h-screen w-full bg-background-light dark:bg-background-dark transition-colors duration-300`}>  
+            {/* Header with X logo and theme toggle */}
+            <div className="flex flex-col items-center mb-8">
+              <XLogo darkMode={darkMode} />
+              <div className="flex items-center justify-end w-full max-w-2xl">
+                <button
+                  className="border px-4 py-1 rounded-full text-sm font-semibold shadow"
+                  onClick={() => setDarkMode((d) => !d)}
+                  aria-label="Toggle dark mode"
+                  style={{ borderColor: accent, color: accent }}
+                >
+                  {darkMode ? 'Light Mode' : 'Dark Mode'}
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 mb-2">
-              <Button accent={accent2} disabled={!canPlay} onClick={() => adminAction('/admin/resume')}>▶️ Play</Button>
-              <Button accent={accent2} disabled={!canPause} onClick={() => adminAction('/admin/pause')}>⏸ Pause</Button>
-            </div>
-            <div className="text-xs text-gray-500">Next check in: <span style={{ color: accent2 }}>{min}:{sec.toString().padStart(2, '0')}</span></div>
-          </Card>
 
-          {/* Last Song Added Card */}
-          <Card accent={accent3}>
-            <div className="font-bold text-lg mb-2">Last Song Added</div>
-            {lastSong ? (
-              <>
-                <div className="font-semibold">{lastSong.radio_title}</div>
-                <div className="text-sm text-gray-500">{lastSong.radio_artist}</div>
-                {lastSong.album_art_url && <img src={lastSong.album_art_url} alt="Album Art" className="w-16 h-16 mt-2 rounded shadow" />}
-              </>
-            ) : (
-              <div className="text-gray-500">No songs added yet</div>
+            {/* Card grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Service Status Card */}
+              <Card accent={accent}>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="inline-block w-3 h-3 rounded-full" style={{ background: accent2 }}></span>
+                  <span className="font-bold text-lg">{serviceState.charAt(0).toUpperCase() + serviceState.slice(1)}</span>
+                  <span className="ml-2 text-xs text-gray-400">{manualOverride ? 'Manual Override' : ''}</span>
+                </div>
+                <div className="flex gap-2 mb-2">
+                  <Button accent={accent2} disabled={!canPlay} onClick={() => adminAction('/admin/resume')}>▶️ Play</Button>
+                  <Button accent={accent2} disabled={!canPause} onClick={() => adminAction('/admin/pause')}>⏸ Pause</Button>
+                </div>
+                <div className="text-xs text-gray-500">Next check in: <span style={{ color: accent2 }}>{min}:{sec.toString().padStart(2, '0')}</span></div>
+              </Card>
+
+              {/* Last Song Added Card */}
+              <Card accent={accent3}>
+                <div className="font-bold text-lg mb-2">Last Song Added</div>
+                {lastSong ? (
+                  <>
+                    <div className="font-semibold">{lastSong.radio_title}</div>
+                    <div className="text-sm text-gray-500">{lastSong.radio_artist}</div>
+                    {lastSong.album_art_url && <img src={lastSong.album_art_url} alt="Album Art" className="w-16 h-16 mt-2 rounded shadow" />}
+                  </>
+                ) : (
+                  <div className="text-gray-500">No songs added yet</div>
+                )}
+              </Card>
+            </div>
+
+            {/* Daily Songs Grid */}
+            <div className="mt-8">
+              <div className="grid grid-cols-1 gap-6">
+                {/* Added Songs */}
+                <Card accent={accent}>
+                  <div className="font-bold text-lg mb-4">Added Today</div>
+                  <div className="w-full">
+                    {dailyAdded.length > 0 ? (
+                      dailyAdded.map((song, index) => (
+                        <div key={index} className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                          {song.album_art_url && (
+                            <img src={song.album_art_url} alt="Album Art" className="w-12 h-12 rounded shadow" />
+                          )}
+                          <div>
+                            <div className="font-semibold">{song.radio_title}</div>
+                            <div className="text-sm text-gray-500">{song.radio_artist}</div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-500">No songs added today</div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Admin and Debug Buttons */}
+            <div className="mt-8 flex justify-center gap-4">
+              <Link to="/admin">
+                <Button accent={accent2}>Admin Controls</Button>
+              </Link>
+              <Card accent={RED} className="bg-red-50 dark:bg-red-900/20">
+                <Button accent={RED} onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</Button>
+              </Card>
+            </div>
+
+            {/* Toast Notification */}
+            {showToast && (
+              <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
+                {toastMsg}
+              </div>
             )}
-          </Card>
-        </div>
-
-        {/* Admin Actions Card */}
-        <Card accent={accent2}>
-          <div className="font-bold text-lg mb-2">Admin Actions</div>
-          <div className="flex flex-wrap gap-2 justify-center">
-            <Button accent={accent2} onClick={() => adminAction('/admin/send_summary_email')}>Send Summary Email</Button>
-            <Button accent={accent2} onClick={() => adminAction('/admin/retry_failed')}>Retry Failed Songs</Button>
-            <Button accent={accent2} onClick={() => adminAction('/admin/check_duplicates')}>Check for Duplicates</Button>
-            <Button accent={accent2} onClick={() => adminAction('/admin/force_check')}>Force Check</Button>
-            <Button accent={accent2} onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</Button>
           </div>
-        </Card>
-
-        {/* Daily Songs Grid */}
-        <div className="mt-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Added Songs */}
-            <Card accent={accent}>
-              <div className="font-bold text-lg mb-4">Added Today</div>
-              <div className="w-full">
-                {dailyAdded.length > 0 ? (
-                  dailyAdded.map((song, index) => (
-                    <div key={index} className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
-                      {song.album_art_url && (
-                        <img src={song.album_art_url} alt="Album Art" className="w-12 h-12 rounded shadow" />
-                      )}
-                      <div>
-                        <div className="font-semibold">{song.radio_title}</div>
-                        <div className="text-sm text-gray-500">{song.radio_artist}</div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-gray-500">No songs added today</div>
-                )}
-              </div>
-            </Card>
-
-            {/* Failed Songs */}
-            <Card accent={accent3}>
-              <div className="font-bold text-lg mb-4">Failed Today</div>
-              <div className="w-full">
-                {dailyFailed.length > 0 ? (
-                  dailyFailed.map((song, index) => (
-                    <div key={index} className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
-                      {song.album_art_url && (
-                        <img src={song.album_art_url} alt="Album Art" className="w-12 h-12 rounded shadow" />
-                      )}
-                      <div>
-                        <div className="font-semibold">{song.radio_title}</div>
-                        <div className="text-sm text-gray-500">{song.radio_artist}</div>
-                        {song.reason && (
-                          <div className="text-xs text-red-500 mt-1">{song.reason}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-gray-500">No failures today</div>
-                )}
-              </div>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
-          {toastMsg}
-        </div>
-      )}
-    </div>
+        } />
+      </Routes>
+    </Router>
   );
 };
 
