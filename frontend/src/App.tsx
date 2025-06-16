@@ -25,8 +25,8 @@ const XLogo: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
   />
 );
 
-const Card: React.FC<{ children: React.ReactNode; accent: string; className?: string }> = ({ children, accent, className = '' }) => (
-  <div className={`rounded-2xl shadow-lg p-6 bg-card-light dark:bg-card-dark flex flex-col items-center border-t-4 ${className}`} style={{ borderColor: accent }}>
+export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+  <div className={`rounded-lg shadow-md p-4 bg-white dark:bg-gray-800 ${className}`}>
     {children}
   </div>
 );
@@ -177,7 +177,7 @@ const App: React.FC = () => {
             {/* Card grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               {/* Service Status Card */}
-              <Card accent={accent}>
+              <Card>
                 <div className="flex items-center gap-3 mb-2">
                   <span className="inline-block w-3 h-3 rounded-full" style={{ background: accent2 }}></span>
                   <span className="font-bold text-lg">{serviceState.charAt(0).toUpperCase() + serviceState.slice(1)}</span>
@@ -191,7 +191,7 @@ const App: React.FC = () => {
               </Card>
 
               {/* Last Song Added Card */}
-              <Card accent={accent3}>
+              <Card>
                 <div className="font-bold text-lg mb-2">Last Song Added</div>
                 {lastSong ? (
                   <>
@@ -209,7 +209,7 @@ const App: React.FC = () => {
             <div className="mt-8">
               <div className="grid grid-cols-1 gap-6">
                 {/* Added Songs */}
-                <Card accent={accent}>
+                <Card>
                   <div className="font-bold text-lg mb-4">Added Today</div>
                   <div className="w-full">
                     {dailyAdded.length > 0 ? (
@@ -237,7 +237,7 @@ const App: React.FC = () => {
               <Link to="/admin">
                 <Button accent={accent2}>Admin Controls</Button>
               </Link>
-              <Card accent={RED} className="bg-red-50 dark:bg-red-900/20">
+              <Card className="bg-red-50 dark:bg-red-900/20">
                 <Button accent={RED} onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</Button>
               </Card>
             </div>
