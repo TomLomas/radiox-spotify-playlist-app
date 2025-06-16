@@ -114,6 +114,7 @@ const App: React.FC = () => {
   useEffect(() => {
     let isActive = true;
     let lastTick = Date.now();
+    let timerAtZero = false;
 
     const updateTimer = () => {
       if (!isActive) return;
@@ -124,12 +125,17 @@ const App: React.FC = () => {
 
       setSecondsUntilNextCheck(prev => {
         const newValue = Math.max(0, prev - elapsed);
-        if (newValue <= 0) {
+        
+        // Only fetch if we're transitioning from >0 to 0
+        if (newValue <= 0 && !timerAtZero) {
+          timerAtZero = true;
           // Only fetch if we haven't fetched recently and aren't currently fetching
           if (Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
             fetchStatus();
           }
           return 0;
+        } else if (newValue > 0) {
+          timerAtZero = false;
         }
         return newValue;
       });
