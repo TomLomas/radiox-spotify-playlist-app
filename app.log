@@ -1,0 +1,1787 @@
+2025-06-16 00:30:29,307 - INFO - LOGGING CONFIGURED: Startup log from main process.
+2025-06-16 00:30:29,308 - INFO - Application instance created. Waiting for initialization.
+2025-06-16 00:30:29,600 - INFO - Background initialization started.
+2025-06-16 00:30:29,600 - INFO - SPOTIPY_CLIENT_ID: 89****************************2d
+2025-06-16 00:30:29,600 - INFO - SPOTIPY_CLIENT_SECRET: f8****************************eb
+2025-06-16 00:30:29,600 - INFO - SPOTIPY_REDIRECT_URI: https://radiox-spotify-beta.onrender.com/callback
+2025-06-16 00:30:29,600 - INFO - SPOTIFY_PLAYLIST_ID: 13FFERyXq62mgtWinRloOv
+2025-06-16 00:30:29,945 - INFO - Successfully authenticated with Spotify as Thomas Lomas.
+2025-06-16 00:30:29,945 - INFO - --- Running Startup Diagnostics ---
+2025-06-16 00:30:30,521 - INFO - Found on Spotify (original title): 'Wonderwall - Remastered'
+2025-06-16 00:30:30,522 - INFO - [Main Loop] Entered run() method. Main loop starting.
+2025-06-16 00:30:30,522 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=False, manual_override_active=False, override_paused=False, in_hours=False
+2025-06-16 00:30:30,523 - INFO - [Main Loop] Service is paused (manual or out of hours). Skipping check.
+2025-06-16 00:30:40,919 - INFO - [toggle_pause_override] PID=105 TID=136608148969280 BEFORE: manual_override_active=False, override_paused=False, in_hours=False
+2025-06-16 00:30:40,920 - INFO - [toggle_pause_override] AFTER: manual_override_active=True, override_paused=False
+2025-06-16 00:30:40,920 - INFO - Admin: Service resumed via web override.
+2025-06-16 00:30:40,920 - INFO - Spotify client not initialized. Attempting to authenticate...
+2025-06-16 00:30:40,921 - INFO - SPOTIPY_CLIENT_ID: 89****************************2d
+2025-06-16 00:30:40,921 - INFO - SPOTIPY_CLIENT_SECRET: f8****************************eb
+2025-06-16 00:30:40,921 - INFO - SPOTIPY_REDIRECT_URI: https://radiox-spotify-beta.onrender.com/callback
+2025-06-16 00:30:40,921 - INFO - SPOTIFY_PLAYLIST_ID: 13FFERyXq62mgtWinRloOv
+2025-06-16 00:30:41,029 - INFO - Successfully authenticated with Spotify as Thomas Lomas.
+2025-06-16 00:30:41,029 - INFO - Fetching heraldId for radiox...
+2025-06-16 00:30:41,119 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:30:41,332 - INFO - New song: 'Caroline' by 'Mumford & Sons'
+2025-06-16 00:30:41,500 - INFO - Found on Spotify (original title): 'Caroline'
+2025-06-16 00:30:41,908 - INFO - Playlist size: 15/500
+2025-06-16 00:30:42,064 - INFO - SUCCESS: Added '[1mCaroline[0m' by '[1mMumford & Sons[0m' to playlist.
+2025-06-16 00:30:42,064 - INFO - Starting periodic duplicate check...
+2025-06-16 00:30:42,228 - INFO - DUPLICATE_CLEANUP: Fetched 16 tracks.
+2025-06-16 00:30:42,228 - INFO - DUPLICATE_CLEANUP: Track 'Caroline' found 2 times. Re-processing.
+2025-06-16 00:32:30,523 - INFO - Loaded 2 recent tracks from cache.
+2025-06-16 00:32:30,523 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:32:30,524 - INFO - Loaded 1 daily added songs from cache.
+2025-06-16 00:32:30,524 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:32:30,524 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:32:30,524 - INFO - Fetching heraldId for radiox...
+2025-06-16 00:32:30,614 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:32:30,947 - INFO - New song: 'Caroline' by 'Mumford & Sons'
+2025-06-16 00:32:31,098 - INFO - Found on Spotify (original title): 'Caroline'
+2025-06-16 00:32:31,099 - INFO - Track 'Caroline' recently processed. Skipping add.
+2025-06-16 00:34:31,100 - INFO - Loaded 2 recent tracks from cache.
+2025-06-16 00:34:31,100 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:34:31,100 - INFO - Loaded 1 daily added songs from cache.
+2025-06-16 00:34:31,100 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:34:31,101 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:34:31,101 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:34:31,335 - INFO - New song: 'Town Called Malice' by 'The Jam'
+2025-06-16 00:34:31,504 - INFO - Found on Spotify (original title): 'Town Called Malice'
+2025-06-16 00:34:32,059 - INFO - Playlist size: 15/500
+2025-06-16 00:34:32,204 - INFO - SUCCESS: Added '[1mTown Called Malice[0m' by '[1mThe Jam[0m' to playlist.
+2025-06-16 00:36:32,205 - INFO - Loaded 3 recent tracks from cache.
+2025-06-16 00:36:32,205 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:36:32,206 - INFO - Loaded 2 daily added songs from cache.
+2025-06-16 00:36:32,206 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:36:32,206 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:36:32,206 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:36:32,443 - INFO - New song: 'C'est La Vie' by 'Stereophonics'
+2025-06-16 00:36:32,611 - INFO - Found on Spotify (original title): 'C'est La Vie'
+2025-06-16 00:36:32,758 - INFO - Playlist size: 16/500
+2025-06-16 00:36:32,892 - INFO - SUCCESS: Added '[1mC'est La Vie[0m' by '[1mStereophonics[0m' to playlist.
+2025-06-16 00:38:32,893 - INFO - Loaded 4 recent tracks from cache.
+2025-06-16 00:38:32,893 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:38:32,893 - INFO - Loaded 3 daily added songs from cache.
+2025-06-16 00:38:32,894 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:38:32,894 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:38:32,894 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:38:33,248 - INFO - Song 'C'est La Vie' by 'Stereophonics' (ID: 516566) same as last. Skipping.
+2025-06-16 00:40:33,250 - INFO - Loaded 4 recent tracks from cache.
+2025-06-16 00:40:33,250 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:40:33,250 - INFO - Loaded 3 daily added songs from cache.
+2025-06-16 00:40:33,250 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:40:33,250 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:40:33,250 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:40:43,719 - WARNING - WebSocket timeout.
+2025-06-16 00:40:43,745 - INFO - No new track info from Radio X.
+2025-06-16 00:42:43,746 - INFO - Loaded 4 recent tracks from cache.
+2025-06-16 00:42:43,746 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:42:43,746 - INFO - Loaded 3 daily added songs from cache.
+2025-06-16 00:42:43,747 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:42:43,747 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:42:43,747 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:42:44,041 - INFO - New song: 'Somewhere Else' by 'Razorlight'
+2025-06-16 00:42:44,043 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 00:42:49,289 - INFO - Found on Spotify (original title): 'Somewhere Else'
+2025-06-16 00:42:49,425 - INFO - Playlist size: 17/500
+2025-06-16 00:42:49,575 - INFO - SUCCESS: Added '[1mSomewhere Else[0m' by '[1mRazorlight[0m' to playlist.
+2025-06-16 00:44:49,576 - INFO - Loaded 5 recent tracks from cache.
+2025-06-16 00:44:49,576 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:44:49,576 - INFO - Loaded 4 daily added songs from cache.
+2025-06-16 00:44:49,576 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:44:49,576 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:44:49,577 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:44:49,831 - INFO - Song 'Somewhere Else' by 'Razorlight' (ID: 511613) same as last. Skipping.
+2025-06-16 00:46:49,832 - INFO - Loaded 5 recent tracks from cache.
+2025-06-16 00:46:49,832 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:46:49,832 - INFO - Loaded 4 daily added songs from cache.
+2025-06-16 00:46:49,833 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:46:49,833 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:46:49,833 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:46:50,124 - INFO - New song: 'Will We Talk?' by 'Sam Fender'
+2025-06-16 00:46:50,343 - INFO - Found on Spotify (original title): 'Will We Talk?'
+2025-06-16 00:46:50,485 - INFO - Playlist size: 18/500
+2025-06-16 00:46:50,646 - INFO - SUCCESS: Added '[1mWill We Talk?[0m' by '[1mSam Fender[0m' to playlist.
+2025-06-16 00:48:50,648 - INFO - Loaded 6 recent tracks from cache.
+2025-06-16 00:48:50,648 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:48:50,648 - INFO - Loaded 5 daily added songs from cache.
+2025-06-16 00:48:50,649 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:48:50,649 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:48:50,649 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:48:51,038 - INFO - New song: 'undressed' by 'sombr'
+2025-06-16 00:48:51,191 - INFO - Found on Spotify (original title): 'undressed'
+2025-06-16 00:48:51,346 - INFO - Playlist size: 19/500
+2025-06-16 00:48:51,483 - INFO - SUCCESS: Added '[1mundressed[0m' by '[1msombr[0m' to playlist.
+2025-06-16 00:50:51,485 - INFO - Loaded 7 recent tracks from cache.
+2025-06-16 00:50:51,485 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:50:51,485 - INFO - Loaded 6 daily added songs from cache.
+2025-06-16 00:50:51,485 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:50:51,485 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:50:51,485 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:50:51,739 - INFO - Song 'undressed' by 'sombr' (ID: 733709) same as last. Skipping.
+2025-06-16 00:52:51,808 - INFO - Loaded 7 recent tracks from cache.
+2025-06-16 00:52:51,808 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:52:51,809 - INFO - Loaded 6 daily added songs from cache.
+2025-06-16 00:52:51,809 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:52:51,809 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:52:51,809 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:52:52,047 - INFO - New song: 'Staying Out For The Summer' by 'Dodgy'
+2025-06-16 00:52:52,225 - INFO - Found on Spotify (original title): 'Staying Out For The Summer'
+2025-06-16 00:52:52,420 - INFO - Playlist size: 20/500
+2025-06-16 00:52:52,567 - INFO - SUCCESS: Added '[1mStaying Out For The Summer[0m' by '[1mDodgy[0m' to playlist.
+2025-06-16 00:54:52,568 - INFO - Loaded 8 recent tracks from cache.
+2025-06-16 00:54:52,569 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:54:52,569 - INFO - Loaded 7 daily added songs from cache.
+2025-06-16 00:54:52,569 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:54:52,569 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:54:52,569 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:54:52,845 - INFO - New song: 'Naive' by 'The Kooks'
+2025-06-16 00:54:53,045 - INFO - Found on Spotify (original title): 'Naive'
+2025-06-16 00:54:53,199 - INFO - Playlist size: 21/500
+2025-06-16 00:54:53,368 - INFO - SUCCESS: Added '[1mNaive[0m' by '[1mThe Kooks[0m' to playlist.
+2025-06-16 00:56:53,369 - INFO - Loaded 9 recent tracks from cache.
+2025-06-16 00:56:53,369 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:56:53,369 - INFO - Loaded 8 daily added songs from cache.
+2025-06-16 00:56:53,370 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:56:53,370 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:56:53,370 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:56:53,633 - INFO - Song 'Naive' by 'The Kooks' (ID: 511740) same as last. Skipping.
+2025-06-16 00:58:53,635 - INFO - Loaded 9 recent tracks from cache.
+2025-06-16 00:58:53,635 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 00:58:53,635 - INFO - Loaded 8 daily added songs from cache.
+2025-06-16 00:58:53,635 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 00:58:53,636 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 00:58:53,636 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 00:59:01,727 - INFO - Admin: Manual summary email triggered via web.
+2025-06-16 00:59:01,727 - INFO - Attempting to send email to tom.lomas@outlook.com...
+2025-06-16 00:59:03,906 - INFO - Email sent successfully.
+2025-06-16 00:59:04,121 - WARNING - WebSocket timeout.
+2025-06-16 00:59:04,146 - INFO - No new track info from Radio X.
+2025-06-16 01:01:04,147 - INFO - Loaded 9 recent tracks from cache.
+2025-06-16 01:01:04,148 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:01:04,148 - INFO - Loaded 8 daily added songs from cache.
+2025-06-16 01:01:04,148 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:01:04,148 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:01:04,148 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:01:14,622 - WARNING - WebSocket timeout.
+2025-06-16 01:01:14,650 - INFO - No new track info from Radio X.
+2025-06-16 01:01:14,650 - INFO - Starting periodic duplicate check...
+2025-06-16 01:01:14,652 - WARNING - Network error on playlist_items (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 01:01:19,829 - INFO - DUPLICATE_CLEANUP: Fetched 22 tracks.
+2025-06-16 01:03:19,830 - INFO - Loaded 9 recent tracks from cache.
+2025-06-16 01:03:19,831 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:03:19,831 - INFO - Loaded 8 daily added songs from cache.
+2025-06-16 01:03:19,831 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:03:19,831 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:03:19,831 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:03:20,045 - INFO - New song: 'Lifestyles Of The Rich & Famous' by 'Good Charlotte'
+2025-06-16 01:03:20,269 - INFO - Found on Spotify (original title): 'Lifestyles of the Rich & Famous'
+2025-06-16 01:03:20,435 - INFO - Playlist size: 22/500
+2025-06-16 01:03:20,599 - INFO - SUCCESS: Added '[1mLifestyles Of The Rich & Famous[0m' by '[1mGood Charlotte[0m' to playlist.
+2025-06-16 01:05:20,601 - INFO - Loaded 10 recent tracks from cache.
+2025-06-16 01:05:20,601 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:05:20,601 - INFO - Loaded 9 daily added songs from cache.
+2025-06-16 01:05:20,602 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:05:20,602 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:05:20,602 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:05:20,932 - INFO - New song: 'In the Morning' by 'The Coral'
+2025-06-16 01:05:21,104 - INFO - Found on Spotify (original title): 'In the Morning'
+2025-06-16 01:05:21,309 - INFO - Playlist size: 23/500
+2025-06-16 01:05:21,439 - INFO - SUCCESS: Added '[1mIn the Morning[0m' by '[1mThe Coral[0m' to playlist.
+2025-06-16 01:07:21,440 - INFO - Loaded 11 recent tracks from cache.
+2025-06-16 01:07:21,440 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:07:21,441 - INFO - Loaded 10 daily added songs from cache.
+2025-06-16 01:07:21,441 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:07:21,441 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:07:21,441 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:07:21,713 - INFO - New song: 'Smells Like Teen Spirit' by 'Nirvana'
+2025-06-16 01:07:21,887 - INFO - Found on Spotify (original title): 'Smells Like Teen Spirit'
+2025-06-16 01:07:22,033 - INFO - Playlist size: 24/500
+2025-06-16 01:07:22,196 - INFO - SUCCESS: Added '[1mSmells Like Teen Spirit[0m' by '[1mNirvana[0m' to playlist.
+2025-06-16 01:09:22,197 - INFO - Loaded 12 recent tracks from cache.
+2025-06-16 01:09:22,197 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:09:22,197 - INFO - Loaded 11 daily added songs from cache.
+2025-06-16 01:09:22,198 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:09:22,198 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:09:22,198 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:09:22,446 - INFO - Song 'Smells Like Teen Spirit' by 'Nirvana' (ID: 510396) same as last. Skipping.
+2025-06-16 01:11:22,447 - INFO - Loaded 12 recent tracks from cache.
+2025-06-16 01:11:22,448 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:11:22,448 - INFO - Loaded 11 daily added songs from cache.
+2025-06-16 01:11:22,448 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:11:22,448 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:11:22,448 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:11:22,831 - INFO - New song: 'The Honeymoon' by 'Blossoms'
+2025-06-16 01:11:23,006 - INFO - Found on Spotify (original title): 'The Honeymoon'
+2025-06-16 01:11:23,173 - INFO - Playlist size: 25/500
+2025-06-16 01:11:23,321 - INFO - SUCCESS: Added '[1mThe Honeymoon[0m' by '[1mBlossoms[0m' to playlist.
+2025-06-16 01:13:23,322 - INFO - Loaded 13 recent tracks from cache.
+2025-06-16 01:13:23,322 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:13:23,322 - INFO - Loaded 12 daily added songs from cache.
+2025-06-16 01:13:23,322 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:13:23,323 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:13:23,323 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:13:23,620 - INFO - Song 'The Honeymoon' by 'Blossoms' (ID: 826825) same as last. Skipping.
+2025-06-16 01:15:23,621 - INFO - Loaded 13 recent tracks from cache.
+2025-06-16 01:15:23,621 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:15:23,622 - INFO - Loaded 12 daily added songs from cache.
+2025-06-16 01:15:23,622 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:15:23,622 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:15:23,622 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:15:23,830 - INFO - New song: 'Can't Stand Me Now' by 'The Libertines'
+2025-06-16 01:15:24,054 - INFO - Found on Spotify (original title): 'Can't Stand Me Now'
+2025-06-16 01:15:24,290 - INFO - Playlist size: 26/500
+2025-06-16 01:15:24,445 - INFO - SUCCESS: Added '[1mCan't Stand Me Now[0m' by '[1mThe Libertines[0m' to playlist.
+2025-06-16 01:17:24,446 - INFO - Loaded 14 recent tracks from cache.
+2025-06-16 01:17:24,446 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:17:24,447 - INFO - Loaded 13 daily added songs from cache.
+2025-06-16 01:17:24,447 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:17:24,447 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:17:24,447 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:17:24,734 - INFO - New song: 'In Between Days' by 'The Cure'
+2025-06-16 01:17:24,913 - INFO - Found on Spotify (original title): 'In Between Days - Acoustic Version'
+2025-06-16 01:17:25,133 - INFO - Playlist size: 27/500
+2025-06-16 01:17:25,314 - INFO - SUCCESS: Added '[1mIn Between Days[0m' by '[1mThe Cure[0m' to playlist.
+2025-06-16 01:19:25,315 - INFO - Loaded 15 recent tracks from cache.
+2025-06-16 01:19:25,316 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:19:25,316 - INFO - Loaded 14 daily added songs from cache.
+2025-06-16 01:19:25,316 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:19:25,316 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:19:25,316 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:19:25,579 - INFO - Song 'In Between Days' by 'The Cure' (ID: 510768) same as last. Skipping.
+2025-06-16 01:21:25,581 - INFO - Loaded 15 recent tracks from cache.
+2025-06-16 01:21:25,581 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:21:25,581 - INFO - Loaded 14 daily added songs from cache.
+2025-06-16 01:21:25,581 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:21:25,582 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:21:25,582 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:21:36,007 - WARNING - WebSocket timeout.
+2025-06-16 01:21:36,031 - INFO - No new track info from Radio X.
+2025-06-16 01:23:36,033 - INFO - Loaded 15 recent tracks from cache.
+2025-06-16 01:23:36,033 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:23:36,033 - INFO - Loaded 14 daily added songs from cache.
+2025-06-16 01:23:36,033 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:23:36,034 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:23:36,034 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:23:36,232 - INFO - New song: 'Lyla' by 'Oasis'
+2025-06-16 01:23:36,234 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 01:23:41,407 - INFO - Found on Spotify (original title): 'Lyla'
+2025-06-16 01:23:41,634 - INFO - Playlist size: 28/500
+2025-06-16 01:23:41,804 - INFO - SUCCESS: Added '[1mLyla[0m' by '[1mOasis[0m' to playlist.
+2025-06-16 01:25:41,805 - INFO - Loaded 16 recent tracks from cache.
+2025-06-16 01:25:41,805 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:25:41,805 - INFO - Loaded 15 daily added songs from cache.
+2025-06-16 01:25:41,805 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:25:41,805 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:25:41,806 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:25:42,137 - INFO - Song 'Lyla' by 'Oasis' (ID: 510130) same as last. Skipping.
+2025-06-16 01:27:42,139 - INFO - Loaded 16 recent tracks from cache.
+2025-06-16 01:27:42,139 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:27:42,139 - INFO - Loaded 15 daily added songs from cache.
+2025-06-16 01:27:42,140 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:27:42,140 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:27:42,140 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:27:42,436 - INFO - New song: 'I Write Sins Not Tragedies' by 'Panic! At The Disco'
+2025-06-16 01:27:42,631 - INFO - Found on Spotify (original title): 'I Write Sins Not Tragedies'
+2025-06-16 01:27:42,802 - INFO - Playlist size: 29/500
+2025-06-16 01:27:42,933 - INFO - SUCCESS: Added '[1mI Write Sins Not Tragedies[0m' by '[1mPanic! At The Disco[0m' to playlist.
+2025-06-16 01:29:42,935 - INFO - Loaded 17 recent tracks from cache.
+2025-06-16 01:29:42,935 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:29:42,935 - INFO - Loaded 16 daily added songs from cache.
+2025-06-16 01:29:42,936 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:29:42,936 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:29:42,936 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:29:43,159 - INFO - Song 'I Write Sins Not Tragedies' by 'Panic! At The Disco' (ID: 511896) same as last. Skipping.
+2025-06-16 01:31:43,161 - INFO - Loaded 17 recent tracks from cache.
+2025-06-16 01:31:43,161 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:31:43,162 - INFO - Loaded 16 daily added songs from cache.
+2025-06-16 01:31:43,162 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:31:43,162 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:31:43,162 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:31:43,435 - INFO - New song: 'Bloom Baby Bloom' by 'Wolf Alice'
+2025-06-16 01:31:43,438 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 01:31:48,666 - INFO - Found on Spotify (original title): 'Bloom Baby Bloom'
+2025-06-16 01:31:48,893 - INFO - Playlist size: 30/500
+2025-06-16 01:31:49,033 - INFO - SUCCESS: Added '[1mBloom Baby Bloom[0m' by '[1mWolf Alice[0m' to playlist.
+2025-06-16 01:31:49,033 - INFO - Starting periodic duplicate check...
+2025-06-16 01:31:49,227 - INFO - DUPLICATE_CLEANUP: Fetched 31 tracks.
+2025-06-16 01:33:49,229 - INFO - Loaded 18 recent tracks from cache.
+2025-06-16 01:33:49,229 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:33:49,229 - INFO - Loaded 17 daily added songs from cache.
+2025-06-16 01:33:49,229 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:33:49,230 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:33:49,230 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:33:49,455 - INFO - New song: 'Do You Remember The First Time?' by 'Pulp'
+2025-06-16 01:33:49,607 - INFO - Found on Spotify (original title): 'Do You Remember The First Time?'
+2025-06-16 01:33:49,788 - INFO - Playlist size: 31/500
+2025-06-16 01:33:49,965 - INFO - SUCCESS: Added '[1mDo You Remember The First Time?[0m' by '[1mPulp[0m' to playlist.
+2025-06-16 01:35:49,967 - INFO - Loaded 19 recent tracks from cache.
+2025-06-16 01:35:49,967 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:35:49,967 - INFO - Loaded 18 daily added songs from cache.
+2025-06-16 01:35:49,967 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:35:49,968 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:35:49,968 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:35:50,233 - INFO - Song 'Do You Remember The First Time?' by 'Pulp' (ID: 510958) same as last. Skipping.
+2025-06-16 01:37:50,235 - INFO - Loaded 19 recent tracks from cache.
+2025-06-16 01:37:50,235 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:37:50,235 - INFO - Loaded 18 daily added songs from cache.
+2025-06-16 01:37:50,235 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:37:50,236 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:37:50,236 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:38:00,686 - WARNING - WebSocket timeout.
+2025-06-16 01:38:00,713 - INFO - No new track info from Radio X.
+2025-06-16 01:40:00,715 - INFO - Loaded 19 recent tracks from cache.
+2025-06-16 01:40:00,715 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:40:00,716 - INFO - Loaded 18 daily added songs from cache.
+2025-06-16 01:40:00,716 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:40:00,716 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:40:00,716 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:40:11,123 - WARNING - WebSocket timeout.
+2025-06-16 01:40:11,150 - INFO - No new track info from Radio X.
+2025-06-16 01:42:11,151 - INFO - Loaded 19 recent tracks from cache.
+2025-06-16 01:42:11,152 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:42:11,152 - INFO - Loaded 18 daily added songs from cache.
+2025-06-16 01:42:11,152 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:42:11,152 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:42:11,152 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:42:11,436 - INFO - New song: 'Zombieland' by 'Jake Bugg'
+2025-06-16 01:42:11,438 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 01:42:16,668 - INFO - Found on Spotify (original title): 'Zombieland'
+2025-06-16 01:42:16,834 - INFO - Playlist size: 32/500
+2025-06-16 01:42:16,989 - INFO - SUCCESS: Added '[1mZombieland[0m' by '[1mJake Bugg[0m' to playlist.
+2025-06-16 01:44:16,990 - INFO - Loaded 20 recent tracks from cache.
+2025-06-16 01:44:16,990 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:44:16,990 - INFO - Loaded 19 daily added songs from cache.
+2025-06-16 01:44:16,990 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:44:16,991 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:44:16,991 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:44:17,228 - INFO - New song: 'Jenny Don't Be Hasty' by 'Paolo Nutini'
+2025-06-16 01:44:17,430 - INFO - Found on Spotify (original title): 'Jenny Don't Be Hasty'
+2025-06-16 01:44:17,626 - INFO - Playlist size: 33/500
+2025-06-16 01:44:17,766 - INFO - SUCCESS: Added '[1mJenny Don't Be Hasty[0m' by '[1mPaolo Nutini[0m' to playlist.
+2025-06-16 01:46:17,768 - INFO - Loaded 21 recent tracks from cache.
+2025-06-16 01:46:17,768 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:46:17,768 - INFO - Loaded 20 daily added songs from cache.
+2025-06-16 01:46:17,768 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:46:17,768 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:46:17,769 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:46:18,027 - INFO - Song 'Jenny Don't Be Hasty' by 'Paolo Nutini' (ID: 110929) same as last. Skipping.
+2025-06-16 01:48:18,029 - INFO - Loaded 21 recent tracks from cache.
+2025-06-16 01:48:18,029 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:48:18,030 - INFO - Loaded 20 daily added songs from cache.
+2025-06-16 01:48:18,030 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:48:18,030 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:48:18,030 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:48:18,329 - INFO - New song: 'Can't Say No' by 'The Wombats'
+2025-06-16 01:48:18,490 - INFO - Found on Spotify (original title): 'Can't Say No'
+2025-06-16 01:48:18,690 - INFO - Playlist size: 34/500
+2025-06-16 01:48:18,833 - INFO - SUCCESS: Added '[1mCan't Say No[0m' by '[1mThe Wombats[0m' to playlist.
+2025-06-16 01:50:18,835 - INFO - Loaded 22 recent tracks from cache.
+2025-06-16 01:50:18,835 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:50:18,835 - INFO - Loaded 21 daily added songs from cache.
+2025-06-16 01:50:18,835 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:50:18,836 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:50:18,836 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:50:19,135 - INFO - New song: 'Blue Monday' by 'New Order'
+2025-06-16 01:50:19,319 - INFO - Found on Spotify (original title): 'Blue Monday'
+2025-06-16 01:50:19,539 - INFO - Playlist size: 35/500
+2025-06-16 01:50:19,675 - INFO - SUCCESS: Added '[1mBlue Monday[0m' by '[1mNew Order[0m' to playlist.
+2025-06-16 01:52:19,677 - INFO - Loaded 23 recent tracks from cache.
+2025-06-16 01:52:19,677 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:52:19,678 - INFO - Loaded 22 daily added songs from cache.
+2025-06-16 01:52:19,678 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:52:19,678 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:52:19,678 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:52:19,951 - INFO - Song 'Blue Monday' by 'New Order' (ID: 510611) same as last. Skipping.
+2025-06-16 01:54:19,952 - INFO - Loaded 23 recent tracks from cache.
+2025-06-16 01:54:19,952 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:54:19,953 - INFO - Loaded 22 daily added songs from cache.
+2025-06-16 01:54:19,953 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:54:19,953 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:54:19,953 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:54:20,228 - INFO - Song 'Blue Monday' by 'New Order' (ID: 510611) same as last. Skipping.
+2025-06-16 01:56:20,230 - INFO - Loaded 23 recent tracks from cache.
+2025-06-16 01:56:20,230 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:56:20,230 - INFO - Loaded 22 daily added songs from cache.
+2025-06-16 01:56:20,230 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:56:20,230 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:56:20,231 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:56:20,519 - INFO - New song: 'Mustang' by 'Kings Of Leon'
+2025-06-16 01:56:20,521 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 01:56:25,755 - INFO - Found on Spotify (original title): 'Mustang'
+2025-06-16 01:56:25,967 - INFO - Playlist size: 36/500
+2025-06-16 01:56:26,092 - INFO - SUCCESS: Added '[1mMustang[0m' by '[1mKings Of Leon[0m' to playlist.
+2025-06-16 01:58:26,093 - INFO - Loaded 24 recent tracks from cache.
+2025-06-16 01:58:26,094 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 01:58:26,094 - INFO - Loaded 23 daily added songs from cache.
+2025-06-16 01:58:26,094 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 01:58:26,094 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 01:58:26,094 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 01:58:36,511 - WARNING - WebSocket timeout.
+2025-06-16 01:58:36,537 - INFO - No new track info from Radio X.
+2025-06-16 02:00:36,539 - INFO - Loaded 24 recent tracks from cache.
+2025-06-16 02:00:36,540 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:00:36,540 - INFO - Loaded 23 daily added songs from cache.
+2025-06-16 02:00:36,540 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:00:36,540 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:00:36,540 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:00:47,014 - WARNING - WebSocket timeout.
+2025-06-16 02:00:47,038 - INFO - No new track info from Radio X.
+2025-06-16 02:02:47,040 - INFO - Loaded 24 recent tracks from cache.
+2025-06-16 02:02:47,040 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:02:47,041 - INFO - Loaded 23 daily added songs from cache.
+2025-06-16 02:02:47,041 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:02:47,041 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:02:47,041 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:02:47,334 - INFO - New song: 'Teddy Picker' by 'Arctic Monkeys'
+2025-06-16 02:02:47,336 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 02:02:52,528 - INFO - Found on Spotify (original title): 'Teddy Picker'
+2025-06-16 02:02:52,989 - INFO - Playlist size: 37/500
+2025-06-16 02:02:53,142 - INFO - SUCCESS: Added '[1mTeddy Picker[0m' by '[1mArctic Monkeys[0m' to playlist.
+2025-06-16 02:02:53,142 - INFO - Starting periodic duplicate check...
+2025-06-16 02:02:53,400 - INFO - DUPLICATE_CLEANUP: Fetched 38 tracks.
+2025-06-16 02:04:53,402 - INFO - Loaded 25 recent tracks from cache.
+2025-06-16 02:04:53,402 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:04:53,402 - INFO - Loaded 24 daily added songs from cache.
+2025-06-16 02:04:53,402 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:04:53,403 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:04:53,403 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:04:53,718 - INFO - New song: 'Sailor Song' by 'Gigi Perez'
+2025-06-16 02:04:53,901 - INFO - Found on Spotify (original title): 'Sailor Song'
+2025-06-16 02:04:54,119 - INFO - Playlist size: 38/500
+2025-06-16 02:04:54,312 - INFO - SUCCESS: Added '[1mSailor Song[0m' by '[1mGigi Perez[0m' to playlist.
+2025-06-16 02:06:54,314 - INFO - Loaded 26 recent tracks from cache.
+2025-06-16 02:06:54,314 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:06:54,314 - INFO - Loaded 25 daily added songs from cache.
+2025-06-16 02:06:54,314 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:06:54,315 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:06:54,315 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:06:54,537 - INFO - New song: 'All Along The Watchtower' by 'Jimi Hendrix'
+2025-06-16 02:06:54,796 - INFO - Found on Spotify (original title): 'All Along the Watchtower'
+2025-06-16 02:06:55,069 - INFO - Playlist size: 39/500
+2025-06-16 02:06:55,244 - INFO - SUCCESS: Added '[1mAll Along The Watchtower[0m' by '[1mJimi Hendrix[0m' to playlist.
+2025-06-16 02:08:55,245 - INFO - Loaded 27 recent tracks from cache.
+2025-06-16 02:08:55,245 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:08:55,245 - INFO - Loaded 26 daily added songs from cache.
+2025-06-16 02:08:55,246 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:08:55,246 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:08:55,246 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:08:55,515 - INFO - Song 'All Along The Watchtower' by 'Jimi Hendrix' (ID: 510692) same as last. Skipping.
+2025-06-16 02:10:55,517 - INFO - Loaded 27 recent tracks from cache.
+2025-06-16 02:10:55,517 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:10:55,517 - INFO - Loaded 26 daily added songs from cache.
+2025-06-16 02:10:55,518 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:10:55,518 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:10:55,518 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:10:55,736 - INFO - New song: 'Chelsea Dagger' by 'The Fratellis'
+2025-06-16 02:10:55,912 - INFO - Found on Spotify (original title): 'Chelsea Dagger'
+2025-06-16 02:10:56,142 - INFO - Playlist size: 40/500
+2025-06-16 02:10:56,285 - INFO - SUCCESS: Added '[1mChelsea Dagger[0m' by '[1mThe Fratellis[0m' to playlist.
+2025-06-16 02:12:56,286 - INFO - Loaded 28 recent tracks from cache.
+2025-06-16 02:12:56,287 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:12:56,287 - INFO - Loaded 27 daily added songs from cache.
+2025-06-16 02:12:56,287 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:12:56,287 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:12:56,287 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:12:56,629 - INFO - Song 'Chelsea Dagger' by 'The Fratellis' (ID: 511761) same as last. Skipping.
+2025-06-16 02:14:56,632 - INFO - Loaded 28 recent tracks from cache.
+2025-06-16 02:14:56,632 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:14:56,632 - INFO - Loaded 27 daily added songs from cache.
+2025-06-16 02:14:56,632 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:14:56,632 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:14:56,632 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:14:56,828 - INFO - New song: 'Sally Cinnamon' by 'The Stone Roses'
+2025-06-16 02:14:57,000 - INFO - Found on Spotify (original title): 'Sally Cinnamon - Single Mix'
+2025-06-16 02:14:57,291 - INFO - Playlist size: 41/500
+2025-06-16 02:14:57,467 - INFO - SUCCESS: Added '[1mSally Cinnamon[0m' by '[1mThe Stone Roses[0m' to playlist.
+2025-06-16 02:16:57,469 - INFO - Loaded 29 recent tracks from cache.
+2025-06-16 02:16:57,469 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:16:57,469 - INFO - Loaded 28 daily added songs from cache.
+2025-06-16 02:16:57,469 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:16:57,469 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:16:57,469 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:16:57,742 - INFO - New song: 'Hush' by 'Kula Shaker'
+2025-06-16 02:16:57,959 - INFO - Found on Spotify (original title): 'Hush'
+2025-06-16 02:16:58,270 - INFO - Playlist size: 42/500
+2025-06-16 02:16:58,402 - INFO - SUCCESS: Added '[1mHush[0m' by '[1mKula Shaker[0m' to playlist.
+2025-06-16 02:18:58,404 - INFO - Loaded 30 recent tracks from cache.
+2025-06-16 02:18:58,404 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:18:58,404 - INFO - Loaded 29 daily added songs from cache.
+2025-06-16 02:18:58,404 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:18:58,404 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:18:58,405 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:18:58,631 - INFO - Song 'Hush' by 'Kula Shaker' (ID: 510522) same as last. Skipping.
+2025-06-16 02:20:58,632 - INFO - Loaded 30 recent tracks from cache.
+2025-06-16 02:20:58,633 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:20:58,633 - INFO - Loaded 29 daily added songs from cache.
+2025-06-16 02:20:58,633 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:20:58,633 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:20:58,633 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:21:09,024 - WARNING - WebSocket timeout.
+2025-06-16 02:21:09,051 - INFO - No new track info from Radio X.
+2025-06-16 02:23:09,053 - INFO - Loaded 30 recent tracks from cache.
+2025-06-16 02:23:09,053 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:23:09,054 - INFO - Loaded 29 daily added songs from cache.
+2025-06-16 02:23:09,054 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:23:09,054 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:23:09,054 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:23:09,404 - INFO - New song: 'Club Foot' by 'Kasabian'
+2025-06-16 02:23:09,406 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 02:23:14,622 - INFO - Found on Spotify (original title): 'Club Foot'
+2025-06-16 02:23:14,863 - INFO - Playlist size: 43/500
+2025-06-16 02:23:15,023 - INFO - SUCCESS: Added '[1mClub Foot[0m' by '[1mKasabian[0m' to playlist.
+2025-06-16 02:25:15,024 - INFO - Loaded 31 recent tracks from cache.
+2025-06-16 02:25:15,024 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:25:15,025 - INFO - Loaded 30 daily added songs from cache.
+2025-06-16 02:25:15,025 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:25:15,025 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:25:15,025 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:25:15,248 - INFO - New song: 'Apply Some Pressure' by 'Maximo Park'
+2025-06-16 02:25:15,416 - INFO - Found on Spotify (original title): 'Apply Some Pressure'
+2025-06-16 02:25:15,650 - INFO - Playlist size: 44/500
+2025-06-16 02:25:15,851 - INFO - SUCCESS: Added '[1mApply Some Pressure[0m' by '[1mMaximo Park[0m' to playlist.
+2025-06-16 02:27:15,853 - INFO - Loaded 32 recent tracks from cache.
+2025-06-16 02:27:15,853 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:27:15,853 - INFO - Loaded 31 daily added songs from cache.
+2025-06-16 02:27:15,853 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:27:15,853 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:27:15,853 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:27:16,133 - INFO - Song 'Apply Some Pressure' by 'Maximo Park' (ID: 510089) same as last. Skipping.
+2025-06-16 02:29:16,135 - INFO - Loaded 32 recent tracks from cache.
+2025-06-16 02:29:16,135 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:29:16,135 - INFO - Loaded 31 daily added songs from cache.
+2025-06-16 02:29:16,135 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:29:16,135 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:29:16,136 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:29:16,427 - INFO - New song: 'Billy (Yeah Yeah Yeah)' by 'Inhaler'
+2025-06-16 02:29:16,605 - INFO - Found on Spotify (original title): 'Billy (Yeah Yeah Yeah)'
+2025-06-16 02:29:16,847 - INFO - Playlist size: 45/500
+2025-06-16 02:29:17,174 - INFO - SUCCESS: Added '[1mBilly (Yeah Yeah Yeah)[0m' by '[1mInhaler[0m' to playlist.
+2025-06-16 02:31:17,175 - INFO - Loaded 33 recent tracks from cache.
+2025-06-16 02:31:17,176 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:31:17,176 - INFO - Loaded 32 daily added songs from cache.
+2025-06-16 02:31:17,176 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:31:17,176 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:31:17,176 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:31:17,446 - INFO - Song 'Billy (Yeah Yeah Yeah)' by 'Inhaler' (ID: 688893) same as last. Skipping.
+2025-06-16 02:33:17,448 - INFO - Loaded 33 recent tracks from cache.
+2025-06-16 02:33:17,448 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:33:17,448 - INFO - Loaded 32 daily added songs from cache.
+2025-06-16 02:33:17,449 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:33:17,449 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:33:17,449 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:33:17,828 - INFO - New song: 'My Hero' by 'Foo Fighters'
+2025-06-16 02:33:17,831 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 02:33:23,064 - INFO - Found on Spotify (original title): 'My Hero'
+2025-06-16 02:33:23,309 - INFO - Playlist size: 46/500
+2025-06-16 02:33:23,462 - INFO - SUCCESS: Added '[1mMy Hero[0m' by '[1mFoo Fighters[0m' to playlist.
+2025-06-16 02:33:23,462 - INFO - Starting periodic duplicate check...
+2025-06-16 02:33:23,715 - INFO - DUPLICATE_CLEANUP: Fetched 47 tracks.
+2025-06-16 02:35:23,717 - INFO - Loaded 34 recent tracks from cache.
+2025-06-16 02:35:23,717 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:35:23,718 - INFO - Loaded 33 daily added songs from cache.
+2025-06-16 02:35:23,718 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:35:23,718 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:35:23,718 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:35:23,933 - INFO - Song 'My Hero' by 'Foo Fighters' (ID: 513279) same as last. Skipping.
+2025-06-16 02:37:23,935 - INFO - Loaded 34 recent tracks from cache.
+2025-06-16 02:37:23,935 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:37:23,936 - INFO - Loaded 33 daily added songs from cache.
+2025-06-16 02:37:23,936 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:37:23,936 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:37:23,936 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:37:24,204 - INFO - New song: 'Undercover Martyn (Adrian Bushby Mix)' by 'Two Door Cinema Club'
+2025-06-16 02:37:24,422 - INFO - Found on Spotify (parentheses removed): 'Undercover Martyn'
+2025-06-16 02:37:24,664 - INFO - Playlist size: 47/500
+2025-06-16 02:37:24,858 - INFO - SUCCESS: Added '[1mUndercover Martyn (Adrian Bushby Mix)[0m' by '[1mTwo Door Cinema Club[0m' to playlist.
+2025-06-16 02:39:24,860 - INFO - Loaded 35 recent tracks from cache.
+2025-06-16 02:39:24,860 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:39:24,860 - INFO - Loaded 34 daily added songs from cache.
+2025-06-16 02:39:24,860 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:39:24,860 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:39:24,861 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:39:35,325 - WARNING - WebSocket timeout.
+2025-06-16 02:39:35,354 - INFO - No new track info from Radio X.
+2025-06-16 02:41:35,356 - INFO - Loaded 35 recent tracks from cache.
+2025-06-16 02:41:35,356 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:41:35,356 - INFO - Loaded 34 daily added songs from cache.
+2025-06-16 02:41:35,356 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:41:35,357 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:41:35,357 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:41:45,822 - WARNING - WebSocket timeout.
+2025-06-16 02:41:45,849 - INFO - No new track info from Radio X.
+2025-06-16 02:43:45,851 - INFO - Loaded 35 recent tracks from cache.
+2025-06-16 02:43:45,852 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:43:45,852 - INFO - Loaded 34 daily added songs from cache.
+2025-06-16 02:43:45,852 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:43:45,852 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:43:45,852 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:43:46,150 - INFO - New song: 'Dog Days Are Over' by 'Florence + The Machine'
+2025-06-16 02:43:46,152 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 02:43:51,376 - INFO - Found on Spotify (original title): 'Dog Days Are Over'
+2025-06-16 02:43:51,653 - INFO - Playlist size: 48/500
+2025-06-16 02:43:51,807 - INFO - SUCCESS: Added '[1mDog Days Are Over[0m' by '[1mFlorence + The Machine[0m' to playlist.
+2025-06-16 02:45:51,809 - INFO - Loaded 36 recent tracks from cache.
+2025-06-16 02:45:51,809 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:45:51,810 - INFO - Loaded 35 daily added songs from cache.
+2025-06-16 02:45:51,810 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:45:51,810 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:45:51,810 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:45:52,103 - INFO - New song: 'Rushmere' by 'Mumford & Sons'
+2025-06-16 02:45:52,277 - INFO - Found on Spotify (original title): 'Rushmere'
+2025-06-16 02:45:52,504 - INFO - Playlist size: 49/500
+2025-06-16 02:45:52,765 - INFO - SUCCESS: Added '[1mRushmere[0m' by '[1mMumford & Sons[0m' to playlist.
+2025-06-16 02:47:52,767 - INFO - Loaded 37 recent tracks from cache.
+2025-06-16 02:47:52,767 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:47:52,767 - INFO - Loaded 36 daily added songs from cache.
+2025-06-16 02:47:52,767 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:47:52,767 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:47:52,767 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:47:53,070 - INFO - Song 'Rushmere' by 'Mumford & Sons' (ID: 689186) same as last. Skipping.
+2025-06-16 02:49:53,072 - INFO - Loaded 37 recent tracks from cache.
+2025-06-16 02:49:53,072 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:49:53,072 - INFO - Loaded 36 daily added songs from cache.
+2025-06-16 02:49:53,072 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:49:53,073 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:49:53,073 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:49:53,432 - INFO - New song: 'Have A Nice Day' by 'Stereophonics'
+2025-06-16 02:49:53,588 - INFO - Found on Spotify (original title): 'Have A Nice Day'
+2025-06-16 02:49:53,892 - INFO - Playlist size: 50/500
+2025-06-16 02:49:54,058 - INFO - SUCCESS: Added '[1mHave A Nice Day[0m' by '[1mStereophonics[0m' to playlist.
+2025-06-16 02:51:54,060 - INFO - Loaded 38 recent tracks from cache.
+2025-06-16 02:51:54,060 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:51:54,060 - INFO - Loaded 37 daily added songs from cache.
+2025-06-16 02:51:54,060 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:51:54,060 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:51:54,061 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:51:54,325 - INFO - New song: 'When I Come Around' by 'Green Day'
+2025-06-16 02:51:54,506 - INFO - Found on Spotify (original title): 'When I Come Around'
+2025-06-16 02:51:54,823 - INFO - Playlist size: 51/500
+2025-06-16 02:51:55,012 - INFO - SUCCESS: Added '[1mWhen I Come Around[0m' by '[1mGreen Day[0m' to playlist.
+2025-06-16 02:53:55,014 - INFO - Loaded 39 recent tracks from cache.
+2025-06-16 02:53:55,014 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:53:55,015 - INFO - Loaded 38 daily added songs from cache.
+2025-06-16 02:53:55,015 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:53:55,015 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:53:55,015 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:53:55,226 - INFO - Song 'When I Come Around' by 'Green Day' (ID: 513655) same as last. Skipping.
+2025-06-16 02:55:55,228 - INFO - Loaded 39 recent tracks from cache.
+2025-06-16 02:55:55,228 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:55:55,228 - INFO - Loaded 38 daily added songs from cache.
+2025-06-16 02:55:55,228 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:55:55,228 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:55:55,229 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:55:55,428 - INFO - New song: 'Real Love Song' by 'Nothing But Thieves'
+2025-06-16 02:55:55,635 - INFO - Found on Spotify (original title): 'Real Love Song'
+2025-06-16 02:55:55,966 - INFO - Playlist size: 52/500
+2025-06-16 02:55:56,137 - INFO - SUCCESS: Added '[1mReal Love Song[0m' by '[1mNothing But Thieves[0m' to playlist.
+2025-06-16 02:57:56,139 - INFO - Loaded 40 recent tracks from cache.
+2025-06-16 02:57:56,139 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 02:57:56,139 - INFO - Loaded 39 daily added songs from cache.
+2025-06-16 02:57:56,139 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 02:57:56,139 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 02:57:56,139 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 02:58:06,626 - WARNING - WebSocket timeout.
+2025-06-16 02:58:06,652 - INFO - No new track info from Radio X.
+2025-06-16 03:00:06,654 - INFO - Loaded 40 recent tracks from cache.
+2025-06-16 03:00:06,654 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:00:06,654 - INFO - Loaded 39 daily added songs from cache.
+2025-06-16 03:00:06,655 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:00:06,655 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:00:06,655 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:00:17,134 - WARNING - WebSocket timeout.
+2025-06-16 03:00:17,162 - INFO - No new track info from Radio X.
+2025-06-16 03:02:17,168 - INFO - Loaded 40 recent tracks from cache.
+2025-06-16 03:02:17,169 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:02:17,169 - INFO - Loaded 39 daily added songs from cache.
+2025-06-16 03:02:17,169 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:02:17,169 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:02:17,169 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:02:17,433 - INFO - New song: 'Blue Orchid' by 'The White Stripes'
+2025-06-16 03:02:17,436 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 03:02:22,618 - INFO - Found on Spotify (original title): 'Blue Orchid'
+2025-06-16 03:02:22,931 - INFO - Playlist size: 53/500
+2025-06-16 03:02:23,078 - INFO - SUCCESS: Added '[1mBlue Orchid[0m' by '[1mThe White Stripes[0m' to playlist.
+2025-06-16 03:04:23,079 - INFO - Loaded 41 recent tracks from cache.
+2025-06-16 03:04:23,080 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:04:23,080 - INFO - Loaded 40 daily added songs from cache.
+2025-06-16 03:04:23,080 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:04:23,080 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:04:23,080 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:04:23,331 - INFO - New song: 'Knights Of Cydonia' by 'Muse'
+2025-06-16 03:04:23,508 - INFO - Found on Spotify (original title): 'Knights of Cydonia'
+2025-06-16 03:04:23,842 - INFO - Playlist size: 54/500
+2025-06-16 03:04:24,038 - INFO - SUCCESS: Added '[1mKnights Of Cydonia[0m' by '[1mMuse[0m' to playlist.
+2025-06-16 03:04:24,039 - INFO - Starting periodic duplicate check...
+2025-06-16 03:04:24,341 - INFO - DUPLICATE_CLEANUP: Fetched 55 tracks.
+2025-06-16 03:06:24,343 - INFO - Loaded 42 recent tracks from cache.
+2025-06-16 03:06:24,343 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:06:24,343 - INFO - Loaded 41 daily added songs from cache.
+2025-06-16 03:06:24,343 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:06:24,343 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:06:24,343 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:06:24,630 - INFO - Song 'Knights Of Cydonia' by 'Muse' (ID: 511857) same as last. Skipping.
+2025-06-16 03:08:24,632 - INFO - Loaded 42 recent tracks from cache.
+2025-06-16 03:08:24,633 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:08:24,633 - INFO - Loaded 41 daily added songs from cache.
+2025-06-16 03:08:24,633 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:08:24,633 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:08:24,633 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:08:24,920 - INFO - New song: 'Little Bit Closer' by 'Sam Fender'
+2025-06-16 03:08:25,110 - INFO - Found on Spotify (original title): 'Little Bit Closer'
+2025-06-16 03:08:25,435 - INFO - Playlist size: 55/500
+2025-06-16 03:08:25,564 - INFO - SUCCESS: Added '[1mLittle Bit Closer[0m' by '[1mSam Fender[0m' to playlist.
+2025-06-16 03:10:25,566 - INFO - Loaded 43 recent tracks from cache.
+2025-06-16 03:10:25,566 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:10:25,566 - INFO - Loaded 42 daily added songs from cache.
+2025-06-16 03:10:25,567 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:10:25,567 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:10:25,567 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:10:25,833 - INFO - Song 'Little Bit Closer' by 'Sam Fender' (ID: 206827) same as last. Skipping.
+2025-06-16 03:12:25,835 - INFO - Loaded 43 recent tracks from cache.
+2025-06-16 03:12:25,835 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:12:25,835 - INFO - Loaded 42 daily added songs from cache.
+2025-06-16 03:12:25,835 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:12:25,836 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:12:25,836 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:12:26,135 - INFO - New song: 'Gimme Shelter' by 'The Rolling Stones'
+2025-06-16 03:12:26,310 - INFO - Found on Spotify (original title): 'Gimme Shelter'
+2025-06-16 03:12:26,700 - INFO - Playlist size: 56/500
+2025-06-16 03:12:27,001 - INFO - SUCCESS: Added '[1mGimme Shelter[0m' by '[1mThe Rolling Stones[0m' to playlist.
+2025-06-16 03:14:27,002 - INFO - Loaded 44 recent tracks from cache.
+2025-06-16 03:14:27,003 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:14:27,003 - INFO - Loaded 43 daily added songs from cache.
+2025-06-16 03:14:27,003 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:14:27,003 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:14:27,003 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:14:27,276 - INFO - Song 'Gimme Shelter' by 'The Rolling Stones' (ID: 510718) same as last. Skipping.
+2025-06-16 03:16:27,278 - INFO - Loaded 44 recent tracks from cache.
+2025-06-16 03:16:27,278 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:16:27,279 - INFO - Loaded 43 daily added songs from cache.
+2025-06-16 03:16:27,279 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:16:27,279 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:16:27,279 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:16:27,534 - INFO - New song: 'Human' by 'The Killers'
+2025-06-16 03:16:27,740 - INFO - Found on Spotify (original title): 'Human'
+2025-06-16 03:16:28,070 - INFO - Playlist size: 57/500
+2025-06-16 03:16:28,236 - INFO - SUCCESS: Added '[1mHuman[0m' by '[1mThe Killers[0m' to playlist.
+2025-06-16 03:18:28,240 - INFO - Loaded 45 recent tracks from cache.
+2025-06-16 03:18:28,240 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:18:28,240 - INFO - Loaded 44 daily added songs from cache.
+2025-06-16 03:18:28,240 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:18:28,241 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:18:28,241 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:18:28,502 - INFO - Song 'Human' by 'The Killers' (ID: 512797) same as last. Skipping.
+2025-06-16 03:20:28,504 - INFO - Loaded 45 recent tracks from cache.
+2025-06-16 03:20:28,504 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:20:28,504 - INFO - Loaded 44 daily added songs from cache.
+2025-06-16 03:20:28,504 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:20:28,504 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:20:28,505 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:20:46,203 - WARNING - WebSocket timeout.
+2025-06-16 03:20:46,227 - INFO - No new track info from Radio X.
+2025-06-16 03:22:46,229 - INFO - Loaded 45 recent tracks from cache.
+2025-06-16 03:22:46,230 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:22:46,230 - INFO - Loaded 44 daily added songs from cache.
+2025-06-16 03:22:46,230 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:22:46,230 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:22:46,230 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:22:48,006 - INFO - New song: 'Perfect Me' by 'Blossoms'
+2025-06-16 03:22:48,008 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 03:22:53,246 - INFO - Found on Spotify (original title): 'Perfect Me'
+2025-06-16 03:22:53,585 - INFO - Playlist size: 58/500
+2025-06-16 03:22:53,742 - INFO - SUCCESS: Added '[1mPerfect Me[0m' by '[1mBlossoms[0m' to playlist.
+2025-06-16 03:24:53,743 - INFO - Loaded 46 recent tracks from cache.
+2025-06-16 03:24:53,743 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:24:53,744 - INFO - Loaded 45 daily added songs from cache.
+2025-06-16 03:24:53,744 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:24:53,744 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:24:53,744 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:24:54,102 - INFO - Song 'Perfect Me' by 'Blossoms' (ID: 613335) same as last. Skipping.
+2025-06-16 03:26:54,104 - INFO - Loaded 46 recent tracks from cache.
+2025-06-16 03:26:54,105 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:26:54,105 - INFO - Loaded 45 daily added songs from cache.
+2025-06-16 03:26:54,105 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:26:54,105 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:26:54,105 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:26:54,330 - INFO - New song: 'There's No Other Way' by 'Blur'
+2025-06-16 03:26:54,545 - INFO - Found on Spotify (original title): 'There's No Other Way - 2012 Remaster'
+2025-06-16 03:26:55,027 - INFO - Playlist size: 59/500
+2025-06-16 03:26:55,159 - INFO - SUCCESS: Added '[1mThere's No Other Way[0m' by '[1mBlur[0m' to playlist.
+2025-06-16 03:28:55,161 - INFO - Loaded 47 recent tracks from cache.
+2025-06-16 03:28:55,161 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:28:55,161 - INFO - Loaded 46 daily added songs from cache.
+2025-06-16 03:28:55,161 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:28:55,162 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:28:55,162 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:28:55,436 - INFO - Song 'There's No Other Way' by 'Blur' (ID: 510388) same as last. Skipping.
+2025-06-16 03:30:55,438 - INFO - Loaded 47 recent tracks from cache.
+2025-06-16 03:30:55,438 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:30:55,438 - INFO - Loaded 46 daily added songs from cache.
+2025-06-16 03:30:55,438 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:30:55,438 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:30:55,438 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:30:55,738 - INFO - New song: 'Lover' by 'Richard Ashcroft'
+2025-06-16 03:30:55,959 - INFO - Found on Spotify (original title): 'A Song For The Lovers'
+2025-06-16 03:30:56,318 - INFO - Playlist size: 60/500
+2025-06-16 03:30:56,531 - INFO - SUCCESS: Added '[1mLover[0m' by '[1mRichard Ashcroft[0m' to playlist.
+2025-06-16 03:32:56,533 - INFO - Loaded 48 recent tracks from cache.
+2025-06-16 03:32:56,533 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:32:56,533 - INFO - Loaded 47 daily added songs from cache.
+2025-06-16 03:32:56,533 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:32:56,534 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:32:56,534 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:32:56,833 - INFO - New song: 'Go With The Flow' by 'Queens Of The Stone Age'
+2025-06-16 03:32:56,835 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 03:33:02,095 - INFO - Found on Spotify (original title): 'Go With The Flow'
+2025-06-16 03:33:02,325 - INFO - Playlist size: 61/500
+2025-06-16 03:33:02,454 - INFO - SUCCESS: Added '[1mGo With The Flow[0m' by '[1mQueens Of The Stone Age[0m' to playlist.
+2025-06-16 03:35:02,456 - INFO - Loaded 49 recent tracks from cache.
+2025-06-16 03:35:02,456 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:35:02,456 - INFO - Loaded 48 daily added songs from cache.
+2025-06-16 03:35:02,456 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:35:02,456 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:35:02,457 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:35:02,715 - INFO - Song 'Go With The Flow' by 'Queens Of The Stone Age' (ID: 511148) same as last. Skipping.
+2025-06-16 03:35:02,715 - INFO - Starting periodic duplicate check...
+2025-06-16 03:35:03,040 - INFO - DUPLICATE_CLEANUP: Fetched 62 tracks.
+2025-06-16 03:37:03,042 - INFO - Loaded 49 recent tracks from cache.
+2025-06-16 03:37:03,042 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:37:03,042 - INFO - Loaded 48 daily added songs from cache.
+2025-06-16 03:37:03,042 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:37:03,043 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:37:03,043 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:37:13,525 - WARNING - WebSocket timeout.
+2025-06-16 03:37:13,552 - INFO - No new track info from Radio X.
+2025-06-16 03:39:13,554 - INFO - Loaded 49 recent tracks from cache.
+2025-06-16 03:39:13,554 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:39:13,554 - INFO - Loaded 48 daily added songs from cache.
+2025-06-16 03:39:13,554 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:39:13,555 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:39:13,555 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:39:24,007 - WARNING - WebSocket timeout.
+2025-06-16 03:39:24,031 - INFO - No new track info from Radio X.
+2025-06-16 03:41:24,033 - INFO - Loaded 49 recent tracks from cache.
+2025-06-16 03:41:24,034 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:41:24,034 - INFO - Loaded 48 daily added songs from cache.
+2025-06-16 03:41:24,034 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:41:24,034 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:41:24,034 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:41:24,236 - INFO - New song: 'The Middle' by 'Jimmy Eat World'
+2025-06-16 03:41:24,239 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 03:41:29,422 - INFO - Found on Spotify (original title): 'The Middle'
+2025-06-16 03:41:29,701 - INFO - Playlist size: 62/500
+2025-06-16 03:41:29,996 - INFO - SUCCESS: Added '[1mThe Middle[0m' by '[1mJimmy Eat World[0m' to playlist.
+2025-06-16 03:43:29,997 - INFO - Loaded 50 recent tracks from cache.
+2025-06-16 03:43:29,998 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:43:29,998 - INFO - Loaded 49 daily added songs from cache.
+2025-06-16 03:43:29,998 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:43:29,998 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:43:29,998 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:43:30,246 - INFO - New song: 'You Stole The Sun From My Heart' by 'Manic Street Preachers'
+2025-06-16 03:43:30,462 - INFO - Found on Spotify (original title): 'You Stole the Sun from My Heart'
+2025-06-16 03:43:30,834 - INFO - Playlist size: 63/500
+2025-06-16 03:43:30,967 - INFO - SUCCESS: Added '[1mYou Stole The Sun From My Heart[0m' by '[1mManic Street Preachers[0m' to playlist.
+2025-06-16 03:45:30,969 - INFO - Loaded 51 recent tracks from cache.
+2025-06-16 03:45:30,969 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:45:30,969 - INFO - Loaded 50 daily added songs from cache.
+2025-06-16 03:45:30,970 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:45:30,970 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:45:30,970 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:45:31,232 - INFO - Song 'You Stole The Sun From My Heart' by 'Manic Street Preachers' (ID: 510493) same as last. Skipping.
+2025-06-16 03:47:31,234 - INFO - Loaded 51 recent tracks from cache.
+2025-06-16 03:47:31,234 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:47:31,234 - INFO - Loaded 50 daily added songs from cache.
+2025-06-16 03:47:31,234 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:47:31,234 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:47:31,234 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:47:31,418 - INFO - New song: 'Catch These Fists' by 'Wet Leg'
+2025-06-16 03:47:31,624 - INFO - Found on Spotify (original title): 'catch these fists'
+2025-06-16 03:47:31,960 - INFO - Playlist size: 64/500
+2025-06-16 03:47:32,112 - INFO - SUCCESS: Added '[1mCatch These Fists[0m' by '[1mWet Leg[0m' to playlist.
+2025-06-16 03:49:32,114 - INFO - Loaded 52 recent tracks from cache.
+2025-06-16 03:49:32,114 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:49:32,114 - INFO - Loaded 51 daily added songs from cache.
+2025-06-16 03:49:32,115 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:49:32,115 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:49:32,115 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:49:32,325 - INFO - Song 'Catch These Fists' by 'Wet Leg' (ID: 826826) same as last. Skipping.
+2025-06-16 03:51:32,327 - INFO - Loaded 52 recent tracks from cache.
+2025-06-16 03:51:32,327 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:51:32,328 - INFO - Loaded 51 daily added songs from cache.
+2025-06-16 03:51:32,328 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:51:32,328 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:51:32,328 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:51:32,534 - INFO - New song: 'Cocoon' by 'Catfish & The Bottlemen'
+2025-06-16 03:51:32,706 - INFO - Found on Spotify (original title): 'Cocoon'
+2025-06-16 03:51:33,048 - INFO - Playlist size: 65/500
+2025-06-16 03:51:33,192 - INFO - SUCCESS: Added '[1mCocoon[0m' by '[1mCatfish & The Bottlemen[0m' to playlist.
+2025-06-16 03:53:33,194 - INFO - Loaded 53 recent tracks from cache.
+2025-06-16 03:53:33,194 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:53:33,194 - INFO - Loaded 52 daily added songs from cache.
+2025-06-16 03:53:33,194 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:53:33,194 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:53:33,195 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:53:33,496 - INFO - Song 'Cocoon' by 'Catfish & The Bottlemen' (ID: 515911) same as last. Skipping.
+2025-06-16 03:55:33,498 - INFO - Loaded 53 recent tracks from cache.
+2025-06-16 03:55:33,499 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:55:33,499 - INFO - Loaded 52 daily added songs from cache.
+2025-06-16 03:55:33,499 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:55:33,499 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:55:33,499 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:55:33,732 - INFO - New song: 'The Zephyr Song' by 'Red Hot Chili Peppers'
+2025-06-16 03:55:33,944 - INFO - Found on Spotify (original title): 'The Zephyr Song'
+2025-06-16 03:55:34,251 - INFO - Playlist size: 66/500
+2025-06-16 03:55:34,521 - INFO - SUCCESS: Added '[1mThe Zephyr Song[0m' by '[1mRed Hot Chili Peppers[0m' to playlist.
+2025-06-16 03:57:34,523 - INFO - Loaded 54 recent tracks from cache.
+2025-06-16 03:57:34,523 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:57:34,523 - INFO - Loaded 53 daily added songs from cache.
+2025-06-16 03:57:34,523 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:57:34,523 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:57:34,523 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:57:34,728 - INFO - Song 'The Zephyr Song' by 'Red Hot Chili Peppers' (ID: 511620) same as last. Skipping.
+2025-06-16 03:59:34,730 - INFO - Loaded 54 recent tracks from cache.
+2025-06-16 03:59:34,730 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 03:59:34,731 - INFO - Loaded 53 daily added songs from cache.
+2025-06-16 03:59:34,731 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 03:59:34,731 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 03:59:34,731 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 03:59:45,118 - WARNING - WebSocket timeout.
+2025-06-16 03:59:45,144 - INFO - No new track info from Radio X.
+2025-06-16 04:01:45,146 - INFO - Loaded 54 recent tracks from cache.
+2025-06-16 04:01:45,146 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:01:45,146 - INFO - Loaded 53 daily added songs from cache.
+2025-06-16 04:01:45,147 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:01:45,147 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:01:45,147 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:01:55,626 - WARNING - WebSocket timeout.
+2025-06-16 04:01:55,655 - INFO - No new track info from Radio X.
+2025-06-16 04:03:55,657 - INFO - Loaded 54 recent tracks from cache.
+2025-06-16 04:03:55,657 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:03:55,658 - INFO - Loaded 53 daily added songs from cache.
+2025-06-16 04:03:55,658 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:03:55,658 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:03:55,658 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:03:55,937 - INFO - New song: 'Let's Dance To Joy Division' by 'The Wombats'
+2025-06-16 04:03:55,940 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 04:04:01,116 - INFO - Found on Spotify (original title): 'Let's Dance to Joy Division'
+2025-06-16 04:04:01,675 - INFO - Playlist size: 67/500
+2025-06-16 04:04:01,812 - INFO - SUCCESS: Added '[1mLet's Dance To Joy Division[0m' by '[1mThe Wombats[0m' to playlist.
+2025-06-16 04:06:01,813 - INFO - Loaded 55 recent tracks from cache.
+2025-06-16 04:06:01,814 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:06:01,814 - INFO - Loaded 54 daily added songs from cache.
+2025-06-16 04:06:01,814 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:06:01,814 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:06:01,814 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:06:02,022 - INFO - New song: 'Right Here, Right Now' by 'Fatboy Slim'
+2025-06-16 04:06:02,202 - INFO - Found on Spotify (original title): 'Right Here, Right Now'
+2025-06-16 04:06:02,501 - INFO - Playlist size: 68/500
+2025-06-16 04:06:02,669 - INFO - SUCCESS: Added '[1mRight Here, Right Now[0m' by '[1mFatboy Slim[0m' to playlist.
+2025-06-16 04:06:02,669 - INFO - Starting periodic duplicate check...
+2025-06-16 04:06:03,059 - INFO - DUPLICATE_CLEANUP: Fetched 69 tracks.
+2025-06-16 04:08:03,061 - INFO - Loaded 56 recent tracks from cache.
+2025-06-16 04:08:03,061 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:08:03,062 - INFO - Loaded 55 daily added songs from cache.
+2025-06-16 04:08:03,062 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:08:03,062 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:08:03,062 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:08:03,440 - INFO - Song 'Right Here, Right Now' by 'Fatboy Slim' (ID: 510514) same as last. Skipping.
+2025-06-16 04:10:03,443 - INFO - Loaded 56 recent tracks from cache.
+2025-06-16 04:10:03,443 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:10:03,443 - INFO - Loaded 55 daily added songs from cache.
+2025-06-16 04:10:03,443 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:10:03,444 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:10:03,444 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:10:03,697 - INFO - New song: 'Spike Island' by 'Pulp'
+2025-06-16 04:10:03,855 - INFO - Found on Spotify (original title): 'Spike Island'
+2025-06-16 04:10:04,257 - INFO - Playlist size: 69/500
+2025-06-16 04:10:04,396 - INFO - SUCCESS: Added '[1mSpike Island[0m' by '[1mPulp[0m' to playlist.
+2025-06-16 04:12:04,398 - INFO - Loaded 57 recent tracks from cache.
+2025-06-16 04:12:04,398 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:12:04,399 - INFO - Loaded 56 daily added songs from cache.
+2025-06-16 04:12:04,399 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:12:04,399 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:12:04,399 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:12:04,638 - INFO - Song 'Spike Island' by 'Pulp' (ID: 730984) same as last. Skipping.
+2025-06-16 04:14:04,640 - INFO - Loaded 57 recent tracks from cache.
+2025-06-16 04:14:04,641 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:14:04,641 - INFO - Loaded 56 daily added songs from cache.
+2025-06-16 04:14:04,641 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:14:04,641 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:14:04,641 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:14:04,934 - INFO - New song: 'Heavyweight Champion Of The World' by 'Reverend And The Makers'
+2025-06-16 04:14:05,095 - INFO - Found on Spotify (original title): 'Heavyweight Champion of the World'
+2025-06-16 04:14:05,357 - INFO - Playlist size: 70/500
+2025-06-16 04:14:05,495 - INFO - SUCCESS: Added '[1mHeavyweight Champion Of The World[0m' by '[1mReverend And The Makers[0m' to playlist.
+2025-06-16 04:16:05,497 - INFO - Loaded 58 recent tracks from cache.
+2025-06-16 04:16:05,497 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:16:05,497 - INFO - Loaded 57 daily added songs from cache.
+2025-06-16 04:16:05,497 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:16:05,498 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:16:05,498 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:16:05,726 - INFO - Song 'Heavyweight Champion Of The World' by 'Reverend And The Makers' (ID: 512046) same as last. Skipping.
+2025-06-16 04:18:05,728 - INFO - Loaded 58 recent tracks from cache.
+2025-06-16 04:18:05,728 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:18:05,729 - INFO - Loaded 57 daily added songs from cache.
+2025-06-16 04:18:05,729 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:18:05,729 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:18:05,729 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:18:16,210 - WARNING - WebSocket timeout.
+2025-06-16 04:18:16,235 - INFO - No new track info from Radio X.
+2025-06-16 04:20:16,237 - INFO - Loaded 58 recent tracks from cache.
+2025-06-16 04:20:16,237 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:20:16,238 - INFO - Loaded 57 daily added songs from cache.
+2025-06-16 04:20:16,238 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:20:16,238 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:20:16,238 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:20:16,423 - INFO - New song: 'The View From The Afternoon' by 'Arctic Monkeys'
+2025-06-16 04:20:16,425 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 04:20:21,660 - INFO - Found on Spotify (original title): 'The View From The Afternoon'
+2025-06-16 04:20:22,046 - INFO - Playlist size: 71/500
+2025-06-16 04:20:22,246 - INFO - SUCCESS: Added '[1mThe View From The Afternoon[0m' by '[1mArctic Monkeys[0m' to playlist.
+2025-06-16 04:22:22,248 - INFO - Loaded 59 recent tracks from cache.
+2025-06-16 04:22:22,248 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:22:22,249 - INFO - Loaded 58 daily added songs from cache.
+2025-06-16 04:22:22,249 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:22:22,249 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:22:22,249 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:22:22,530 - INFO - Song 'The View From The Afternoon' by 'Arctic Monkeys' (ID: 511764) same as last. Skipping.
+2025-06-16 04:24:22,532 - INFO - Loaded 59 recent tracks from cache.
+2025-06-16 04:24:22,533 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:24:22,533 - INFO - Loaded 58 daily added songs from cache.
+2025-06-16 04:24:22,533 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:24:22,533 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:24:22,533 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:24:22,814 - INFO - New song: 'The Emptiness Machine' by 'Linkin Park'
+2025-06-16 04:24:22,996 - INFO - Found on Spotify (original title): 'The Emptiness Machine'
+2025-06-16 04:24:23,392 - INFO - Playlist size: 72/500
+2025-06-16 04:24:23,550 - INFO - SUCCESS: Added '[1mThe Emptiness Machine[0m' by '[1mLinkin Park[0m' to playlist.
+2025-06-16 04:26:23,551 - INFO - Loaded 60 recent tracks from cache.
+2025-06-16 04:26:23,552 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:26:23,552 - INFO - Loaded 59 daily added songs from cache.
+2025-06-16 04:26:23,552 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:26:23,552 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:26:23,552 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:26:23,835 - INFO - Song 'The Emptiness Machine' by 'Linkin Park' (ID: 630632) same as last. Skipping.
+2025-06-16 04:28:23,837 - INFO - Loaded 60 recent tracks from cache.
+2025-06-16 04:28:23,837 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:28:23,838 - INFO - Loaded 59 daily added songs from cache.
+2025-06-16 04:28:23,838 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:28:23,838 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:28:23,838 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:28:24,135 - INFO - New song: 'Morning Glory' by 'Oasis'
+2025-06-16 04:28:24,341 - INFO - Found on Spotify (original title): 'Morning Glory - Remastered'
+2025-06-16 04:28:24,728 - INFO - Playlist size: 73/500
+2025-06-16 04:28:24,878 - INFO - SUCCESS: Added '[1mMorning Glory[0m' by '[1mOasis[0m' to playlist.
+2025-06-16 04:30:24,879 - INFO - Loaded 61 recent tracks from cache.
+2025-06-16 04:30:24,880 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:30:24,880 - INFO - Loaded 60 daily added songs from cache.
+2025-06-16 04:30:24,880 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:30:24,880 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:30:24,880 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:30:25,143 - INFO - Song 'Morning Glory' by 'Oasis' (ID: 510390) same as last. Skipping.
+2025-06-16 04:32:25,145 - INFO - Loaded 61 recent tracks from cache.
+2025-06-16 04:32:25,145 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:32:25,145 - INFO - Loaded 60 daily added songs from cache.
+2025-06-16 04:32:25,145 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:32:25,146 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:32:25,146 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:32:25,422 - INFO - New song: 'Shining Light' by 'Ash'
+2025-06-16 04:32:25,424 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 04:32:30,734 - INFO - Found on Spotify (original title): 'Shining Light'
+2025-06-16 04:32:31,230 - INFO - Playlist size: 74/500
+2025-06-16 04:32:31,368 - INFO - SUCCESS: Added '[1mShining Light[0m' by '[1mAsh[0m' to playlist.
+2025-06-16 04:34:31,370 - INFO - Loaded 62 recent tracks from cache.
+2025-06-16 04:34:31,370 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:34:31,370 - INFO - Loaded 61 daily added songs from cache.
+2025-06-16 04:34:31,370 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:34:31,371 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:34:31,371 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:34:31,625 - INFO - New song: 'I Will Wait' by 'Mumford & Sons'
+2025-06-16 04:34:31,808 - INFO - Found on Spotify (original title): 'I Will Wait'
+2025-06-16 04:34:32,256 - INFO - Playlist size: 75/500
+2025-06-16 04:34:32,405 - INFO - SUCCESS: Added '[1mI Will Wait[0m' by '[1mMumford & Sons[0m' to playlist.
+2025-06-16 04:36:32,407 - INFO - Loaded 63 recent tracks from cache.
+2025-06-16 04:36:32,408 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:36:32,408 - INFO - Loaded 62 daily added songs from cache.
+2025-06-16 04:36:32,408 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:36:32,408 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:36:32,408 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:36:32,696 - INFO - Song 'I Will Wait' by 'Mumford & Sons' (ID: 514309) same as last. Skipping.
+2025-06-16 04:36:32,696 - INFO - Starting periodic duplicate check...
+2025-06-16 04:36:33,079 - INFO - DUPLICATE_CLEANUP: Fetched 76 tracks.
+2025-06-16 04:38:33,081 - INFO - Loaded 63 recent tracks from cache.
+2025-06-16 04:38:33,081 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:38:33,082 - INFO - Loaded 62 daily added songs from cache.
+2025-06-16 04:38:33,082 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:38:33,082 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:38:33,082 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:38:33,334 - INFO - Song 'I Will Wait' by 'Mumford & Sons' (ID: 514309) same as last. Skipping.
+2025-06-16 04:40:33,336 - INFO - Loaded 63 recent tracks from cache.
+2025-06-16 04:40:33,336 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:40:33,336 - INFO - Loaded 62 daily added songs from cache.
+2025-06-16 04:40:33,336 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:40:33,337 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:40:33,337 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:40:43,705 - WARNING - WebSocket timeout.
+2025-06-16 04:40:43,729 - INFO - No new track info from Radio X.
+2025-06-16 04:42:43,732 - INFO - Loaded 63 recent tracks from cache.
+2025-06-16 04:42:43,732 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:42:43,732 - INFO - Loaded 62 daily added songs from cache.
+2025-06-16 04:42:43,732 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:42:43,733 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:42:43,733 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:42:54,112 - WARNING - WebSocket timeout.
+2025-06-16 04:42:54,136 - INFO - No new track info from Radio X.
+2025-06-16 04:44:54,138 - INFO - Loaded 63 recent tracks from cache.
+2025-06-16 04:44:54,139 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:44:54,139 - INFO - Loaded 62 daily added songs from cache.
+2025-06-16 04:44:54,139 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:44:54,139 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:44:54,139 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:44:54,438 - INFO - New song: 'Spitting Games' by 'Snow Patrol'
+2025-06-16 04:44:54,440 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 04:44:59,632 - INFO - Found on Spotify (original title): 'Spitting Games'
+2025-06-16 04:45:00,107 - INFO - Playlist size: 76/500
+2025-06-16 04:45:00,252 - INFO - SUCCESS: Added '[1mSpitting Games[0m' by '[1mSnow Patrol[0m' to playlist.
+2025-06-16 04:47:00,254 - INFO - Loaded 64 recent tracks from cache.
+2025-06-16 04:47:00,254 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:47:00,255 - INFO - Loaded 63 daily added songs from cache.
+2025-06-16 04:47:00,255 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:47:00,255 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:47:00,255 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:47:00,529 - INFO - Song 'Spitting Games' by 'Snow Patrol' (ID: 511813) same as last. Skipping.
+2025-06-16 04:49:00,532 - INFO - Loaded 64 recent tracks from cache.
+2025-06-16 04:49:00,532 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:49:00,532 - INFO - Loaded 63 daily added songs from cache.
+2025-06-16 04:49:00,532 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:49:00,533 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:49:00,533 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:49:00,748 - INFO - New song: 'It's The End Of The World As We Know It' by 'R.E.M.'
+2025-06-16 04:49:00,944 - INFO - Found on Spotify (original title): 'It's The End Of The World As We Know It (And I Feel Fine)'
+2025-06-16 04:49:01,498 - INFO - Playlist size: 77/500
+2025-06-16 04:49:01,825 - INFO - SUCCESS: Added '[1mIt's The End Of The World As We Know It[0m' by '[1mR.E.M.[0m' to playlist.
+2025-06-16 04:51:01,827 - INFO - Loaded 65 recent tracks from cache.
+2025-06-16 04:51:01,827 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:51:01,828 - INFO - Loaded 64 daily added songs from cache.
+2025-06-16 04:51:01,828 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:51:01,828 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:51:01,828 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:51:02,089 - INFO - Song 'It's The End Of The World As We Know It' by 'R.E.M.' (ID: 510490) same as last. Skipping.
+2025-06-16 04:53:02,091 - INFO - Loaded 65 recent tracks from cache.
+2025-06-16 04:53:02,091 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:53:02,093 - INFO - Loaded 64 daily added songs from cache.
+2025-06-16 04:53:02,094 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:53:02,094 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:53:02,094 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:53:02,350 - INFO - New song: 'A Little Love' by 'Biffy Clyro'
+2025-06-16 04:53:02,569 - INFO - Found on Spotify (original title): 'A Little Love'
+2025-06-16 04:53:03,086 - INFO - Playlist size: 78/500
+2025-06-16 04:53:03,225 - INFO - SUCCESS: Added '[1mA Little Love[0m' by '[1mBiffy Clyro[0m' to playlist.
+2025-06-16 04:55:03,227 - INFO - Loaded 66 recent tracks from cache.
+2025-06-16 04:55:03,227 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:55:03,227 - INFO - Loaded 65 daily added songs from cache.
+2025-06-16 04:55:03,227 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:55:03,227 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:55:03,227 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:55:03,576 - INFO - New song: 'Sex On Fire' by 'Kings Of Leon'
+2025-06-16 04:55:03,806 - INFO - Found on Spotify (original title): 'Sex on Fire'
+2025-06-16 04:55:04,211 - INFO - Playlist size: 79/500
+2025-06-16 04:55:04,493 - INFO - SUCCESS: Added '[1mSex On Fire[0m' by '[1mKings Of Leon[0m' to playlist.
+2025-06-16 04:57:04,496 - INFO - Loaded 67 recent tracks from cache.
+2025-06-16 04:57:04,496 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:57:04,496 - INFO - Loaded 66 daily added songs from cache.
+2025-06-16 04:57:04,496 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:57:04,496 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:57:04,496 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:57:04,716 - INFO - Song 'Sex On Fire' by 'Kings Of Leon' (ID: 512755) same as last. Skipping.
+2025-06-16 04:59:04,718 - INFO - Loaded 67 recent tracks from cache.
+2025-06-16 04:59:04,718 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 04:59:04,718 - INFO - Loaded 66 daily added songs from cache.
+2025-06-16 04:59:04,719 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 04:59:04,719 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 04:59:04,719 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 04:59:15,119 - WARNING - WebSocket timeout.
+2025-06-16 04:59:15,146 - INFO - No new track info from Radio X.
+2025-06-16 05:01:15,149 - INFO - Loaded 67 recent tracks from cache.
+2025-06-16 05:01:15,149 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:01:15,150 - INFO - Loaded 66 daily added songs from cache.
+2025-06-16 05:01:15,150 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:01:15,150 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:01:15,150 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:01:25,624 - WARNING - WebSocket timeout.
+2025-06-16 05:01:25,650 - INFO - No new track info from Radio X.
+2025-06-16 05:03:25,652 - INFO - Loaded 67 recent tracks from cache.
+2025-06-16 05:03:25,652 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:03:25,652 - INFO - Loaded 66 daily added songs from cache.
+2025-06-16 05:03:25,653 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:03:25,653 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:03:25,653 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:03:36,115 - WARNING - WebSocket timeout.
+2025-06-16 05:03:36,141 - INFO - No new track info from Radio X.
+2025-06-16 05:05:36,145 - INFO - Loaded 67 recent tracks from cache.
+2025-06-16 05:05:36,145 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:05:36,146 - INFO - Loaded 66 daily added songs from cache.
+2025-06-16 05:05:36,146 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:05:36,146 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:05:36,146 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:05:36,433 - INFO - New song: 'The Rock Show' by 'Blink-182'
+2025-06-16 05:05:36,435 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 05:05:41,742 - INFO - Found on Spotify (original title): 'The Rock Show'
+2025-06-16 05:05:42,140 - INFO - Playlist size: 80/500
+2025-06-16 05:05:42,324 - INFO - SUCCESS: Added '[1mThe Rock Show[0m' by '[1mBlink-182[0m' to playlist.
+2025-06-16 05:07:42,326 - INFO - Loaded 68 recent tracks from cache.
+2025-06-16 05:07:42,326 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:07:42,326 - INFO - Loaded 67 daily added songs from cache.
+2025-06-16 05:07:42,327 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:07:42,327 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:07:42,327 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:07:42,525 - INFO - New song: 'Alive' by 'Pearl Jam'
+2025-06-16 05:07:42,744 - INFO - Found on Spotify (original title): 'Alive'
+2025-06-16 05:07:43,089 - INFO - Playlist size: 81/500
+2025-06-16 05:07:43,280 - INFO - SUCCESS: Added '[1mAlive[0m' by '[1mPearl Jam[0m' to playlist.
+2025-06-16 05:07:43,281 - INFO - Starting periodic duplicate check...
+2025-06-16 05:07:43,597 - INFO - DUPLICATE_CLEANUP: Fetched 82 tracks.
+2025-06-16 05:07:43,597 - INFO - DUPLICATE_CLEANUP: Track 'A Little Love' found 2 times. Re-processing.
+2025-06-16 05:09:45,305 - INFO - Loaded 70 recent tracks from cache.
+2025-06-16 05:09:45,305 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:09:45,305 - INFO - Loaded 68 daily added songs from cache.
+2025-06-16 05:09:45,305 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:09:45,306 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:09:45,306 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:09:45,530 - INFO - Song 'Alive' by 'Pearl Jam' (ID: 510920) same as last. Skipping.
+2025-06-16 05:11:45,532 - INFO - Loaded 70 recent tracks from cache.
+2025-06-16 05:11:45,532 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:11:45,532 - INFO - Loaded 68 daily added songs from cache.
+2025-06-16 05:11:45,532 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:11:45,533 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:11:45,533 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:11:45,730 - INFO - Song 'Alive' by 'Pearl Jam' (ID: 510920) same as last. Skipping.
+2025-06-16 05:13:45,732 - INFO - Loaded 70 recent tracks from cache.
+2025-06-16 05:13:45,732 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:13:45,733 - INFO - Loaded 68 daily added songs from cache.
+2025-06-16 05:13:45,733 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:13:45,733 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:13:45,733 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:13:45,931 - INFO - New song: 'undressed' by 'sombr'
+2025-06-16 05:13:45,933 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 05:13:51,122 - INFO - Found on Spotify (original title): 'undressed'
+2025-06-16 05:13:51,122 - INFO - Track 'undressed' recently processed. Skipping add.
+2025-06-16 05:15:51,124 - INFO - Loaded 70 recent tracks from cache.
+2025-06-16 05:15:51,124 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:15:51,125 - INFO - Loaded 68 daily added songs from cache.
+2025-06-16 05:15:51,125 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:15:51,125 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:15:51,125 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:16:01,526 - WARNING - WebSocket timeout.
+2025-06-16 05:16:01,553 - INFO - No new track info from Radio X.
+2025-06-16 05:18:01,555 - INFO - Loaded 70 recent tracks from cache.
+2025-06-16 05:18:01,556 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:18:01,556 - INFO - Loaded 68 daily added songs from cache.
+2025-06-16 05:18:01,556 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:18:01,556 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:18:01,556 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:18:12,022 - WARNING - WebSocket timeout.
+2025-06-16 05:18:12,047 - INFO - No new track info from Radio X.
+2025-06-16 05:20:12,049 - INFO - Loaded 70 recent tracks from cache.
+2025-06-16 05:20:12,050 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:20:12,050 - INFO - Loaded 68 daily added songs from cache.
+2025-06-16 05:20:12,050 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:20:12,050 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:20:12,051 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:20:12,344 - INFO - New song: 'Hypersonic Missiles' by 'Sam Fender'
+2025-06-16 05:20:12,346 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 05:20:17,602 - INFO - Found on Spotify (original title): 'Hypersonic Missiles'
+2025-06-16 05:20:17,916 - INFO - Playlist size: 81/500
+2025-06-16 05:20:18,084 - INFO - SUCCESS: Added '[1mHypersonic Missiles[0m' by '[1mSam Fender[0m' to playlist.
+2025-06-16 05:22:18,087 - INFO - Loaded 71 recent tracks from cache.
+2025-06-16 05:22:18,087 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:22:18,088 - INFO - Loaded 69 daily added songs from cache.
+2025-06-16 05:22:18,088 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:22:18,088 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:22:18,088 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:22:18,436 - INFO - Song 'Hypersonic Missiles' by 'Sam Fender' (ID: 990402) same as last. Skipping.
+2025-06-16 05:24:18,438 - INFO - Loaded 71 recent tracks from cache.
+2025-06-16 05:24:18,438 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:24:18,438 - INFO - Loaded 69 daily added songs from cache.
+2025-06-16 05:24:18,438 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:24:18,438 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:24:18,438 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:24:18,633 - INFO - New song: 'The Honeymoon' by 'Blossoms'
+2025-06-16 05:24:18,818 - INFO - Found on Spotify (original title): 'The Honeymoon'
+2025-06-16 05:24:18,818 - INFO - Track 'The Honeymoon' recently processed. Skipping add.
+2025-06-16 05:26:18,820 - INFO - Loaded 71 recent tracks from cache.
+2025-06-16 05:26:18,820 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:26:18,821 - INFO - Loaded 69 daily added songs from cache.
+2025-06-16 05:26:18,821 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:26:18,821 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:26:18,821 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:26:19,095 - INFO - Song 'The Honeymoon' by 'Blossoms' (ID: 826825) same as last. Skipping.
+2025-06-16 05:28:19,097 - INFO - Loaded 71 recent tracks from cache.
+2025-06-16 05:28:19,098 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:28:19,098 - INFO - Loaded 69 daily added songs from cache.
+2025-06-16 05:28:19,098 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:28:19,098 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:28:19,098 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:28:19,464 - INFO - New song: 'Heaven Knows I'm Miserable Now' by 'The Smiths'
+2025-06-16 05:28:19,716 - INFO - Found on Spotify (original title): 'Heaven Knows I'm Miserable Now - 2011 Remaster'
+2025-06-16 05:28:20,131 - INFO - Playlist size: 82/500
+2025-06-16 05:28:20,334 - INFO - SUCCESS: Added '[1mHeaven Knows I'm Miserable Now[0m' by '[1mThe Smiths[0m' to playlist.
+2025-06-16 05:30:20,336 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:30:20,336 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:30:20,336 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:30:20,337 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:30:20,337 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:30:20,337 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:30:20,637 - INFO - Song 'Heaven Knows I'm Miserable Now' by 'The Smiths' (ID: 510817) same as last. Skipping.
+2025-06-16 05:32:20,640 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:32:20,640 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:32:20,640 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:32:20,640 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:32:20,640 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:32:20,641 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:32:31,122 - WARNING - WebSocket timeout.
+2025-06-16 05:32:31,148 - INFO - No new track info from Radio X.
+2025-06-16 05:34:31,151 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:34:31,151 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:34:31,151 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:34:31,151 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:34:31,151 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:34:31,151 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:34:41,676 - WARNING - WebSocket timeout.
+2025-06-16 05:34:41,702 - INFO - No new track info from Radio X.
+2025-06-16 05:36:41,705 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:36:41,705 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:36:41,705 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:36:41,705 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:36:41,705 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:36:41,705 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:36:52,131 - WARNING - WebSocket timeout.
+2025-06-16 05:36:52,172 - INFO - No new track info from Radio X.
+2025-06-16 05:38:52,174 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:38:52,174 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:38:52,174 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:38:52,174 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:38:52,174 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:38:52,174 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:39:02,703 - WARNING - WebSocket timeout.
+2025-06-16 05:39:02,743 - INFO - No new track info from Radio X.
+2025-06-16 05:39:02,744 - INFO - Starting periodic duplicate check...
+2025-06-16 05:39:02,746 - WARNING - Network error on playlist_items (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 05:39:07,797 - WARNING - Network error on playlist_items (attempt 2/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 05:39:18,188 - INFO - DUPLICATE_CLEANUP: Fetched 83 tracks.
+2025-06-16 05:41:18,190 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:41:18,190 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:41:18,191 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:41:18,191 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:41:18,191 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:41:18,191 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:41:28,730 - WARNING - WebSocket timeout.
+2025-06-16 05:41:28,776 - INFO - No new track info from Radio X.
+2025-06-16 05:43:28,779 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:43:28,779 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:43:28,779 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:43:28,779 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:43:28,779 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:43:28,779 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:43:39,237 - WARNING - WebSocket timeout.
+2025-06-16 05:43:39,334 - INFO - No new track info from Radio X.
+2025-06-16 05:45:39,336 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:45:39,336 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:45:39,337 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:45:39,337 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:45:39,337 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:45:39,337 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:45:49,760 - WARNING - WebSocket timeout.
+2025-06-16 05:45:49,804 - INFO - No new track info from Radio X.
+2025-06-16 05:47:49,806 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:47:49,807 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:47:49,807 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:47:49,807 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:47:49,807 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:47:49,807 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:48:00,222 - WARNING - WebSocket timeout.
+2025-06-16 05:48:00,249 - INFO - No new track info from Radio X.
+2025-06-16 05:50:00,251 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:50:00,251 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:50:00,251 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:50:00,252 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:50:00,252 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:50:00,252 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:50:10,846 - WARNING - WebSocket timeout.
+2025-06-16 05:50:10,873 - INFO - No new track info from Radio X.
+2025-06-16 05:52:10,875 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:52:10,876 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:52:10,876 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:52:10,876 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:52:10,876 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:52:10,877 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:52:21,418 - WARNING - WebSocket timeout.
+2025-06-16 05:52:21,444 - INFO - No new track info from Radio X.
+2025-06-16 05:54:21,447 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:54:21,447 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:54:21,447 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:54:21,448 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:54:21,448 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:54:21,448 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:54:32,032 - WARNING - WebSocket timeout.
+2025-06-16 05:54:32,086 - INFO - No new track info from Radio X.
+2025-06-16 05:56:32,088 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:56:32,089 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:56:32,089 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:56:32,089 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:56:32,089 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:56:32,089 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:56:42,861 - WARNING - WebSocket timeout.
+2025-06-16 05:56:42,889 - INFO - No new track info from Radio X.
+2025-06-16 05:58:42,892 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 05:58:42,892 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 05:58:42,892 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 05:58:42,893 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 05:58:42,893 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 05:58:42,893 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 05:58:53,391 - WARNING - WebSocket timeout.
+2025-06-16 05:58:53,419 - INFO - No new track info from Radio X.
+2025-06-16 06:00:53,423 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 06:00:53,423 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:00:53,423 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 06:00:53,423 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:00:53,423 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=False, manual_override_active=False, override_paused=False, in_hours=False
+2025-06-16 06:00:53,424 - INFO - [Main Loop] Service is paused (manual or out of hours). Skipping check.
+2025-06-16 06:02:53,424 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 06:02:53,424 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:02:53,425 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 06:02:53,425 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:02:53,425 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:02:53,425 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:03:03,829 - WARNING - WebSocket timeout.
+2025-06-16 06:03:03,868 - INFO - No new track info from Radio X.
+2025-06-16 06:05:03,874 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 06:05:03,874 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:05:03,874 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 06:05:03,874 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:05:03,875 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:05:03,875 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:05:23,797 - WARNING - WebSocket timeout.
+2025-06-16 06:05:23,825 - INFO - No new track info from Radio X.
+2025-06-16 06:07:23,827 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 06:07:23,827 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:07:23,827 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 06:07:23,827 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:07:23,827 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:07:23,827 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:07:34,325 - WARNING - WebSocket timeout.
+2025-06-16 06:07:34,355 - INFO - No new track info from Radio X.
+2025-06-16 06:09:34,356 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 06:09:34,357 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:09:34,357 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 06:09:34,357 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:09:34,357 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:09:34,357 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:09:44,813 - WARNING - WebSocket timeout.
+2025-06-16 06:09:44,838 - INFO - No new track info from Radio X.
+2025-06-16 06:09:44,838 - INFO - Starting periodic duplicate check...
+2025-06-16 06:09:44,840 - WARNING - Network error on playlist_items (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 06:09:50,339 - INFO - DUPLICATE_CLEANUP: Fetched 83 tracks.
+2025-06-16 06:11:50,342 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 06:11:50,342 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:11:50,343 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 06:11:50,343 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:11:50,343 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:11:50,343 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:12:00,891 - WARNING - WebSocket timeout.
+2025-06-16 06:12:01,528 - INFO - No new track info from Radio X.
+2025-06-16 06:14:01,530 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 06:14:01,530 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:14:01,531 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 06:14:01,531 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:14:01,531 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:14:01,531 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:14:12,023 - WARNING - WebSocket timeout.
+2025-06-16 06:14:12,050 - INFO - No new track info from Radio X.
+2025-06-16 06:16:12,053 - INFO - Loaded 72 recent tracks from cache.
+2025-06-16 06:16:12,053 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:16:12,054 - INFO - Loaded 70 daily added songs from cache.
+2025-06-16 06:16:12,054 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:16:12,054 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:16:12,054 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:16:13,844 - INFO - New song: 'Rocks' by 'Primal Scream'
+2025-06-16 06:16:13,846 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 06:16:19,102 - INFO - Found on Spotify (original title): 'Rocks'
+2025-06-16 06:16:19,522 - INFO - Playlist size: 83/500
+2025-06-16 06:16:19,711 - INFO - SUCCESS: Added '[1mRocks[0m' by '[1mPrimal Scream[0m' to playlist.
+2025-06-16 06:18:19,713 - INFO - Loaded 73 recent tracks from cache.
+2025-06-16 06:18:19,713 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:18:19,713 - INFO - Loaded 71 daily added songs from cache.
+2025-06-16 06:18:19,714 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:18:19,714 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:18:19,714 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:18:19,933 - INFO - Song 'Rocks' by 'Primal Scream' (ID: 510411) same as last. Skipping.
+2025-06-16 06:20:19,936 - INFO - Loaded 73 recent tracks from cache.
+2025-06-16 06:20:19,936 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:20:19,936 - INFO - Loaded 71 daily added songs from cache.
+2025-06-16 06:20:19,937 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:20:19,937 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:20:19,937 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:20:31,482 - WARNING - WebSocket timeout.
+2025-06-16 06:20:31,511 - INFO - No new track info from Radio X.
+2025-06-16 06:22:31,513 - INFO - Loaded 73 recent tracks from cache.
+2025-06-16 06:22:31,513 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:22:31,514 - INFO - Loaded 71 daily added songs from cache.
+2025-06-16 06:22:31,514 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:22:31,514 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:22:31,514 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:22:41,915 - WARNING - WebSocket timeout.
+2025-06-16 06:22:41,941 - INFO - No new track info from Radio X.
+2025-06-16 06:24:41,943 - INFO - Loaded 73 recent tracks from cache.
+2025-06-16 06:24:41,943 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:24:41,944 - INFO - Loaded 71 daily added songs from cache.
+2025-06-16 06:24:41,944 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:24:41,944 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:24:41,944 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:24:52,407 - WARNING - WebSocket timeout.
+2025-06-16 06:24:52,431 - INFO - No new track info from Radio X.
+2025-06-16 06:26:52,433 - INFO - Loaded 73 recent tracks from cache.
+2025-06-16 06:26:52,434 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:26:52,434 - INFO - Loaded 71 daily added songs from cache.
+2025-06-16 06:26:52,434 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:26:52,434 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:26:52,434 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:27:02,862 - WARNING - WebSocket timeout.
+2025-06-16 06:27:02,915 - INFO - No new track info from Radio X.
+2025-06-16 06:29:02,918 - INFO - Loaded 73 recent tracks from cache.
+2025-06-16 06:29:02,918 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:29:02,918 - INFO - Loaded 71 daily added songs from cache.
+2025-06-16 06:29:02,918 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:29:02,919 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=False
+2025-06-16 06:29:02,919 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:29:03,230 - INFO - New song: 'Teenage Dirtbag' by 'Wheatus'
+2025-06-16 06:29:03,232 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 06:29:08,451 - INFO - Found on Spotify (original title): 'Teenage Dirtbag'
+2025-06-16 06:29:08,892 - INFO - Playlist size: 84/500
+2025-06-16 06:29:09,054 - INFO - SUCCESS: Added '[1mTeenage Dirtbag[0m' by '[1mWheatus[0m' to playlist.
+2025-06-16 06:31:09,056 - INFO - Loaded 74 recent tracks from cache.
+2025-06-16 06:31:09,056 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:31:09,056 - INFO - Loaded 72 daily added songs from cache.
+2025-06-16 06:31:09,057 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:31:09,057 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:31:09,057 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:31:10,071 - INFO - Song 'Teenage Dirtbag' by 'Wheatus' (ID: 510557) same as last. Skipping.
+2025-06-16 06:33:10,073 - INFO - Loaded 74 recent tracks from cache.
+2025-06-16 06:33:10,073 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:33:10,073 - INFO - Loaded 72 daily added songs from cache.
+2025-06-16 06:33:10,074 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:33:10,074 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:33:10,074 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:33:30,560 - WARNING - WebSocket timeout.
+2025-06-16 06:33:30,586 - INFO - No new track info from Radio X.
+2025-06-16 06:35:30,588 - INFO - Loaded 74 recent tracks from cache.
+2025-06-16 06:35:30,589 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:35:30,589 - INFO - Loaded 72 daily added songs from cache.
+2025-06-16 06:35:30,590 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:35:30,590 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:35:30,590 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:35:41,110 - WARNING - WebSocket timeout.
+2025-06-16 06:35:41,136 - INFO - No new track info from Radio X.
+2025-06-16 06:37:41,138 - INFO - Loaded 74 recent tracks from cache.
+2025-06-16 06:37:41,138 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:37:41,139 - INFO - Loaded 72 daily added songs from cache.
+2025-06-16 06:37:41,139 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:37:41,139 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:37:41,139 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:37:51,645 - WARNING - WebSocket timeout.
+2025-06-16 06:37:51,700 - INFO - No new track info from Radio X.
+2025-06-16 06:39:51,703 - INFO - Loaded 74 recent tracks from cache.
+2025-06-16 06:39:51,703 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:39:51,703 - INFO - Loaded 72 daily added songs from cache.
+2025-06-16 06:39:51,704 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:39:51,704 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:39:51,704 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:40:03,562 - WARNING - WebSocket timeout.
+2025-06-16 06:40:03,586 - INFO - No new track info from Radio X.
+2025-06-16 06:40:03,587 - INFO - Starting periodic duplicate check...
+2025-06-16 06:40:03,589 - WARNING - Network error on playlist_items (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 06:40:08,659 - WARNING - Network error on playlist_items (attempt 2/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 06:40:19,205 - INFO - DUPLICATE_CLEANUP: Fetched 85 tracks.
+2025-06-16 06:42:19,207 - INFO - Loaded 74 recent tracks from cache.
+2025-06-16 06:42:19,207 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:42:19,207 - INFO - Loaded 72 daily added songs from cache.
+2025-06-16 06:42:19,208 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:42:19,208 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:42:19,208 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:42:29,658 - WARNING - WebSocket timeout.
+2025-06-16 06:42:29,686 - INFO - No new track info from Radio X.
+2025-06-16 06:44:29,688 - INFO - Loaded 74 recent tracks from cache.
+2025-06-16 06:44:29,689 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:44:29,689 - INFO - Loaded 72 daily added songs from cache.
+2025-06-16 06:44:29,689 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:44:29,689 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:44:29,689 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:44:40,632 - WARNING - WebSocket timeout.
+2025-06-16 06:44:40,659 - INFO - No new track info from Radio X.
+2025-06-16 06:46:40,662 - INFO - Loaded 74 recent tracks from cache.
+2025-06-16 06:46:40,662 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:46:40,662 - INFO - Loaded 72 daily added songs from cache.
+2025-06-16 06:46:40,663 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:46:40,663 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:46:40,663 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:46:40,941 - INFO - New song: 'Same Jeans' by 'The View'
+2025-06-16 06:46:40,943 - WARNING - Network error on search (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 06:46:46,310 - INFO - Found on Spotify (original title): 'Same Jeans'
+2025-06-16 06:46:46,763 - INFO - Playlist size: 85/500
+2025-06-16 06:46:46,925 - INFO - SUCCESS: Added '[1mSame Jeans[0m' by '[1mThe View[0m' to playlist.
+2025-06-16 06:48:46,929 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 06:48:46,929 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:48:46,930 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 06:48:46,930 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:48:46,930 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:48:46,930 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:48:47,221 - INFO - Song 'Same Jeans' by 'The View' (ID: 511911) same as last. Skipping.
+2025-06-16 06:50:47,223 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 06:50:47,224 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:50:47,224 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 06:50:47,224 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:50:47,224 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:50:47,224 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:50:58,146 - WARNING - WebSocket timeout.
+2025-06-16 06:50:58,169 - INFO - No new track info from Radio X.
+2025-06-16 06:52:58,171 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 06:52:58,172 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:52:58,172 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 06:52:58,172 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:52:58,172 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:52:58,172 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:53:08,778 - WARNING - WebSocket timeout.
+2025-06-16 06:53:08,853 - INFO - No new track info from Radio X.
+2025-06-16 06:55:08,856 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 06:55:08,856 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:55:08,856 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 06:55:08,857 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:55:08,857 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:55:08,857 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:55:22,607 - WARNING - WebSocket timeout.
+2025-06-16 06:55:22,656 - INFO - No new track info from Radio X.
+2025-06-16 06:57:22,659 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 06:57:22,659 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:57:22,659 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 06:57:22,660 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:57:22,660 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:57:22,660 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:57:34,633 - WARNING - WebSocket timeout.
+2025-06-16 06:57:34,659 - INFO - No new track info from Radio X.
+2025-06-16 06:59:34,661 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 06:59:34,662 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 06:59:34,662 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 06:59:34,662 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 06:59:34,662 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 06:59:34,662 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 06:59:45,219 - WARNING - WebSocket timeout.
+2025-06-16 06:59:45,243 - INFO - No new track info from Radio X.
+2025-06-16 07:01:45,245 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 07:01:45,246 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:01:45,246 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 07:01:45,246 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:01:45,246 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:01:45,247 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:01:55,730 - WARNING - WebSocket timeout.
+2025-06-16 07:01:55,760 - INFO - No new track info from Radio X.
+2025-06-16 07:03:55,762 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 07:03:55,762 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:03:55,762 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 07:03:55,762 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:03:55,763 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:03:55,763 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:04:06,222 - WARNING - WebSocket timeout.
+2025-06-16 07:04:06,246 - INFO - No new track info from Radio X.
+2025-06-16 07:06:06,248 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 07:06:06,248 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:06:06,249 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 07:06:06,249 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:06:06,249 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:06:06,249 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:06:23,892 - WARNING - WebSocket timeout.
+2025-06-16 07:06:23,939 - INFO - No new track info from Radio X.
+2025-06-16 07:08:23,942 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 07:08:23,942 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:08:23,943 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 07:08:23,943 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:08:23,943 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:08:23,943 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:08:34,444 - WARNING - WebSocket timeout.
+2025-06-16 07:08:34,611 - INFO - No new track info from Radio X.
+2025-06-16 07:10:34,613 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 07:10:34,614 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:10:34,614 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 07:10:34,614 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:10:34,614 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:10:34,614 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:10:45,241 - WARNING - WebSocket timeout.
+2025-06-16 07:10:45,289 - INFO - No new track info from Radio X.
+2025-06-16 07:10:45,290 - INFO - Starting periodic duplicate check...
+2025-06-16 07:10:45,292 - WARNING - Network error on playlist_items (attempt 1/3): ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2025-06-16 07:10:50,905 - INFO - DUPLICATE_CLEANUP: Fetched 86 tracks.
+2025-06-16 07:12:50,908 - INFO - Loaded 75 recent tracks from cache.
+2025-06-16 07:12:50,908 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:12:50,908 - INFO - Loaded 73 daily added songs from cache.
+2025-06-16 07:12:50,908 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:12:50,908 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:12:50,909 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:12:51,125 - INFO - New song: 'Supermassive Black Hole' by 'Muse'
+2025-06-16 07:12:51,337 - INFO - Found on Spotify (original title): 'Supermassive Black Hole'
+2025-06-16 07:12:51,744 - INFO - Playlist size: 86/500
+2025-06-16 07:12:51,973 - INFO - SUCCESS: Added '[1mSupermassive Black Hole[0m' by '[1mMuse[0m' to playlist.
+2025-06-16 07:14:51,975 - INFO - Loaded 76 recent tracks from cache.
+2025-06-16 07:14:51,975 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:14:51,975 - INFO - Loaded 74 daily added songs from cache.
+2025-06-16 07:14:51,976 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:14:51,976 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:14:51,976 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:14:52,231 - INFO - Song 'Supermassive Black Hole' by 'Muse' (ID: 511750) same as last. Skipping.
+2025-06-16 07:16:52,234 - INFO - Loaded 76 recent tracks from cache.
+2025-06-16 07:16:52,234 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:16:52,235 - INFO - Loaded 74 daily added songs from cache.
+2025-06-16 07:16:52,235 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:16:52,235 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:16:52,235 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:17:02,619 - WARNING - WebSocket timeout.
+2025-06-16 07:17:02,801 - INFO - No new track info from Radio X.
+2025-06-16 07:19:02,803 - INFO - Loaded 76 recent tracks from cache.
+2025-06-16 07:19:02,803 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:19:02,804 - INFO - Loaded 74 daily added songs from cache.
+2025-06-16 07:19:02,804 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:19:02,804 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:19:02,804 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:19:13,355 - WARNING - WebSocket timeout.
+2025-06-16 07:19:13,386 - INFO - No new track info from Radio X.
+2025-06-16 07:21:13,389 - INFO - Loaded 76 recent tracks from cache.
+2025-06-16 07:21:13,390 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:21:13,390 - INFO - Loaded 74 daily added songs from cache.
+2025-06-16 07:21:13,390 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:21:13,390 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:21:13,391 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:21:23,815 - WARNING - WebSocket timeout.
+2025-06-16 07:21:23,841 - INFO - No new track info from Radio X.
+2025-06-16 07:23:23,843 - INFO - Loaded 76 recent tracks from cache.
+2025-06-16 07:23:23,843 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:23:23,843 - INFO - Loaded 74 daily added songs from cache.
+2025-06-16 07:23:23,844 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:23:23,844 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:23:23,844 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:23:34,380 - WARNING - WebSocket timeout.
+2025-06-16 07:23:34,408 - INFO - No new track info from Radio X.
+2025-06-16 07:25:34,410 - INFO - Loaded 76 recent tracks from cache.
+2025-06-16 07:25:34,411 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:25:34,411 - INFO - Loaded 74 daily added songs from cache.
+2025-06-16 07:25:34,411 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:25:34,411 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:25:34,411 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:25:44,884 - WARNING - WebSocket timeout.
+2025-06-16 07:25:44,910 - INFO - No new track info from Radio X.
+2025-06-16 07:27:44,913 - INFO - Loaded 76 recent tracks from cache.
+2025-06-16 07:27:44,914 - INFO - Loaded 0 failed searches from cache.
+2025-06-16 07:27:44,914 - INFO - Loaded 74 daily added songs from cache.
+2025-06-16 07:27:44,914 - INFO - Loaded 0 daily failed searches from cache.
+2025-06-16 07:27:44,914 - INFO - [Main Loop] PID=103 TID=136608103794368 should_run=True, manual_override_active=True, override_paused=False, in_hours=True
+2025-06-16 07:27:44,914 - INFO - Connecting to WebSocket: wss://metadata.musicradio.com/v2/now-playing
+2025-06-16 07:27:56,467 - WARNING - WebSocket timeout.
+2025-06-16 07:27:56,492 - INFO - No new track info from Radio X.
