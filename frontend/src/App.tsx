@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 type ServiceState = 'playing' | 'paused' | 'out_of_hours' | 'manual_override';
 
@@ -54,7 +54,7 @@ const App: React.FC = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch status from backend
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch('/status');
       const data = await res.json();
@@ -69,14 +69,14 @@ const App: React.FC = () => {
     } catch (e) {
       triggerToast('Failed to fetch status from backend');
     }
-  };
+  }, []);
 
   // Initial and interval fetch
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchStatus]);
 
   // Countdown timer
   useEffect(() => {
