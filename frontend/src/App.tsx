@@ -117,13 +117,13 @@ const App: React.FC = () => {
   // Timer effect
   useEffect(() => {
     let isActive = true;
-    let targetTime = Date.now() + secondsUntilNextCheck * 1000;
+    const targetTimeRef = useRef<number>(Date.now() + secondsUntilNextCheck * 1000);
 
     const updateTimer = () => {
       if (!isActive) return;
 
       const now = Date.now();
-      const remaining = Math.max(0, Math.floor((targetTime - now) / 1000));
+      const remaining = Math.max(0, Math.floor((targetTimeRef.current - now) / 1000));
 
       setSecondsUntilNextCheck(remaining);
 
@@ -131,15 +131,20 @@ const App: React.FC = () => {
       if (remaining === 0 && Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
         fetchStatus().then(data => {
           if (data && data.seconds_until_next_check !== undefined) {
+            targetTimeRef.current = Date.now() + data.seconds_until_next_check * 1000;
             setSecondsUntilNextCheck(data.seconds_until_next_check);
-            targetTime = Date.now() + data.seconds_until_next_check * 1000;
           }
         });
       }
     };
 
     // Initial fetch
-    fetchStatus();
+    fetchStatus().then(data => {
+      if (data && data.seconds_until_next_check !== undefined) {
+        targetTimeRef.current = Date.now() + data.seconds_until_next_check * 1000;
+        setSecondsUntilNextCheck(data.seconds_until_next_check);
+      }
+    });
 
     // Set up interval for timer updates
     const intervalId = setInterval(updateTimer, 1000); // Update every second
@@ -149,7 +154,7 @@ const App: React.FC = () => {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [fetchStatus, secondsUntilNextCheck]);
+  }, [fetchStatus]);
 
   useEffect(() => {
     if (darkMode) {
