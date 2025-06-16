@@ -1081,3 +1081,17 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
+def get_daily_added():
+    try:
+        with open('.cache/daily_added.json', 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def get_daily_failed():
+    try:
+        with open('.cache/daily_failed.json', 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
