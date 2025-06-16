@@ -42,7 +42,6 @@ const AdminPage: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
-  const [settings, setSettings] = useState<ScriptSettings | null>(null);
   const [settingsDraft, setSettingsDraft] = useState<ScriptSettings | null>(null);
 
   const triggerToast = (msg: string) => {
@@ -72,7 +71,6 @@ const AdminPage: React.FC = () => {
       setStats(data.stats);
       setDailyFailed(data.daily_failed);
       if (data.settings) {
-        setSettings(data.settings);
         setSettingsDraft(data.settings);
       }
     } catch (error) {
@@ -145,7 +143,6 @@ const AdminPage: React.FC = () => {
                 }),
               });
               triggerToast('Settings updated!');
-              setSettings(settingsDraft);
             }}>
               <label className="flex flex-col">
                 Check Interval (mm:ss):
