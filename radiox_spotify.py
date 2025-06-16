@@ -113,10 +113,10 @@ class RadioXBot:
         self.state_history = deque(maxlen=100)  # Track state transitions
         self.override_reset_day = datetime.date.today()
         self.next_check_time = time.time() + CHECK_INTERVAL
-        self.last_check_time = 0  # Track when the last check was performed
+        self.last_check_time = time.time()  # Track when the last check was performed
         self.is_checking = False  # Flag to indicate if a check is in progress
         self.check_complete = True  # Flag to indicate if the last check completed successfully
-        self.last_check_complete_time = 0  # Timestamp of last check completion
+        self.last_check_complete_time = time.time()  # Initialize with current time
         
         # Initialize service state based on current time
         now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
@@ -653,7 +653,11 @@ class RadioXBot:
 
     def update_next_check_time(self):
         """Set the next check time to now + CHECK_INTERVAL."""
-        self.next_check_time = time.time() + CHECK_INTERVAL
+        current_time = time.time()
+        self.next_check_time = current_time + CHECK_INTERVAL
+        self.last_check_complete_time = current_time  # Update last check complete time
+        self.check_complete = True  # Ensure check is marked as complete
+        self.is_checking = False  # Ensure checking flag is reset
 
     def get_seconds_until_next_check(self):
         """Return seconds until the next scheduled check."""
