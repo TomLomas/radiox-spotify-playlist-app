@@ -117,42 +117,32 @@ const App: React.FC = () => {
   // Timer effect
   useEffect(() => {
     let isActive = true;
-    let lastTick = Date.now();
-    let timerAtZero = false;
+    let targetTime = Date.now() + secondsUntilNextCheck * 1000;
 
     const updateTimer = () => {
       if (!isActive) return;
 
       const now = Date.now();
-      const elapsed = Math.floor((now - lastTick) / 1000);
-      lastTick = now;
+      const remaining = Math.max(0, Math.floor((targetTime - now) / 1000));
 
-      setSecondsUntilNextCheck(prev => {
-        // If we're at 0, trigger a fetch and reset the timer
-        if (prev <= 0) {
-          if (!timerAtZero && Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
-            timerAtZero = true;
-            fetchStatus().then(data => {
-              if (data && data.seconds_until_next_check !== undefined) {
-                setSecondsUntilNextCheck(data.seconds_until_next_check);
-                timerAtZero = false;
-              }
-            });
+      setSecondsUntilNextCheck(remaining);
+
+      // If we're at 0, trigger a fetch and reset the timer
+      if (remaining === 0 && Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
+        fetchStatus().then(data => {
+          if (data && data.seconds_until_next_check !== undefined) {
+            setSecondsUntilNextCheck(data.seconds_until_next_check);
+            targetTime = Date.now() + data.seconds_until_next_check * 1000;
           }
-          return 0;
-        }
-        
-        // Otherwise decrement as normal
-        timerAtZero = false;
-        return Math.max(0, prev - elapsed);
-      });
+        });
+      }
     };
 
     // Initial fetch
     fetchStatus();
 
     // Set up interval for timer updates
-    const intervalId = setInterval(updateTimer, 1000);
+    const intervalId = setInterval(updateTimer, 100); // Update more frequently for smoother countdown
     timerRef.current = intervalId;
 
     return () => {
