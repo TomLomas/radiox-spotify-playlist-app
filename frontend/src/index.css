@@ -17,6 +17,6 @@ code {
     monospace;
 }
 
-.dark body {
+body.dark {
   @apply bg-background-dark text-white transition-colors duration-300;
 }

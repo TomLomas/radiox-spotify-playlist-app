@@ -23,58 +23,33 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ cla
 const AdminPage: React.FC = () => {
   const navigate = useNavigate();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [checkInterval, setCheckInterval] = useState('05:00');
-  const [duplicateCheckInterval, setDuplicateCheckInterval] = useState('24:00');
-  const [maxPlaylistSize, setMaxPlaylistSize] = useState('100');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [failedSongs, setFailedSongs] = useState<Song[]>([]);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const accent = theme === 'dark' ? '#9333ea' : '#22c55e';
 
+  // Dark mode: toggle class on <body>
+  useEffect(() => {
+    document.body.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [statsRes, failedRes] = await Promise.all([
           fetch('/admin/stats'),
-          fetch('/admin/failed')
+          fetch('/admin/stats')  // Use the same endpoint, it includes failed songs
         ]);
         const statsData = await statsRes.json();
-        const failedData = await failedRes.json();
         setStats(statsData.stats);
-        setFailedSongs(failedData.failed_songs || []);
+        setFailedSongs(statsData.daily_failed || []);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
     fetchData();
   }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch('/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          check_interval: checkInterval,
-          duplicate_check_interval: duplicateCheckInterval,
-          max_playlist_size: parseInt(maxPlaylistSize)
-        })
-      });
-      if (response.ok) {
-        setToastMsg('Settings updated successfully');
-        setShowToast(true);
-      } else {
-        setToastMsg('Failed to update settings');
-        setShowToast(true);
-      }
-    } catch (error) {
-      console.error('Error updating settings:', error);
-      setToastMsg('Error updating settings');
-      setShowToast(true);
-    }
-  };
 
   const adminAction = async (action: string) => {
     try {
@@ -112,59 +87,19 @@ const AdminPage: React.FC = () => {
         <Card className="mb-8 p-6">
           <h2 className="text-xl font-semibold mb-4">Admin Actions</h2>
           <div className="flex flex-wrap gap-4">
-            <Button onClick={() => adminAction('check')} accent={accent}>
+            <Button onClick={() => adminAction('force_check')} accent={accent}>
               Check Now
             </Button>
-            <Button onClick={() => adminAction('clear-failed')} accent={accent}>
-              Clear Failed Songs
+            <Button onClick={() => adminAction('retry_failed')} accent={accent}>
+              Retry Failed Songs
             </Button>
-            <Button onClick={() => adminAction('clear-added')} accent={accent}>
-              Clear Added Songs
+            <Button onClick={() => adminAction('force_duplicates')} accent={accent}>
+              Check Duplicates
+            </Button>
+            <Button onClick={() => adminAction('pause_resume')} accent={accent}>
+              Pause/Resume
             </Button>
           </div>
-        </Card>
-
-        {/* Script Settings */}
-        <Card className="mb-8 p-6">
-          <h2 className="text-xl font-semibold mb-4">Script Settings</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Check Interval (mm:ss)</label>
-              <input
-                type="text"
-                value={checkInterval}
-                onChange={(e) => setCheckInterval(e.target.value)}
-                pattern="\d{2}:\d{2}"
-                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Duplicate Check Interval (mm:ss)</label>
-              <input
-                type="text"
-                value={duplicateCheckInterval}
-                onChange={(e) => setDuplicateCheckInterval(e.target.value)}
-                pattern="\d{2}:\d{2}"
-                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Max Playlist Size</label>
-              <input
-                type="number"
-                value={maxPlaylistSize}
-                onChange={(e) => setMaxPlaylistSize(e.target.value)}
-                min="1"
-                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700"
-                required
-              />
-            </div>
-            <Button type="submit" accent={accent}>
-              Save Settings
-            </Button>
-          </form>
         </Card>
 
         {/* Stats */}
@@ -199,17 +134,17 @@ const AdminPage: React.FC = () => {
           <h2 className="text-xl font-semibold mb-4 p-6 pb-0">Failed Songs</h2>
           <div className="p-6 pt-0">
             {failedSongs.length > 0 ? (
-              <ul className="space-y-4">
+              <div className="space-y-4">
                 {failedSongs.map((song, index) => (
-                  <li key={index} className="border-b pb-4 last:border-b-0">
+                  <div key={index} className="border-b border-gray-200 dark:border-gray-700 pb-4">
                     <p className="font-medium">{song.radio_title}</p>
                     <p className="text-sm text-muted-foreground">{song.radio_artist}</p>
-                    <p className="text-sm text-red-500 mt-1">{song.reason}</p>
-                  </li>
+                    <p className="text-sm text-red-500">Failed: {song.reason}</p>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : (
-              <p className="text-muted-foreground">No failed songs</p>
+              <p>No failed songs</p>
             )}
           </div>
         </Card>
