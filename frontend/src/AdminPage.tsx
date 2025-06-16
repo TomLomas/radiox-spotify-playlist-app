@@ -20,11 +20,30 @@ interface AdminStats {
   next_check_time: string;
 }
 
+interface ScriptSettings {
+  check_interval: number;
+  duplicate_check_interval: number;
+  max_playlist_size: number;
+}
+
+// Helper functions for mm:ss <-> seconds
+function secondsToMMSS(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+function mmssToSeconds(mmss: string) {
+  const [m, s] = mmss.split(':').map(Number);
+  return (m || 0) * 60 + (s || 0);
+}
+
 const AdminPage: React.FC = () => {
   const [dailyFailed, setDailyFailed] = useState<Song[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [settings, setSettings] = useState<ScriptSettings | null>(null);
+  const [settingsDraft, setSettingsDraft] = useState<ScriptSettings | null>(null);
 
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
@@ -52,6 +71,10 @@ const AdminPage: React.FC = () => {
       const data = await response.json();
       setStats(data.stats);
       setDailyFailed(data.daily_failed);
+      if (data.settings) {
+        setSettings(data.settings);
+        setSettingsDraft(data.settings);
+      }
     } catch (error) {
       console.error('Error fetching admin data:', error);
       triggerToast('Failed to fetch admin data');
@@ -104,6 +127,44 @@ const AdminPage: React.FC = () => {
             )}
           </Card>
         </div>
+
+        {/* Script Settings */}
+        <Card accent="#1DB954" className="mb-8">
+          <h2 className="text-xl font-bold mb-4">Script Settings</h2>
+          {settingsDraft ? (
+            <form className="flex flex-col gap-4 max-w-md mx-auto" onSubmit={async (e) => {
+              e.preventDefault();
+              // Save settings to backend (convert mm:ss to seconds)
+              await fetch('/admin/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  ...settingsDraft,
+                  check_interval: mmssToSeconds(settingsDraft.check_interval as any),
+                  duplicate_check_interval: mmssToSeconds(settingsDraft.duplicate_check_interval as any),
+                }),
+              });
+              triggerToast('Settings updated!');
+              setSettings(settingsDraft);
+            }}>
+              <label className="flex flex-col">
+                Check Interval (mm:ss):
+                <input type="text" pattern="\\d{2}:\\d{2}" className="border rounded p-2" value={secondsToMMSS(Number(settingsDraft.check_interval))} onChange={e => setSettingsDraft({ ...settingsDraft, check_interval: mmssToSeconds(e.target.value) })} />
+              </label>
+              <label className="flex flex-col">
+                Duplicate Check Interval (mm:ss):
+                <input type="text" pattern="\\d{2}:\\d{2}" className="border rounded p-2" value={secondsToMMSS(Number(settingsDraft.duplicate_check_interval))} onChange={e => setSettingsDraft({ ...settingsDraft, duplicate_check_interval: mmssToSeconds(e.target.value) })} />
+              </label>
+              <label className="flex flex-col">
+                Max Playlist Size:
+                <input type="number" className="border rounded p-2" value={settingsDraft.max_playlist_size} onChange={e => setSettingsDraft({ ...settingsDraft, max_playlist_size: Number(e.target.value) })} />
+              </label>
+              <Button accent="#1DB954" type="submit">Save Settings</Button>
+            </form>
+          ) : (
+            <div className="text-gray-500">Loading...</div>
+          )}
+        </Card>
 
         {/* Admin Actions */}
         <Card accent="#1DB954" className="mb-8">

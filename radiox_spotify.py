@@ -985,6 +985,33 @@ def admin_stats():
     last_check_time = datetime.datetime.fromtimestamp(bot_instance.last_check_time).strftime('%H:%M:%S') if bot_instance.last_check_time else "N/A"
     next_check_time = datetime.datetime.fromtimestamp(bot_instance.next_check_time).strftime('%H:%M:%S') if bot_instance.next_check_time else "N/A"
 
+    # Calculate average_duration, decade_spread, newest_song, oldest_song
+    average_duration = 0
+    if daily_added:
+        durations = [s.get('duration', 0) for s in daily_added if s.get('duration')]
+        if durations:
+            average_duration = sum(durations) / len(durations)
+        years = [int(s.get('year', 0)) for s in daily_added if s.get('year')]
+        decade_spread = {}
+        if years:
+            from collections import Counter
+            decades = [str((y // 10) * 10) + 's' for y in years if y > 0]
+            c = Counter(decades)
+            total = sum(c.values())
+            decade_spread = {k: round(v * 100 / total, 1) for k, v in c.items()}
+            newest_year = max(years)
+            oldest_year = min(years)
+            newest_song = next((s for s in daily_added if int(s.get('year', 0)) == newest_year), None)
+            oldest_song = next((s for s in daily_added if int(s.get('year', 0)) == oldest_year), None)
+        else:
+            decade_spread = {}
+            newest_song = None
+            oldest_song = None
+    else:
+        decade_spread = {}
+        newest_song = None
+        oldest_song = None
+
     stats = {
         'total_songs_added': total_songs_added,
         'total_failures': total_failures,
@@ -993,7 +1020,19 @@ def admin_stats():
         'most_common_artist': most_common_artist,
         'most_common_failure': most_common_failure,
         'last_check_time': last_check_time,
-        'next_check_time': next_check_time
+        'next_check_time': next_check_time,
+        'average_duration': average_duration,
+        'decade_spread': decade_spread,
+        'newest_song': {
+            'title': newest_song['radio_title'],
+            'artist': newest_song['radio_artist'],
+            'year': newest_song['year']
+        } if newest_song else None,
+        'oldest_song': {
+            'title': oldest_song['radio_title'],
+            'artist': oldest_song['radio_artist'],
+            'year': oldest_song['year']
+        } if oldest_song else None
     }
 
     return jsonify({
