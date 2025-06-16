@@ -78,7 +78,10 @@ const App: React.FC = () => {
       setDailyFailed(data.daily_failed);
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
-      if (data.last_check_complete_time) {
+      
+      // Only update lastCheckCompleteTime if we get a valid timestamp
+      if (data.last_check_complete_time && data.last_check_complete_time > 0) {
+        console.log('Received check complete time:', new Date(data.last_check_complete_time * 1000).toLocaleString());
         setLastCheckCompleteTime(data.last_check_complete_time);
       }
     } catch (error) {
