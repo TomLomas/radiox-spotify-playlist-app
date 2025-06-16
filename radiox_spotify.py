@@ -866,19 +866,29 @@ def admin_state_history():
         'state_history': list(bot_instance.state_history)
     })
 
-def initialize_bot():
-    """Handles the slow startup tasks in the background."""
-    logging.info("Background initialization started.")
-    if bot_instance.authenticate_spotify():
-        bot_instance.load_state() 
-        bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
-        monitor_thread = threading.Thread(target=bot_instance.run)
-        monitor_thread.start()
-    else:
-        logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
+def start_background_tasks():
+    """Start background tasks in a non-daemon thread"""
+    def run_bot():
+        try:
+            bot_instance.authenticate_spotify()
+            bot_instance.load_state()
+            bot_instance.run_startup_diagnostics(send_email=False)
+            bot_instance.run()
+        except Exception as e:
+            logging.error(f"Error in background bot thread: {e}")
+            # Attempt to restart the thread after a delay
+            time.sleep(60)
+            start_background_tasks()
+
+    thread = threading.Thread(target=run_bot, daemon=False)
+    thread.start()
+    logging.info("Started background bot thread")
+
+# Start background tasks when the app starts
+start_background_tasks()
 
 # --- Script Execution ---
 if __name__ == "__main__":
     import os
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)

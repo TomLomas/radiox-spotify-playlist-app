@@ -75,33 +75,40 @@ A new modern frontend is now located in the `frontend/` directory. It uses React
   ```
 - Ensure Flask is configured to serve the built static files from `frontend/build`.
 
-## 🚀 Deploying to Render (Web + Worker)
+## 🚀 Deploying to Render (Free Tier)
 
-This app uses a two-process architecture for reliability:
+This app runs both the web service and background tasks in a single process on Render's free tier:
+
 - **Web Service**: Serves the Flask API and React frontend
-- **Background Worker**: Runs the RadioXBot main loop (playlist checks)
+- **Background Tasks**: Runs the RadioXBot main loop (playlist checks) in a non-daemon thread
 
 ### 1. Push your changes to GitHub
 
 ### 2. Deploy on Render
 - Go to [Render.com](https://render.com/)
 - Click "New +" → "Blueprint" and connect your repo
-- Render will detect `render.yaml` and set up both services:
-  - `radiox-spotify-web` (web service)
-  - `radiox-spotify-bot-worker` (background worker)
-- Both will share the same environment and dependencies
+- Render will detect `render.yaml` and set up the service
+- The service will be named `radiox-spotify`
 
-### 3. Confirm both services are running
+### 3. Confirm the service is running
 - The web service should serve the dashboard and API
-- The worker should log main loop activity (playlist checks)
+- Check the logs for the "Started background bot thread" message
+- The logs should show periodic playlist checks
 
 ### 4. Troubleshooting
-- If the worker is not running, check its logs for errors
-- Make sure both services are on the same branch (e.g., `beta`)
+- If the background tasks aren't running, check the logs for errors
+- Make sure the service is on the correct branch (e.g., `beta`)
 
 ---
 
-For local development, you can still run the Flask app and the bot loop separately:
+For local development, you can run everything in one process:
+
+```sh
+# Run both web service and background tasks
+flask run
+```
+
+Or run them separately for debugging:
 
 ```sh
 # Terminal 1: Flask API (for frontend)

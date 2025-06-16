@@ -1,21 +1,14 @@
 services:
   - type: web
-    name: radiox-spotify-web
+    name: radiox-spotify
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      pip install -r requirements.txt
+      cd frontend && npm install && npm run build
     startCommand: gunicorn radiox_spotify:app
     plan: free
     envVars:
       - key: FLASK_ENV
         value: production
       - key: PORT
-        value: 10000
-  - type: worker
-    name: radiox-spotify-bot-worker
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python run_bot.py
-    plan: free
-    envVars:
-      - key: FLASK_ENV
-        value: production 
+        value: 10000 
