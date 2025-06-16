@@ -58,9 +58,7 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     fetchAdminData();
-    const interval = setInterval(fetchAdminData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [fetchAdminData]);
 
   return (
     <div className="min-h-screen w-full bg-background-light dark:bg-background-dark transition-colors duration-300 p-8">

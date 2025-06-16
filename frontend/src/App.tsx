@@ -51,7 +51,6 @@ const App: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [dailyAdded, setDailyAdded] = useState<Song[]>([]);
-  const [dailyFailed, setDailyFailed] = useState<Song[]>([]);
   const [lastSong, setLastSong] = useState<Song | null>(null);
   const [lastCheckCompleteTime, setLastCheckCompleteTime] = useState<number>(0);
   const [secondsUntilNextCheck, setSecondsUntilNextCheck] = useState(0);
@@ -85,7 +84,6 @@ const App: React.FC = () => {
       const data = await response.json();
       setServiceState(data.service_state);
       setDailyAdded(data.daily_added);
-      setDailyFailed(data.daily_failed);
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
       
@@ -148,9 +146,8 @@ const App: React.FC = () => {
   };
 
   // Accent color selection
-  const accent = darkMode ? PURPLES[0] : GREENS[0];
-  const accent2 = darkMode ? PURPLES[2] : GREENS[2];
-  const accent3 = darkMode ? PURPLES[4] : GREENS[4];
+  const accent = '#1DB954';  // Spotify green
+  const accent2 = '#FF6B6B'; // Coral red
 
   // Timer display
   const min = Math.floor(secondsUntilNextCheck / 60);
