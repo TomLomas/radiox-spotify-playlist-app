@@ -755,13 +755,17 @@ def status():
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_react(path):
-    build_dir = os.path.join(os.path.dirname(__file__), 'frontend', 'build')
+    build_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frontend', 'build'))
     static_dir = os.path.join(build_dir, 'static')
+    print(f"Requested path: {path}")
     if path.startswith('static/'):
+        print(f"Serving static file: {os.path.join(static_dir, path[len('static/'):])}")
         return send_from_directory(static_dir, path[len('static/'):])
     elif path != "" and os.path.exists(os.path.join(build_dir, path)):
+        print(f"Serving build file: {os.path.join(build_dir, path)}")
         return send_from_directory(build_dir, path)
     else:
+        print(f"Serving index.html from: {build_dir}")
         return send_from_directory(build_dir, 'index.html')
 
 @app.route('/health')
