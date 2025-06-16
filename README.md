@@ -3,7 +3,7 @@
 This app takes 'Now Playing' tracks from Radio X and adds them to a Spotify playlist automatically. It features a web UI for live status, manual controls, and daily email summaries.
 
 ## Versioning
-- **Current Beta Version:** v6.3-beta
+- **Current Beta Version:** v7.0-beta
 - See the changelog below for details on each beta release.
 
 ## Features
@@ -13,6 +13,8 @@ This app takes 'Now Playing' tracks from Radio X and adds them to a Spotify play
 - Persistent caching and duplicate prevention
 - Daily email summaries
 - Robust error handling and logging
+- Improved state management with a single service_state model
+- Admin state transition history endpoint for audit and debugging
 
 ## Setup
 1. Clone the repository:
@@ -38,9 +40,54 @@ See `.env` for all required variables (Spotify, email, etc.).
 - The `Procfile` is set up for web service deployment.
 - Health check endpoint: `/health`
 
+## Frontend (React + Tailwind CSS)
+
+A new modern frontend is now located in the `frontend/` directory. It uses React (with TypeScript) and Tailwind CSS for a responsive, modern UI with light/dark mode.
+
+### Local Development
+1. Go to the frontend directory:
+   ```sh
+   cd frontend
+   ```
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
+3. Start the development server:
+   ```sh
+   npm start
+   ```
+   The app will be available at http://localhost:3000
+
+### Production Build
+1. Build the static files:
+   ```sh
+   npm run build
+   ```
+   This will output the production-ready files to `frontend/build/`.
+
+2. To serve with Flask, copy the contents of `frontend/build/` to your Flask `static/` and `templates/` directories, or configure Flask to serve from `frontend/build` directly.
+
+### Render Deployment
+- On Render, add a build step for the frontend:
+  ```sh
+  cd frontend && npm install && npm run build
+  ```
+- Ensure Flask is configured to serve the built static files from `frontend/build`.
+
 ## Changelog
 
-### v6.3-beta (Latest)
+### v7.0-beta
+- **Major Backend Refactor:**
+  - Replaced multiple state flags (`manual_override_active`, `override_paused`, etc.) with a single `service_state` variable for all play/pause/out-of-hours logic.
+  - All backend logic, endpoints, and persistence now use `service_state` for clarity and maintainability.
+  - Added a state transition history log, accessible via `/admin/state_history`, for admin review and debugging.
+  - Cleaned up legacy code and improved reliability of state transitions.
+- **API Changes:**
+  - All status and admin endpoints now use the new state model.
+  - Removed all references to the old flags in API responses and UI data.
+
+### v6.3-beta (Previous)
 - **State Persistence:**
   - `manual_override_active` and `override_paused` are now saved to and loaded from disk (`bot_state.json`) for robust cross-thread/process state sharing.
   - The main loop reloads state from disk at the start of every tick, ensuring admin actions are always respected immediately.

@@ -14,7 +14,7 @@ import logging
 import re 
 import websocket 
 import threading 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, send_from_directory
 import datetime
 import pytz 
 import smtplib 
@@ -24,6 +24,7 @@ from collections import deque, Counter
 import atexit
 import base64
 from dotenv import load_dotenv
+import enum
 
 # --- Flask App Setup ---
 app = Flask(__name__)
@@ -74,6 +75,12 @@ logging.info("LOGGING CONFIGURED: Startup log from main process.")
 
 # --- Main Application Class ---
 
+class ServiceState(enum.Enum):
+    PLAYING = "playing"
+    PAUSED = "paused"
+    OUT_OF_HOURS = "out_of_hours"
+    MANUAL_OVERRIDE = "manual_override"
+
 class RadioXBot:
     def __init__(self):
         """Initializes the RadioXBot with state variables, persistent cache setup, and logging."""
@@ -87,8 +94,9 @@ class RadioXBot:
         self.shutdown_summary_sent = False
         self.current_station_herald_id = None
         self.is_running = False
-        self.override_paused = False  # Manual pause/resume override
-        self.manual_override_active = False  # Tracks if user has manually resumed out of hours
+        self.service_state = ServiceState.PAUSED  # Default state
+        self.state_history = deque(maxlen=100)  # Track state transitions
+        self.log_state_transition(self.service_state, reason="Startup")
         self.override_reset_day = datetime.date.today()
         self.next_check_time = time.time() + CHECK_INTERVAL
 
@@ -118,12 +126,18 @@ class RadioXBot:
         clean_message = ANSI_ESCAPE.sub('', message) # Remove ANSI codes for web log
         self.event_log.appendleft(f"[{datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}] {clean_message}")
 
+    def log_state_transition(self, new_state, reason=""):
+        timestamp = datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime('%Y-%m-%d %H:%M:%S')
+        entry = {"timestamp": timestamp, "state": new_state.value, "reason": reason}
+        self.state_history.appendleft(entry)
+        logging.info(f"STATE TRANSITION: {entry}")
+
     # --- Persistent State Management ---
     def save_state(self):
         """Save critical state to disk."""
         state = {
-            'manual_override_active': self.manual_override_active,
-            'override_paused': self.override_paused,
+            'service_state': self.service_state.value,
+            'state_history': list(self.state_history),
             'last_duplicate_check_time': self.last_duplicate_check_time,
             # ... add other state as needed ...
         }
@@ -144,8 +158,8 @@ class RadioXBot:
         try:
             with open('bot_state.json', 'r') as f:
                 state = json.load(f)
-                self.manual_override_active = state.get('manual_override_active', False)
-                self.override_paused = state.get('override_paused', False)
+                self.service_state = ServiceState(state.get('service_state', ServiceState.PAUSED.value))
+                self.state_history = deque(state.get('state_history', []), maxlen=100)
                 self.last_duplicate_check_time = state.get('last_duplicate_check_time', 0)
         except FileNotFoundError:
             pass
@@ -565,48 +579,32 @@ class RadioXBot:
         reset_time = datetime.time(7, 0)
         if (now_local.date() > self.override_reset_day or
             (now_local.date() == self.override_reset_day and now_local.time() >= reset_time and not hasattr(self, '_reset_done_today'))):
-            self.override_paused = False
-            self.manual_override_active = False
             self.override_reset_day = now_local.date()
             self._reset_done_today = True
-        elif now_local.time() < reset_time:
-            # Allow reset again after midnight but before 07:00
-            if hasattr(self, '_reset_done_today'):
-                del self._reset_done_today
         # If manually paused, always pause
-        if self.override_paused:
+        if self.service_state == ServiceState.PAUSED:
             return False
         # If in hours, run
         if START_TIME <= now_local.time() <= END_TIME:
             return True
         # If out of hours, only run if manually resumed
-        return self.manual_override_active
+        return self.service_state == ServiceState.MANUAL_OVERRIDE
 
-    def toggle_pause_override(self):
-        """Toggles the pause/resume override with correct logic for out-of-hours and manual override."""
-        now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
-        in_hours = START_TIME <= now_local.time() <= END_TIME
-        logging.info(f"[toggle_pause_override] PID={os.getpid()} TID={threading.get_ident()} BEFORE: manual_override_active={self.manual_override_active}, override_paused={self.override_paused}, in_hours={in_hours}")
-        # If currently manually paused, always resume and clear manual override
-        if self.override_paused:
-            self.override_paused = False
-            self.manual_override_active = False
+    def toggle_pause(self, reason="Admin toggle"):
+        if self.service_state == ServiceState.PLAYING:
+            self.set_service_state(ServiceState.PAUSED, reason)
+        elif self.service_state == ServiceState.PAUSED:
+            self.set_service_state(ServiceState.PLAYING, reason)
+
+    def set_out_of_hours(self, reason="Out of hours"):
+        if self.service_state != ServiceState.OUT_OF_HOURS:
+            self.set_service_state(ServiceState.OUT_OF_HOURS, reason)
+
+    def set_service_state(self, new_state, reason=""):
+        if self.service_state != new_state:
+            self.service_state = new_state
+            self.log_state_transition(new_state, reason)
             self.save_state()
-            logging.info(f"[toggle_pause_override] AFTER: manual_override_active={self.manual_override_active}, override_paused={self.override_paused}")
-            return self.override_paused
-        # If out of hours and not manually paused, clicking should resume (override)
-        if not in_hours and not self.override_paused:
-            self.override_paused = False  # Explicitly set to False (manual resume)
-            self.manual_override_active = True
-            self.save_state()
-            logging.info(f"[toggle_pause_override] AFTER: manual_override_active={self.manual_override_active}, override_paused={self.override_paused}")
-            return self.override_paused
-        # If running (in hours or manually resumed), clicking should pause and clear manual override
-        self.override_paused = True
-        self.manual_override_active = False
-        self.save_state()
-        logging.info(f"[toggle_pause_override] AFTER: manual_override_active={self.manual_override_active}, override_paused={self.override_paused}")
-        return self.override_paused
 
     def retry_all_failed_songs(self):
         """Attempts to re-process all failed song searches in the queue."""
@@ -629,7 +627,7 @@ class RadioXBot:
             self.load_state()  # Always reload state at the start of each tick
             now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
             in_hours = START_TIME <= now_local.time() <= END_TIME
-            logging.info(f"[Main Loop] PID={os.getpid()} TID={threading.get_ident()} should_run={self.should_run()}, manual_override_active={self.manual_override_active}, override_paused={self.override_paused}, in_hours={in_hours}")
+            logging.info(f"[Main Loop] PID={os.getpid()} TID={threading.get_ident()} should_run={self.should_run()}, in_hours={in_hours}")
             if self.should_run():
                 self.process_main_cycle()
             else:
@@ -722,7 +720,7 @@ def status():
     # Determine pause reason
     now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
     in_hours = START_TIME <= now_local.time() <= END_TIME
-    if bot_instance.override_paused:
+    if bot_instance.service_state == ServiceState.PAUSED:
         paused_reason = 'manual'
     elif not in_hours:
         paused_reason = 'out_of_hours'
@@ -734,7 +732,7 @@ def status():
         'unique_artists': unique_artists,
         'most_common_failure': most_common_failure,
         'success_rate': f"{success_rate:.1f}%",
-        'service_paused': bot_instance.override_paused or not in_hours,
+        'service_paused': bot_instance.service_state == ServiceState.PAUSED or not in_hours,
         'paused_reason': paused_reason
     }
 
@@ -745,14 +743,18 @@ def status():
         'daily_failed': daily_failed,
         'stats': stats,
         'seconds_until_next_check': bot_instance.get_seconds_until_next_check(),
-        'override_paused': bot_instance.override_paused,
-        'manual_override_active': bot_instance.manual_override_active
+        'service_state': bot_instance.service_state.value,
+        'state_history': list(bot_instance.state_history)
     })
 
-@app.route('/')
-def index_page():
-    """Renders the main web UI page."""
-    return render_template('index.html', active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react(path):
+    build_dir = os.path.join(os.path.dirname(__file__), 'frontend', 'build')
+    if path != "" and os.path.exists(os.path.join(build_dir, path)):
+        return send_from_directory(build_dir, path)
+    else:
+        return send_from_directory(build_dir, 'index.html')
 
 @app.route('/health')
 def health():
@@ -795,8 +797,8 @@ def admin_force_duplicates():
 @app.route('/admin/pause_resume', methods=['POST'])
 def admin_pause_resume():
     """Toggle pause/resume override for the service. If resuming, immediately trigger a check."""
-    was_paused = bot_instance.override_paused or not bot_instance.should_run()
-    paused = bot_instance.toggle_pause_override()
+    was_paused = bot_instance.service_state == ServiceState.PAUSED or not bot_instance.should_run()
+    paused = bot_instance.toggle_pause()
     status = "paused" if paused else "resumed"
     bot_instance.log_event(f"Admin: Service {status} via web override.")
     # If we just resumed, trigger a check immediately
@@ -848,6 +850,13 @@ def admin_send_debug_log():
     except Exception as e:
         logging.error(f"Failed to send debug log: {e}")
         return f"Failed to send debug log: {e}", 500
+
+@app.route('/admin/state_history', methods=['GET'])
+def admin_state_history():
+    """Return the recent service state transition history for admin review."""
+    return jsonify({
+        'state_history': list(bot_instance.state_history)
+    })
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
