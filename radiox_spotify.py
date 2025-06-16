@@ -124,6 +124,7 @@ class RadioXBot:
         state = {
             'manual_override_active': self.manual_override_active,
             'override_paused': self.override_paused,
+            'last_duplicate_check_time': self.last_duplicate_check_time,
             # ... add other state as needed ...
         }
         with open('bot_state.json', 'w') as f:
@@ -145,6 +146,7 @@ class RadioXBot:
                 state = json.load(f)
                 self.manual_override_active = state.get('manual_override_active', False)
                 self.override_paused = state.get('override_paused', False)
+                self.last_duplicate_check_time = state.get('last_duplicate_check_time', 0)
         except FileNotFoundError:
             pass
         with self.file_lock:
