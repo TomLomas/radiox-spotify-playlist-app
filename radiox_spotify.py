@@ -758,6 +758,8 @@ def serve_react(path):
     build_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frontend', 'build'))
     static_dir = os.path.join(build_dir, 'static')
     print(f"Requested path: {path}")
+    print(f"Build directory: {build_dir}")
+    print(f"Static directory: {static_dir}")
     
     # Add cache control headers
     response_headers = {
@@ -767,10 +769,18 @@ def serve_react(path):
     }
     
     if path.startswith('static/'):
-        print(f"Serving static file: {os.path.join(static_dir, path[len('static/'):])}")
-        response = send_from_directory(static_dir, path[len('static/'):])
-        response.headers.update(response_headers)
-        return response
+        # Remove 'static/' prefix and serve from static directory
+        static_path = path[len('static/'):]
+        full_path = os.path.join(static_dir, static_path)
+        print(f"Attempting to serve static file: {full_path}")
+        if os.path.exists(full_path):
+            print(f"File exists, serving: {full_path}")
+            response = send_from_directory(static_dir, static_path)
+            response.headers.update(response_headers)
+            return response
+        else:
+            print(f"File not found: {full_path}")
+            return "File not found", 404
     elif path != "" and os.path.exists(os.path.join(build_dir, path)):
         print(f"Serving build file: {os.path.join(build_dir, path)}")
         response = send_from_directory(build_dir, path)
