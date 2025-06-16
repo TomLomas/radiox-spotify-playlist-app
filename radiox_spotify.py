@@ -37,7 +37,8 @@ SPOTIFY_PLAYLIST_ID = os.getenv("SPOTIFY_PLAYLIST_ID")
 RADIOX_STATION_SLUG = "radiox" 
 
 # Script Operation Settings
-CHECK_INTERVAL = 10  # seconds (was 120)
+CHECK_INTERVAL = 120  # seconds (restored from 10)
+logging.info(f"CHECK_INTERVAL at startup: {CHECK_INTERVAL}")
 DUPLICATE_CHECK_INTERVAL = 30 * 60 
 MAX_PLAYLIST_SIZE = 500
 MAX_FAILED_SEARCH_QUEUE_SIZE = 30 
