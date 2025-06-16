@@ -820,7 +820,8 @@ def status():
         'last_check_time': bot_instance.last_check_time,
         'is_checking': bot_instance.is_checking,
         'check_complete': bot_instance.check_complete,
-        'last_check_complete_time': bot_instance.last_check_complete_time
+        'last_check_complete_time': bot_instance.last_check_complete_time,
+        'next_check_time': datetime.datetime.fromtimestamp(bot_instance.next_check_time, pytz.timezone(TIMEZONE)).isoformat() if hasattr(bot_instance, 'next_check_time') else None
     })
 
 @app.route('/', defaults={'path': ''})

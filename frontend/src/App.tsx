@@ -32,6 +32,8 @@ const App: React.FC = () => {
   const [timer, setTimer] = useState(CHECK_INTERVAL);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const accent = theme === 'dark' ? '#9333ea' : '#22c55e';
+  const [lastCheckComplete, setLastCheckComplete] = useState<string | null>(null);
+  const [nextCheckTime, setNextCheckTime] = useState<string | null>(null);
 
   // Dark mode: toggle class on <body>
   useEffect(() => {
@@ -51,10 +53,8 @@ const App: React.FC = () => {
         setStatus(statusData);
         setStats(statsData.stats);
         setDailyAdded(statusData.daily_added || []);
-        // Reset timer only when backend check completes
-        if (statusData.last_check_complete_time) {
-          setTimer(CHECK_INTERVAL);
-        }
+        setLastCheckComplete(statusData.last_check_complete_time || null);
+        setNextCheckTime(statusData.next_check_time || null);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -64,24 +64,32 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Timer logic
+  // Timer logic: only reset when lastCheckComplete changes
   useEffect(() => {
     if (!isPlaying) return;
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      setTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      if (nextCheckTime) {
+        const now = new Date();
+        const next = new Date(nextCheckTime);
+        const diff = Math.max(0, Math.floor((next.getTime() - now.getTime()) / 1000));
+        setTimer(diff);
+      }
     }, 1000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPlaying]);
+  }, [isPlaying, nextCheckTime]);
 
-  // Reset timer when backend check completes
+  // Reset timer only when lastCheckComplete changes
   useEffect(() => {
-    if (status?.last_check_complete_time) {
-      setTimer(CHECK_INTERVAL);
+    if (lastCheckComplete && nextCheckTime) {
+      const now = new Date();
+      const next = new Date(nextCheckTime);
+      const diff = Math.max(0, Math.floor((next.getTime() - now.getTime()) / 1000));
+      setTimer(diff);
     }
-  }, [status?.last_check_complete_time]);
+  }, [lastCheckComplete, nextCheckTime]);
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -132,7 +140,11 @@ const App: React.FC = () => {
               {/* Last Song Added Card */}
               <Card className="flex-1 flex flex-col items-center justify-center p-6 min-w-[260px]">
                 <h2 className="text-xl font-semibold mb-2">Last Song Added:</h2>
-                <p className="text-2xl">{status?.last_added || 'No songs added yet'}</p>
+                <p className="text-2xl">
+                  {status?.last_song_added 
+                    ? `${status.last_song_added.radio_title} - ${status.last_song_added.radio_artist}`
+                    : 'No songs added yet'}
+                </p>
               </Card>
             </div>
 
@@ -210,11 +222,11 @@ const App: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Last Check</p>
-                      <p className="text-lg">{status?.last_check_complete_time ? new Date(status.last_check_complete_time).toLocaleString() : 'N/A'}</p>
+                      <p className="text-lg">{lastCheckComplete ? new Date(lastCheckComplete).toLocaleString() : 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Next Check</p>
-                      <p className="text-lg">{status?.next_check_time ? new Date(status.next_check_time).toLocaleString() : 'N/A'}</p>
+                      <p className="text-lg">{nextCheckTime ? new Date(nextCheckTime).toLocaleString() : 'N/A'}</p>
                     </div>
                   </div>
                 </div>
