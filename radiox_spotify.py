@@ -64,7 +64,8 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler()
+        logging.StreamHandler(),
+        logging.FileHandler('app.log', encoding='utf-8')
     ],
     force=True
 )
@@ -820,6 +821,31 @@ def admin_force_check():
     bot_instance.log_event("Admin: Manual force check triggered via web.")
     threading.Thread(target=do_force_check).start()
     return "Track check started in background. Check logs for progress."
+
+@app.route('/admin/send_debug_log', methods=['POST'])
+def admin_send_debug_log():
+    """Emails the full app.log to the configured EMAIL_RECIPIENT."""
+    try:
+        with open('app.log', 'r', encoding='utf-8') as f:
+            log_content = f.read()
+        subject = f"[RadioX Spotify] Debug Log ({datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_HOST_USER
+        msg['To'] = EMAIL_RECIPIENT
+        msg['Subject'] = subject
+        body = MIMEText("Debug log attached.", 'plain')
+        msg.attach(body)
+        attachment = MIMEText(log_content, 'plain')
+        attachment.add_header('Content-Disposition', 'attachment', filename='app.log')
+        msg.attach(attachment)
+        with smtplib.SMTP(EMAIL_HOST, int(EMAIL_PORT)) as server:
+            server.starttls()
+            server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
+            server.sendmail(EMAIL_HOST_USER, EMAIL_RECIPIENT, msg.as_string())
+        return "Debug log emailed successfully."
+    except Exception as e:
+        logging.error(f"Failed to send debug log: {e}")
+        return f"Failed to send debug log: {e}", 500
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
