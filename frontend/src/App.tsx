@@ -67,6 +67,7 @@ const App: React.FC = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchTime = useRef<number>(0);
   const isFetching = useRef<boolean>(false);
+  const targetTimeRef = useRef<number>(Date.now() + secondsUntilNextCheck * 1000);
 
   // Fetch status from backend
   const fetchStatus = useCallback(async () => {
@@ -117,7 +118,6 @@ const App: React.FC = () => {
   // Timer effect
   useEffect(() => {
     let isActive = true;
-    const targetTimeRef = useRef<number>(Date.now() + secondsUntilNextCheck * 1000);
 
     const updateTimer = () => {
       if (!isActive) return;
