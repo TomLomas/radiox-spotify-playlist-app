@@ -67,11 +67,16 @@ const App: React.FC = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const targetTimeRef = useRef<number>(Date.now() + 120000); // 120 seconds in milliseconds
   const isCheckingRef = useRef<boolean>(false);
+  const checkCompleteRef = useRef<boolean>(false);
 
   // Timer effect
   useEffect(() => {
     const updateTimer = () => {
-      if (isCheckingRef.current) return; // Don't update timer while checking
+      if (isCheckingRef.current) {
+        // If we're checking, don't update the timer
+        console.log('Timer paused - waiting for check completion');
+        return;
+      }
 
       const now = Date.now();
       const remaining = Math.max(0, Math.floor((targetTimeRef.current - now) / 1000));
@@ -79,6 +84,7 @@ const App: React.FC = () => {
 
       if (remaining === 0) {
         // Timer reached zero, wait for check completion
+        console.log('Timer reached zero - waiting for check completion');
         isCheckingRef.current = true;
         setSecondsUntilNextCheck(0);
       }
@@ -112,9 +118,13 @@ const App: React.FC = () => {
 
       // Handle check completion
       if (isCheckingRef.current && data.check_complete) {
+        console.log('Check complete received - starting new timer');
         isCheckingRef.current = false;
+        checkCompleteRef.current = true;
         targetTimeRef.current = Date.now() + 120000; // Start new 120s timer
         setSecondsUntilNextCheck(120);
+      } else if (isCheckingRef.current) {
+        console.log('Still waiting for check completion...');
       }
     } catch (error) {
       console.error('Error fetching status:', error);
@@ -122,10 +132,18 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Fetch status every 30 seconds
+  // Fetch status every 30 seconds (30000ms)
   useEffect(() => {
+    // Initial fetch
+    fetchStatus();
+    
+    // Set up interval for subsequent fetches
     const fetchInterval = setInterval(fetchStatus, 30000);
-    return () => clearInterval(fetchInterval);
+    
+    // Cleanup on unmount
+    return () => {
+      clearInterval(fetchInterval);
+    };
   }, [fetchStatus]);
 
   useEffect(() => {

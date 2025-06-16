@@ -26,15 +26,25 @@ import base64
 from dotenv import load_dotenv
 import enum
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
+
+# Reduce Werkzeug access log noise
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 # --- Flask App Setup ---
 app = Flask(__name__, 
     static_folder='frontend/build',
     static_url_path='')
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching
-
-# Reduce Werkzeug access log noise
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
 
 # --- Configuration ---
 load_dotenv()
@@ -68,15 +78,6 @@ BOLD = '\033[1m'
 RESET = '\033[0m'
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('app.log', encoding='utf-8')
-    ],
-    force=True
-)
 print("PRINT TEST: Startup reached")
 logging.info("LOGGING CONFIGURED: Startup log from main process.")
 
