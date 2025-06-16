@@ -14,7 +14,7 @@ import logging
 import re 
 import websocket 
 import threading 
-from flask import Flask, jsonify, render_template, send_from_directory
+from flask import Flask, jsonify, render_template, send_from_directory, send_file
 import datetime
 import pytz 
 import smtplib 
@@ -775,7 +775,7 @@ def serve_react(path):
         print(f"Attempting to serve static file: {full_path}")
         if os.path.exists(full_path):
             print(f"File exists, serving: {full_path}")
-            response = send_from_directory(static_dir, static_path)
+            response = send_file(full_path)
             response.headers.update(response_headers)
             return response
         else:
@@ -783,12 +783,12 @@ def serve_react(path):
             return "File not found", 404
     elif path != "" and os.path.exists(os.path.join(build_dir, path)):
         print(f"Serving build file: {os.path.join(build_dir, path)}")
-        response = send_from_directory(build_dir, path)
+        response = send_file(os.path.join(build_dir, path))
         response.headers.update(response_headers)
         return response
     else:
         print(f"Serving index.html from: {build_dir}")
-        response = send_from_directory(build_dir, 'index.html')
+        response = send_file(os.path.join(build_dir, 'index.html'))
         response.headers.update(response_headers)
         return response
 
