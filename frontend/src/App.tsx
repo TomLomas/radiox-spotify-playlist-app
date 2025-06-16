@@ -47,7 +47,7 @@ const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { accent:
 );
 
 const App: React.FC = () => {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [serviceState, setServiceState] = useState('paused');
   const [manualOverride, setManualOverride] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -195,10 +195,14 @@ const App: React.FC = () => {
             <div className="overflow-y-auto max-h-24 w-full">
               {dailyAdded.length > 0 ? (
                 <table className="w-full text-xs">
-                  <thead><tr><th className="text-left">Title</th><th className="text-left">Artist</th></tr></thead>
+                  <thead><tr><th className="text-left">Title</th><th className="text-left">Artist</th><th className="text-left">Album Art</th></tr></thead>
                   <tbody>
                     {dailyAdded.map((song, i) => (
-                      <tr key={i}><td>{song.radio_title}</td><td>{song.radio_artist}</td></tr>
+                      <tr key={i}>
+                        <td>{song.radio_title}</td>
+                        <td>{song.radio_artist}</td>
+                        <td>{song.album_art_url ? <img src={song.album_art_url} alt="Album Art" className="w-8 h-8 rounded shadow" /> : null}</td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
