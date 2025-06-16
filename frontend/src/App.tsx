@@ -88,17 +88,25 @@ const App: React.FC = () => {
   // Timer effect
   useEffect(() => {
     let isFetching = false;
+    let shouldUpdateTimer = true;
 
     const updateTimer = async () => {
+      if (!shouldUpdateTimer) return;
+
       setSecondsUntilNextCheck(prev => {
         if (prev <= 0 && !isFetching) {
           isFetching = true;
-          // When timer reaches 0, fetch status and return the new value
+          shouldUpdateTimer = false;  // Stop timer updates while fetching
+          
           fetchStatus().then(data => {
             if (data) {
               setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
             }
             isFetching = false;
+            shouldUpdateTimer = true;  // Resume timer updates after fetch
+          }).catch(() => {
+            isFetching = false;
+            shouldUpdateTimer = true;  // Resume timer updates even if fetch fails
           });
           return 0;
         }
@@ -118,6 +126,7 @@ const App: React.FC = () => {
     fetchStatus();
 
     return () => {
+      shouldUpdateTimer = false;  // Stop timer updates on cleanup
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
