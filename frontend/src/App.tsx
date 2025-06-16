@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AdminPage from './AdminPage';
 import { Song, AdminStats } from './types';
 
 // UI Components
-const Button: React.FC<{ onClick: () => void; accent: string; children: React.ReactNode }> = ({ onClick, accent, children }) => (
+const Button: React.FC<{ onClick?: () => void; accent: string; children: React.ReactNode; type?: 'button' | 'submit' | 'reset' }> = ({ onClick, accent, children, type = 'button' }) => (
   <button
     onClick={onClick}
+    type={type}
     className="px-4 py-2 rounded-lg border transition-colors"
     style={{ borderColor: accent, color: accent }}
   >
@@ -20,13 +21,24 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ cla
   </div>
 );
 
+const CHECK_INTERVAL = 120; // seconds
+
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [status, setStatus] = useState<any>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [dailyAdded, setDailyAdded] = useState<Song[]>([]);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [timer, setTimer] = useState(CHECK_INTERVAL);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const accent = theme === 'dark' ? '#9333ea' : '#22c55e';
 
+  // Dark mode: toggle class on <body>
+  useEffect(() => {
+    document.body.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
+  // Fetch status and stats
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -39,6 +51,10 @@ const App: React.FC = () => {
         setStatus(statusData);
         setStats(statsData.stats);
         setDailyAdded(statusData.daily_added || []);
+        // Reset timer only when backend check completes
+        if (statusData.last_check_complete_time) {
+          setTimer(CHECK_INTERVAL);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -48,8 +64,37 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Timer logic
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTimer((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isPlaying]);
+
+  // Reset timer when backend check completes
+  useEffect(() => {
+    if (status?.last_check_complete_time) {
+      setTimer(CHECK_INTERVAL);
+    }
+  }, [status?.last_check_complete_time]);
+
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const handlePlayPause = () => {
+    setIsPlaying((prev) => !prev);
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -57,34 +102,43 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/" element={
-          <div className="min-h-screen bg-background text-foreground">
-            <div className="container mx-auto px-4 py-8">
-              <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">Radio X Spotify Playlist</h1>
-                <div className="flex gap-4">
-                  <Button onClick={toggleTheme} accent={accent}>
-                    {theme === 'dark' ? '🌞' : '🌙'}
+          <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
+            {/* Logo */}
+            <div className="mt-8 mb-6 flex flex-col items-center">
+              <img src="/x-purple.png" alt="Radio X" className="w-24 h-24 drop-shadow-lg" />
+              <div className="flex gap-4 mt-4">
+                <Button onClick={toggleTheme} accent={accent}>
+                  {theme === 'dark' ? '🌞' : '🌙'}
+                </Button>
+                <Button onClick={() => window.location.href = '/admin'} accent={accent}>
+                  Admin Controls
+                </Button>
+              </div>
+            </div>
+
+            {/* Main Row: Playing + Last Song Added */}
+            <div className="flex flex-col md:flex-row gap-6 mb-8 w-full max-w-4xl justify-center">
+              {/* Playing Card */}
+              <Card className="flex-1 flex flex-col items-center justify-center p-6 min-w-[260px]">
+                <h2 className="text-xl font-semibold mb-2">Playing</h2>
+                <p className="text-2xl mb-4">{status?.current_song || 'Nothing playing'}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  <Button onClick={handlePlayPause} accent={accent}>
+                    {isPlaying ? '⏸ Pause' : '▶️ Play'}
                   </Button>
-                  <Button onClick={() => window.location.href = '/admin'} accent={accent}>
-                    Admin Controls
-                  </Button>
+                  <span className="text-lg font-mono">{formatTime(timer)}</span>
                 </div>
-              </div>
+              </Card>
+              {/* Last Song Added Card */}
+              <Card className="flex-1 flex flex-col items-center justify-center p-6 min-w-[260px]">
+                <h2 className="text-xl font-semibold mb-2">Last Song Added:</h2>
+                <p className="text-2xl">{status?.last_added || 'No songs added yet'}</p>
+              </Card>
+            </div>
 
-              {/* Status Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <Card className="flex flex-col items-center justify-center p-6">
-                  <h2 className="text-xl font-semibold mb-2">Playing</h2>
-                  <p className="text-2xl">{status?.current_song || 'Nothing playing'}</p>
-                </Card>
-                <Card className="flex flex-col items-center justify-center p-6">
-                  <h2 className="text-xl font-semibold mb-2">Last Song Added:</h2>
-                  <p className="text-2xl">{status?.last_added || 'No songs added yet'}</p>
-                </Card>
-              </div>
-
-              {/* Statistics Card */}
-              <Card className="mb-8 p-6">
+            {/* Statistics Card */}
+            <div className="w-full max-w-4xl mb-8">
+              <Card className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Statistics</h2>
                 {/* Performance Stats */}
                 <div>
@@ -165,8 +219,10 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </Card>
+            </div>
 
-              {/* Added Today */}
+            {/* Added Today */}
+            <div className="w-full max-w-4xl">
               <Card>
                 <h2 className="text-xl font-semibold mb-4 p-6 pb-0">Added Today</h2>
                 <div className="p-6 pt-0">
