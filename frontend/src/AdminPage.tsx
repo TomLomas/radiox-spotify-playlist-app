@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Song, AdminStats, ScriptSettings } from './types';
+import { Song, AdminStats } from './types';
 
 // UI Components
 const Button: React.FC<{ onClick?: () => void; accent: string; children: React.ReactNode; type?: 'button' | 'submit' | 'reset' }> = ({ onClick, accent, children, type = 'button' }) => (
