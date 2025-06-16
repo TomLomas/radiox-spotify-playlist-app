@@ -97,6 +97,9 @@ class RadioXBot:
         self.shutdown_summary_sent = False
         self.current_station_herald_id = None
         self.is_running = False
+        self.state_history = deque(maxlen=100)  # Track state transitions
+        self.override_reset_day = datetime.date.today()
+        self.next_check_time = time.time() + CHECK_INTERVAL
         
         # Initialize service state based on current time
         now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
@@ -106,10 +109,6 @@ class RadioXBot:
         else:
             self.service_state = ServiceState.OUT_OF_HOURS
             self.log_state_transition(self.service_state, reason="Startup outside active hours")
-            
-        self.state_history = deque(maxlen=100)  # Track state transitions
-        self.override_reset_day = datetime.date.today()
-        self.next_check_time = time.time() + CHECK_INTERVAL
 
         # Persistent Data Structures
         self.CACHE_DIR = ".cache"
