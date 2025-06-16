@@ -292,7 +292,9 @@
             </div>
         </div>
     </div>
-    <!-- Place Send DEBUG button at the very end, outside main container -->
-    <button id="send-debug-btn" style="position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#e74c3c;color:#fff;padding:10px 22px;border:none;border-radius:6px;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);z-index:1000;cursor:pointer;" onclick="adminAction('/admin/send_debug_log', 'POST', this)">Send DEBUG</button>
+    <!-- Place Send DEBUG button at the very end, after all content, not fixed -->
+    <div style="text-align:center; margin: 40px 0 20px 0;">
+        <button id="send-debug-btn" style="background:#e74c3c;color:#fff;padding:10px 22px;border:none;border-radius:6px;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);cursor:pointer;" onclick="adminAction('/admin/send_debug_log', 'POST', this)">Send DEBUG</button>
+    </div>
 </body>
 </html>
