@@ -87,26 +87,29 @@ const App: React.FC = () => {
 
   // Timer effect
   useEffect(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
+    let isFetching = false;
 
-    const updateTimer = () => {
+    const updateTimer = async () => {
       setSecondsUntilNextCheck(prev => {
-        if (prev <= 0) {
+        if (prev <= 0 && !isFetching) {
+          isFetching = true;
           // When timer reaches 0, fetch status and return the new value
-          fetchStatus().then(() => {
-            // After fetching, start a new timer with the updated value
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
+          fetchStatus().then(data => {
+            if (data) {
+              setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
             }
-            timerRef.current = setInterval(updateTimer, 1000);
+            isFetching = false;
           });
           return 0;
         }
         return prev - 1;
       });
     };
+
+    // Clear any existing interval
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
 
     // Start the timer
     timerRef.current = setInterval(updateTimer, 1000);
