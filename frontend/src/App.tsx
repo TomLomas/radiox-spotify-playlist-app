@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // Type definitions
 interface Song {
@@ -198,72 +198,93 @@ const App: React.FC = () => {
                 {lastSong.album_art_url && <img src={lastSong.album_art_url} alt="Album Art" className="w-16 h-16 mt-2 rounded shadow" />}
               </>
             ) : (
-              <div className="text-gray-400">No songs added yet today.</div>
+              <div className="text-gray-500">No songs added yet</div>
             )}
-          </Card>
-
-          {/* Songs Added Today Card */}
-          <Card accent={accent}>
-            <div className="font-bold text-lg mb-2">Songs Added Today</div>
-            <div className="text-3xl font-extrabold mb-1" style={{ color: accent }}>{dailyAdded.length}</div>
-            <div className="text-xs text-gray-500 mb-2">Unique Artists: {stats.unique_artists} | Top Artists: {stats.top_artists || 'N/A'}</div>
-            <div className="overflow-y-auto max-h-24 w-full">
-              {dailyAdded.length > 0 ? (
-                <table className="w-full text-xs">
-                  <thead><tr><th className="text-left">Title</th><th className="text-left">Artist</th><th className="text-left">Album Art</th></tr></thead>
-                  <tbody>
-                    {dailyAdded.map((song, i) => (
-                      <tr key={i}>
-                        <td>{song.radio_title}</td>
-                        <td>{song.radio_artist}</td>
-                        <td>{song.album_art_url ? <img src={song.album_art_url} alt="Album Art" className="w-8 h-8 rounded shadow" /> : null}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : <div className="text-gray-400">No songs added yet today.</div>}
-            </div>
-          </Card>
-
-          {/* Failures Today Card */}
-          <Card accent={accent3}>
-            <div className="font-bold text-lg mb-2">Failures Today</div>
-            <div className="text-3xl font-extrabold mb-1" style={{ color: accent3 }}>{dailyFailed.length}</div>
-            <div className="text-xs text-gray-500 mb-2">Most Common Failure: {stats.most_common_failure || 'N/A'}</div>
-            <div className="overflow-y-auto max-h-24 w-full">
-              {dailyFailed.length > 0 ? (
-                <table className="w-full text-xs">
-                  <thead><tr><th className="text-left">Title</th><th className="text-left">Artist</th><th className="text-left">Reason</th></tr></thead>
-                  <tbody>
-                    {dailyFailed.map((song, i) => (
-                      <tr key={i}><td>{song.radio_title}</td><td>{song.radio_artist}</td><td>{song.reason || ''}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : <div className="text-gray-400">No songs have failed today.</div>}
-            </div>
           </Card>
         </div>
 
-        {/* Admin Actions Card */}
+        {/* Stats Card */}
         <Card accent={accent2}>
-          <div className="font-bold text-lg mb-2">Admin Actions</div>
-          <div className="flex flex-wrap gap-2 justify-center">
-            <Button accent={accent2} onClick={() => adminAction('/admin/send_summary_email')}>Send Summary Email</Button>
-            <Button accent={accent2} onClick={() => adminAction('/admin/retry_failed')}>Retry Failed Songs</Button>
-            <Button accent={accent2} onClick={() => adminAction('/admin/check_duplicates')}>Check for Duplicates</Button>
-            <Button accent={accent2} onClick={() => adminAction('/admin/force_check')}>Force Check</Button>
-            <Button accent={accent2} onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</Button>
+          <div className="font-bold text-lg mb-4">Stats</div>
+          <div className="grid grid-cols-2 gap-4 w-full">
+            <div>
+              <div className="text-sm text-gray-500">Top Artist</div>
+              <div className="font-semibold">{stats.top_artists}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Unique Artists</div>
+              <div className="font-semibold">{stats.unique_artists}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Success Rate</div>
+              <div className="font-semibold">{stats.success_rate}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Most Common Failure</div>
+              <div className="font-semibold">{stats.most_common_failure}</div>
+            </div>
           </div>
         </Card>
 
-        {/* Toast Notification */}
-        {showToast && (
-          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-6 py-3 rounded-lg shadow-lg z-50">
-            {toastMsg}
+        {/* Daily Songs Grid */}
+        <div className="mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Added Songs */}
+            <Card accent={accent}>
+              <div className="font-bold text-lg mb-4">Added Today</div>
+              <div className="w-full">
+                {dailyAdded.length > 0 ? (
+                  dailyAdded.map((song, index) => (
+                    <div key={index} className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                      {song.album_art_url && (
+                        <img src={song.album_art_url} alt="Album Art" className="w-12 h-12 rounded shadow" />
+                      )}
+                      <div>
+                        <div className="font-semibold">{song.radio_title}</div>
+                        <div className="text-sm text-gray-500">{song.radio_artist}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-gray-500">No songs added today</div>
+                )}
+              </div>
+            </Card>
+
+            {/* Failed Songs */}
+            <Card accent={accent3}>
+              <div className="font-bold text-lg mb-4">Failed Today</div>
+              <div className="w-full">
+                {dailyFailed.length > 0 ? (
+                  dailyFailed.map((song, index) => (
+                    <div key={index} className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                      {song.album_art_url && (
+                        <img src={song.album_art_url} alt="Album Art" className="w-12 h-12 rounded shadow" />
+                      )}
+                      <div>
+                        <div className="font-semibold">{song.radio_title}</div>
+                        <div className="text-sm text-gray-500">{song.radio_artist}</div>
+                        {song.reason && (
+                          <div className="text-xs text-red-500 mt-1">{song.reason}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-gray-500">No failures today</div>
+                )}
+              </div>
+            </Card>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
+          {toastMsg}
+        </div>
+      )}
     </div>
   );
 };
