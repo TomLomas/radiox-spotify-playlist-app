@@ -43,7 +43,11 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { 
 );
 
 const App: React.FC = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check localStorage for saved theme preference
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark';
+  });
   const [serviceState, setServiceState] = useState('paused');
   const [manualOverride, setManualOverride] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -116,8 +120,10 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
 
@@ -156,96 +162,96 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/" element={
-          <div className={`min-h-screen w-full bg-background-light dark:bg-background-dark transition-colors duration-300`}>  
-            {/* Header with X logo and theme toggle */}
-            <div className="flex flex-col items-center mb-8">
-              <XLogo darkMode={isDarkMode} />
-              <div className="flex items-center justify-end w-full max-w-2xl">
-                <button
-                  className="border px-4 py-1 rounded-full text-sm font-semibold shadow"
-                  onClick={() => setIsDarkMode((d) => !d)}
-                  aria-label="Toggle dark mode"
-                  style={{ borderColor: accent, color: accent }}
-                >
-                  {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-                </button>
+          <div className="min-h-screen w-full bg-background-light dark:bg-background-dark transition-colors duration-300 p-8">
+            <div className="max-w-6xl mx-auto">
+              {/* Header with X logo and theme toggle */}
+              <div className="flex flex-col items-center mb-8">
+                <XLogo darkMode={isDarkMode} />
+                <div className="flex items-center justify-end w-full">
+                  <button
+                    className="border px-4 py-1 rounded-full text-sm font-semibold shadow"
+                    onClick={() => setIsDarkMode((d) => !d)}
+                    aria-label="Toggle dark mode"
+                    style={{ borderColor: accent, color: accent }}
+                  >
+                    {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Card grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {/* Service Status Card */}
-              <Card accent={accent2}>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="inline-block w-3 h-3 rounded-full" style={{ background: accent2 }}></span>
-                  <span className="font-bold text-lg">{serviceState.charAt(0).toUpperCase() + serviceState.slice(1)}</span>
-                  <span className="ml-2 text-xs text-gray-400">{manualOverride ? 'Manual Override' : ''}</span>
-                </div>
-                <div className="flex gap-2 mb-2">
-                  <Button accent={accent2} disabled={!canPlay} onClick={() => adminAction('/admin/resume')}>▶️ Play</Button>
-                  <Button accent={accent2} disabled={!canPause} onClick={() => adminAction('/admin/pause')}>⏸ Pause</Button>
-                </div>
-                <div className="text-xs text-gray-500">Next check in: <span style={{ color: accent2 }}>{min}:{sec.toString().padStart(2, '0')}</span></div>
-              </Card>
-
-              {/* Last Song Added Card */}
-              <Card accent={accent}>
-                <div className="font-bold text-lg mb-2">Last Song Added</div>
-                {lastSong ? (
-                  <>
-                    <div className="font-semibold">{lastSong.radio_title}</div>
-                    <div className="text-sm text-gray-500">{lastSong.radio_artist}</div>
-                    {lastSong.album_art_url && <img src={lastSong.album_art_url} alt="Album Art" className="w-16 h-16 mt-2 rounded shadow" />}
-                  </>
-                ) : (
-                  <div className="text-gray-500">No songs added yet</div>
-                )}
-              </Card>
-            </div>
-
-            {/* Daily Songs Grid */}
-            <div className="mt-8">
-              <div className="grid grid-cols-1 gap-6">
-                {/* Added Songs */}
+              {/* Card grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* Service Status Card */}
                 <Card accent={accent}>
-                  <div className="font-bold text-lg mb-4">Added Today</div>
-                  <div className="w-full">
-                    {dailyAdded.length > 0 ? (
-                      dailyAdded.map((song, index) => (
-                        <div key={index} className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
-                          {song.album_art_url && (
-                            <img src={song.album_art_url} alt="Album Art" className="w-12 h-12 rounded shadow" />
-                          )}
-                          <div>
-                            <div className="font-semibold">{song.radio_title}</div>
-                            <div className="text-sm text-gray-500">{song.radio_artist}</div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-gray-500">No songs added today</div>
-                    )}
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="inline-block w-3 h-3 rounded-full" style={{ background: accent }}></span>
+                    <span className="font-bold text-lg">{serviceState.charAt(0).toUpperCase() + serviceState.slice(1)}</span>
+                    <span className="ml-2 text-xs text-gray-400">{manualOverride ? 'Manual Override' : ''}</span>
                   </div>
+                  <div className="flex gap-2 mb-2">
+                    <Button accent={accent} disabled={!canPlay} onClick={() => adminAction('/admin/resume')}>▶️ Play</Button>
+                    <Button accent={accent} disabled={!canPause} onClick={() => adminAction('/admin/pause')}>⏸ Pause</Button>
+                  </div>
+                  <div className="text-xs text-gray-500">Next check in: <span style={{ color: accent }}>{min}:{sec.toString().padStart(2, '0')}</span></div>
+                </Card>
+
+                {/* Last Song Added Card */}
+                <Card accent={accent}>
+                  <div className="font-bold text-lg mb-2">Last Song Added</div>
+                  {lastSong ? (
+                    <>
+                      <div className="font-semibold">{lastSong.radio_title}</div>
+                      <div className="text-sm text-gray-500">{lastSong.radio_artist}</div>
+                      {lastSong.album_art_url && <img src={lastSong.album_art_url} alt="Album Art" className="w-16 h-16 mt-2 rounded shadow" />}
+                    </>
+                  ) : (
+                    <div className="text-gray-500">No songs added yet</div>
+                  )}
                 </Card>
               </div>
-            </div>
 
-            {/* Admin and Debug Buttons */}
-            <div className="mt-8 flex justify-center gap-4">
-              <Link to="/admin">
-                <Button accent={accent2}>Admin Controls</Button>
-              </Link>
-              <Card accent={RED} className="bg-red-50 dark:bg-red-900/20">
-                <Button accent={RED} onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</Button>
-              </Card>
-            </div>
-
-            {/* Toast Notification */}
-            {showToast && (
-              <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
-                {toastMsg}
+              {/* Daily Songs Grid */}
+              <div className="mt-8">
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Added Songs */}
+                  <Card accent={accent}>
+                    <div className="font-bold text-lg mb-4">Added Today</div>
+                    <div className="w-full">
+                      {dailyAdded.length > 0 ? (
+                        dailyAdded.map((song, index) => (
+                          <div key={index} className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                            {song.album_art_url && (
+                              <img src={song.album_art_url} alt="Album Art" className="w-12 h-12 rounded shadow" />
+                            )}
+                            <div>
+                              <div className="font-semibold">{song.radio_title}</div>
+                              <div className="text-sm text-gray-500">{song.radio_artist}</div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-500">No songs added today</div>
+                      )}
+                    </div>
+                  </Card>
+                </div>
               </div>
-            )}
+
+              {/* Admin and Debug Buttons */}
+              <div className="mt-8 flex justify-center gap-4">
+                <Link to="/admin">
+                  <Button accent={accent}>Admin Controls</Button>
+                </Link>
+                <Button accent={accent} onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</Button>
+              </div>
+
+              {/* Toast Notification */}
+              {showToast && (
+                <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
+                  {toastMsg}
+                </div>
+              )}
+            </div>
           </div>
         } />
       </Routes>
