@@ -16,11 +16,6 @@ interface Stats {
   service_paused: boolean;
   paused_reason: string;
 }
-interface StateHistoryEntry {
-  timestamp: string;
-  state: string;
-  reason: string;
-}
 
 // Accent color palettes
 const PURPLES = ['#B266C8', '#a259c6', '#c77dff', '#7c3aed', '#a21caf', '#f472b6'];
