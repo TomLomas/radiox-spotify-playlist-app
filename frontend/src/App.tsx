@@ -87,37 +87,21 @@ const App: React.FC = () => {
 
   // Timer effect
   useEffect(() => {
-    let isFetching = false;
-    let shouldUpdateTimer = true;
+    // Clear any existing interval
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
 
-    const updateTimer = async () => {
-      if (!shouldUpdateTimer) return;
-
+    const updateTimer = () => {
       setSecondsUntilNextCheck(prev => {
-        if (prev <= 0 && !isFetching) {
-          isFetching = true;
-          shouldUpdateTimer = false;  // Stop timer updates while fetching
-          
-          fetchStatus().then(data => {
-            if (data) {
-              setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
-            }
-            isFetching = false;
-            shouldUpdateTimer = true;  // Resume timer updates after fetch
-          }).catch(() => {
-            isFetching = false;
-            shouldUpdateTimer = true;  // Resume timer updates even if fetch fails
-          });
+        if (prev <= 0) {
+          // When timer reaches 0, fetch status once
+          fetchStatus();
           return 0;
         }
         return prev - 1;
       });
     };
-
-    // Clear any existing interval
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
 
     // Start the timer
     timerRef.current = setInterval(updateTimer, 1000);
@@ -126,17 +110,10 @@ const App: React.FC = () => {
     fetchStatus();
 
     return () => {
-      shouldUpdateTimer = false;  // Stop timer updates on cleanup
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
-  }, [fetchStatus]);
-
-  // Periodic status refresh (every minute)
-  useEffect(() => {
-    const interval = setInterval(fetchStatus, 60000);
-    return () => clearInterval(interval);
   }, [fetchStatus]);
 
   useEffect(() => {
