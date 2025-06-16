@@ -179,8 +179,8 @@ const App: React.FC = () => {
               <span className="ml-2 text-xs text-gray-400">{manualOverride ? 'Manual Override' : ''}</span>
             </div>
             <div className="flex gap-2 mb-2">
-              <Button accent={accent2} disabled={!canPlay} onClick={() => adminAction('/admin/pause_resume')}>▶️ Play</Button>
-              <Button accent={accent2} disabled={!canPause} onClick={() => adminAction('/admin/pause_resume')}>⏸ Pause</Button>
+              <Button accent={accent2} disabled={!canPlay} onClick={() => adminAction('/admin/resume')}>▶️ Play</Button>
+              <Button accent={accent2} disabled={!canPause} onClick={() => adminAction('/admin/pause')}>⏸ Pause</Button>
             </div>
             <div className="text-xs text-gray-500">Next check in: <span style={{ color: accent2 }}>{min}:{sec.toString().padStart(2, '0')}</span></div>
           </Card>

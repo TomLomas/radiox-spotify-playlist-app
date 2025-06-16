@@ -930,6 +930,26 @@ def admin_state_history():
         'state_history': list(bot_instance.state_history)
     })
 
+@app.route('/admin/pause', methods=['POST'])
+def admin_pause():
+    """Pause the service."""
+    if bot_instance.service_state == ServiceState.PLAYING:
+        bot_instance.set_service_state(ServiceState.PAUSED, "Admin pause")
+        bot_instance.log_event("Admin: Service paused via web override.")
+        return "Service paused."
+    return "Service already paused."
+
+@app.route('/admin/resume', methods=['POST'])
+def admin_resume():
+    """Resume the service and trigger an immediate check."""
+    if bot_instance.service_state == ServiceState.PAUSED:
+        bot_instance.set_service_state(ServiceState.PLAYING, "Admin resume")
+        bot_instance.log_event("Admin: Service resumed via web override.")
+        # Trigger a check immediately
+        threading.Thread(target=bot_instance.process_main_cycle).start()
+        return "Service resumed."
+    return "Service already running."
+
 def start_background_tasks():
     """Start background tasks in a non-daemon thread"""
     def run_bot():
