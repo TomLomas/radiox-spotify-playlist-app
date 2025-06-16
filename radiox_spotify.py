@@ -879,14 +879,6 @@ def initialize_bot():
 
 # --- Script Execution ---
 if __name__ == "__main__":
-    # This block runs for local development
-    logging.info("Script being run directly for local testing.")
-    initialize_bot()
-    if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
-        print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
-    port = int(os.environ.get("PORT", 8080)) 
-    logging.info(f"Starting Flask development server on http://0.0.0.0:{port}")
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
-else:
-    # This block runs when deployed on Gunicorn (like on Render)
-    threading.Thread(target=initialize_bot, daemon=True).start()
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
