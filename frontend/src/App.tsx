@@ -1,39 +1,59 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-type ServiceState = 'playing' | 'paused' | 'out_of_hours' | 'manual_override';
-
-type Song = {
+// Type definitions
+interface Song {
   radio_title: string;
   radio_artist: string;
   album_art_url?: string;
+  reason?: string;
   [key: string]: any;
-};
-
-type Stats = {
+}
+interface Stats {
   top_artists: string;
   unique_artists: number;
   most_common_failure: string;
   success_rate: string;
   service_paused: boolean;
   paused_reason: string;
-};
-
-type StateHistoryEntry = {
+}
+interface StateHistoryEntry {
   timestamp: string;
   state: string;
   reason: string;
-};
+}
 
-const STATES: Record<ServiceState, { label: string; color: string }> = {
-  playing: { label: 'Playing', color: 'bg-primary-light dark:bg-primary-dark' },
-  paused: { label: 'Paused', color: 'bg-yellow-500' },
-  out_of_hours: { label: 'Out of Hours', color: 'bg-gray-500' },
-  manual_override: { label: 'Manual Override', color: 'bg-purple-700' },
-};
+// Accent color palettes
+const PURPLES = ['#B266C8', '#a259c6', '#c77dff', '#7c3aed', '#a21caf', '#f472b6'];
+const GREENS = ['#1DB954', '#22c55e', '#4ade80', '#16a34a', '#bbf7d0', '#166534'];
+
+const XLogo: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
+  <img
+    src={darkMode ? '/x-purple.png' : '/x-green.png'}
+    alt="RadioX Logo"
+    className="w-16 h-16 mx-auto mb-2 drop-shadow-lg transition-all"
+    style={{ filter: darkMode ? 'drop-shadow(0 0 8px #a259c6)' : 'drop-shadow(0 0 8px #22c55e)' }}
+  />
+);
+
+const Card: React.FC<{ children: React.ReactNode; accent: string }> = ({ children, accent }) => (
+  <div className="rounded-2xl shadow-lg p-6 bg-card-light dark:bg-card-dark flex flex-col items-center border-t-4" style={{ borderColor: accent }}>
+    {children}
+  </div>
+);
+
+const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { accent: string }> = ({ accent, children, ...props }) => (
+  <button
+    {...props}
+    className={`px-4 py-2 rounded-lg font-semibold shadow transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 mb-2 mx-1`}
+    style={{ background: accent, color: '#fff', opacity: props.disabled ? 0.5 : 1 }}
+  >
+    {children}
+  </button>
+);
 
 const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [serviceState, setServiceState] = useState<ServiceState>('paused');
+  const [serviceState, setServiceState] = useState('paused');
   const [manualOverride, setManualOverride] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -71,14 +91,12 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Initial and interval fetch
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 60000);
     return () => clearInterval(interval);
   }, [fetchStatus]);
 
-  // Countdown timer
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
@@ -89,7 +107,6 @@ const App: React.FC = () => {
     };
   }, [secondsUntilNextCheck]);
 
-  // Theme toggle
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -98,7 +115,6 @@ const App: React.FC = () => {
     }
   }, [darkMode]);
 
-  // Toast helper
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
     setShowToast(true);
@@ -121,220 +137,122 @@ const App: React.FC = () => {
     }
   };
 
-  // Schedule visualization
-  const activeStart = 7.5; // 7:30
-  const activeEnd = 22; // 22:00
-  const now = new Date();
-  const nowHour = now.getHours() + now.getMinutes() / 60;
-  const percentStart = (activeStart / 24) * 100;
-  const percentEnd = (activeEnd / 24) * 100;
-  const percentNow = (nowHour / 24) * 100;
+  // Accent color selection
+  const accent = darkMode ? PURPLES[0] : GREENS[0];
+  const accent2 = darkMode ? PURPLES[2] : GREENS[2];
+  const accent3 = darkMode ? PURPLES[4] : GREENS[4];
 
   // Timer display
   const min = Math.floor(secondsUntilNextCheck / 60);
   const sec = secondsUntilNextCheck % 60;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start py-8 px-2 bg-background-light dark:bg-background-dark transition-colors">
-      <div className="container mx-auto max-w-4xl bg-card-light dark:bg-card-dark rounded-xl shadow-lg p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="logo-x text-3xl font-bold tracking-widest select-none">RadioX</div>
-          <button
-            className="theme-switcher border px-4 py-1 rounded-full text-sm"
-            onClick={() => setDarkMode((d) => !d)}
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? 'Light Mode' : 'Dark Mode'}
-          </button>
-        </div>
-
-        {/* State Indicator */}
-        <div className="state-indicator mb-4">
-          <span className={`state-dot ${STATES[serviceState].color}`}></span>
-          <span className="state-label">{STATES[serviceState].label}</span>
-          <button className="history-btn ml-3" onClick={() => setShowHistory(true)}>
-            View State History
-          </button>
-        </div>
-
-        {/* Controls */}
-        <div className="controls mb-6">
-          <button
-            className="control-btn mr-2"
-            disabled={!canPlay}
-            title={canPlay ? 'Resume Service' : 'Cannot resume now'}
-            onClick={() => adminAction('/admin/pause_resume')}
-          >
-            <span role="img" aria-label="Play">▶️</span>
-          </button>
-          <button
-            className="control-btn"
-            disabled={!canPause}
-            title={canPause ? 'Pause Service' : 'Cannot pause now'}
-            onClick={() => adminAction('/admin/pause_resume')}
-          >
-            <span role="img" aria-label="Pause">⏸️</span>
-          </button>
-          <div className="manual-override">
-            <span className="text-sm">Manual Override</span>
-            <div
-              className={`manual-toggle ${manualOverride ? 'active' : ''}`}
-              tabIndex={0}
-              role="button"
-              aria-pressed={manualOverride}
-              onClick={() => adminAction('/admin/pause_resume')}
+    <div className={`min-h-screen w-full bg-background-light dark:bg-background-dark transition-colors duration-300`}>  
+      <div className="max-w-5xl mx-auto py-8 px-2">
+        {/* Header with X logo and theme toggle */}
+        <div className="flex flex-col items-center mb-8">
+          <XLogo darkMode={darkMode} />
+          <div className="flex items-center justify-between w-full max-w-2xl">
+            <h1 className="text-4xl font-extrabold tracking-widest" style={{ color: accent }}>RadioX</h1>
+            <button
+              className="border px-4 py-1 rounded-full text-sm font-semibold shadow"
+              onClick={() => setDarkMode((d) => !d)}
+              aria-label="Toggle dark mode"
+              style={{ borderColor: accent, color: accent }}
             >
-              <div className="manual-toggle-knob"></div>
+              {darkMode ? 'Light Mode' : 'Dark Mode'}
+            </button>
+          </div>
+        </div>
+
+        {/* Card grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Service Status Card */}
+          <Card accent={accent}>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="inline-block w-3 h-3 rounded-full" style={{ background: accent2 }}></span>
+              <span className="font-bold text-lg">{serviceState.charAt(0).toUpperCase() + serviceState.slice(1)}</span>
+              <span className="ml-2 text-xs text-gray-400">{manualOverride ? 'Manual Override' : ''}</span>
             </div>
-          </div>
+            <div className="flex gap-2 mb-2">
+              <Button accent={accent2} disabled={!canPlay} onClick={() => adminAction('/admin/pause_resume')}>▶️ Play</Button>
+              <Button accent={accent2} disabled={!canPause} onClick={() => adminAction('/admin/pause_resume')}>⏸ Pause</Button>
+            </div>
+            <div className="text-xs text-gray-500">Next check in: <span style={{ color: accent2 }}>{min}:{sec.toString().padStart(2, '0')}</span></div>
+          </Card>
+
+          {/* Last Song Added Card */}
+          <Card accent={accent3}>
+            <div className="font-bold text-lg mb-2">Last Song Added</div>
+            {lastSong ? (
+              <>
+                <div className="font-semibold">{lastSong.radio_title}</div>
+                <div className="text-sm text-gray-500">{lastSong.radio_artist}</div>
+                {lastSong.album_art_url && <img src={lastSong.album_art_url} alt="Album Art" className="w-16 h-16 mt-2 rounded shadow" />}
+              </>
+            ) : (
+              <div className="text-gray-400">No songs added yet today.</div>
+            )}
+          </Card>
+
+          {/* Songs Added Today Card */}
+          <Card accent={accent}>
+            <div className="font-bold text-lg mb-2">Songs Added Today</div>
+            <div className="text-3xl font-extrabold mb-1" style={{ color: accent }}>{dailyAdded.length}</div>
+            <div className="text-xs text-gray-500 mb-2">Unique Artists: {stats.unique_artists} | Top Artists: {stats.top_artists || 'N/A'}</div>
+            <div className="overflow-y-auto max-h-24 w-full">
+              {dailyAdded.length > 0 ? (
+                <table className="w-full text-xs">
+                  <thead><tr><th className="text-left">Title</th><th className="text-left">Artist</th></tr></thead>
+                  <tbody>
+                    {dailyAdded.map((song, i) => (
+                      <tr key={i}><td>{song.radio_title}</td><td>{song.radio_artist}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : <div className="text-gray-400">No songs added yet today.</div>}
+            </div>
+          </Card>
+
+          {/* Failures Today Card */}
+          <Card accent={accent3}>
+            <div className="font-bold text-lg mb-2">Failures Today</div>
+            <div className="text-3xl font-extrabold mb-1" style={{ color: accent3 }}>{dailyFailed.length}</div>
+            <div className="text-xs text-gray-500 mb-2">Most Common Failure: {stats.most_common_failure || 'N/A'}</div>
+            <div className="overflow-y-auto max-h-24 w-full">
+              {dailyFailed.length > 0 ? (
+                <table className="w-full text-xs">
+                  <thead><tr><th className="text-left">Title</th><th className="text-left">Artist</th><th className="text-left">Reason</th></tr></thead>
+                  <tbody>
+                    {dailyFailed.map((song, i) => (
+                      <tr key={i}><td>{song.radio_title}</td><td>{song.radio_artist}</td><td>{song.reason || ''}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : <div className="text-gray-400">No songs have failed today.</div>}
+            </div>
+          </Card>
         </div>
 
-        {/* Schedule Visualization */}
-        <div className="schedule mb-6">
-          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>00:00</span>
-            <span>Active: 07:30–22:00</span>
-            <span>24:00</span>
+        {/* Admin Actions Card */}
+        <Card accent={accent2}>
+          <div className="font-bold text-lg mb-2">Admin Actions</div>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <Button accent={accent2} onClick={() => adminAction('/admin/send_summary_email')}>Send Summary Email</Button>
+            <Button accent={accent2} onClick={() => adminAction('/admin/retry_failed')}>Retry Failed Songs</Button>
+            <Button accent={accent2} onClick={() => adminAction('/admin/check_duplicates')}>Check for Duplicates</Button>
+            <Button accent={accent2} onClick={() => adminAction('/admin/force_check')}>Force Check</Button>
+            <Button accent={accent2} onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</Button>
           </div>
-          <div className="schedule-bar relative mt-1">
-            <div
-              className="schedule-active absolute top-0 h-full rounded-lg"
-              style={{ left: `${percentStart}%`, width: `${percentEnd - percentStart}%` }}
-            ></div>
-            <div
-              className="absolute top-0 h-full border-l-2 border-primary-light dark:border-primary-dark"
-              style={{ left: `${percentNow}%`, height: '100%' }}
-            ></div>
-          </div>
-        </div>
+        </Card>
 
-        {/* Countdown Timer */}
-        <div className="mb-6 text-center text-lg font-semibold text-primary-light dark:text-primary-dark">
-          Next check in: {min}:{sec.toString().padStart(2, '0')}
-        </div>
-
-        {/* Last Song Added */}
-        <div className="mb-6 flex items-center gap-4">
-          <img
-            src={lastSong?.album_art_url || 'https://placehold.co/64x64/2b2b2b/f1f1f1?text=?'}
-            alt="Album Art"
-            className="w-16 h-16 rounded"
-          />
-          <div>
-            <div className="font-bold">Last Song Added:</div>
-            <div className="text-lg">{lastSong ? `${lastSong.radio_title}` : 'No songs added yet today.'}</div>
-            <div className="text-gray-500 dark:text-gray-400">{lastSong ? lastSong.radio_artist : ''}</div>
+        {/* Toast Notification */}
+        {showToast && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+            {toastMsg}
           </div>
-        </div>
-
-        {/* Stats & Analytics */}
-        <div className="stats grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="card">
-            <div className="font-semibold mb-2">Songs Added Today</div>
-            <div className="text-3xl font-bold">{dailyAdded.length}</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Unique Artists: {stats.unique_artists}</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Top Artists: {stats.top_artists}</div>
-          </div>
-          <div className="card">
-            <div className="font-semibold mb-2">Failures Today</div>
-            <div className="text-3xl font-bold">{dailyFailed.length}</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Most Common Failure: {stats.most_common_failure}</div>
-          </div>
-        </div>
-
-        {/* Songs Added Table */}
-        <div className="card mb-6">
-          <div className="font-semibold mb-2">Songs Added Today ({dailyAdded.length})</div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="px-2 py-1 text-left">Title</th>
-                  <th className="px-2 py-1 text-left">Artist</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dailyAdded.length > 0 ? (
-                  dailyAdded.map((song, idx) => (
-                    <tr key={idx} className="border-b border-border-light dark:border-border-dark">
-                      <td className="px-2 py-1">{song.radio_title}</td>
-                      <td className="px-2 py-1">{song.radio_artist}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr><td colSpan={2}>No songs added yet today.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Failed Songs Table */}
-        <div className="card mb-6">
-          <div className="font-semibold mb-2">Songs That Failed Today ({dailyFailed.length})</div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="px-2 py-1 text-left">Title</th>
-                  <th className="px-2 py-1 text-left">Artist</th>
-                  <th className="px-2 py-1 text-left">Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dailyFailed.length > 0 ? (
-                  dailyFailed.map((song, idx) => (
-                    <tr key={idx} className="border-b border-border-light dark:border-border-dark">
-                      <td className="px-2 py-1">{song.radio_title}</td>
-                      <td className="px-2 py-1">{song.radio_artist}</td>
-                      <td className="px-2 py-1">{song.reason}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr><td colSpan={3}>No songs have failed today.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Admin Panel */}
-        <div className="admin-panel">
-          <div className="font-semibold mb-2">Admin Actions</div>
-          <div className="admin-actions">
-            <button className="admin-btn" onClick={() => adminAction('/admin/send_summary')}>Send Summary Email</button>
-            <button className="admin-btn" onClick={() => adminAction('/admin/retry_failed')}>Retry Failed Songs</button>
-            <button className="admin-btn" onClick={() => adminAction('/admin/force_duplicates')}>Check for Duplicates</button>
-            <button className="admin-btn" onClick={() => adminAction('/admin/force_check')}>Force Check</button>
-            <button className="admin-btn" onClick={() => adminAction('/admin/send_debug_log')}>Send Debug Log</button>
-          </div>
-        </div>
+        )}
       </div>
-
-      {/* Toast Notification */}
-      <div className={`toast fixed z-50 left-1/2 bottom-10 px-6 py-3 rounded bg-gray-800 text-white text-center shadow-lg transition-all ${showToast ? 'show' : ''}`}>{toastMsg}</div>
-
-      {/* State History Modal */}
-      {showHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-card-dark rounded-lg shadow-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <div className="font-bold text-lg">State Transition History</div>
-              <button className="text-xl" onClick={() => setShowHistory(false)} aria-label="Close">×</button>
-            </div>
-            <ul className="space-y-2 max-h-64 overflow-y-auto">
-              {stateHistory.map((entry, idx) => (
-                <li key={idx} className="flex flex-col border-b border-border-light dark:border-border-dark pb-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{entry.timestamp}</span>
-                  <span className="font-semibold">{STATES[entry.state as ServiceState]?.label || entry.state}</span>
-                  <span className="text-xs text-gray-400">{entry.reason}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
