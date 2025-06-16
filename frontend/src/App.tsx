@@ -96,10 +96,6 @@ const App: React.FC = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
-  const handlePlayPause = () => {
-    setIsPlaying((prev) => !prev);
-  };
-
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
