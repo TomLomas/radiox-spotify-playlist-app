@@ -751,7 +751,10 @@ def status():
 @app.route('/<path:path>')
 def serve_react(path):
     build_dir = os.path.join(os.path.dirname(__file__), 'frontend', 'build')
-    if path != "" and os.path.exists(os.path.join(build_dir, path)):
+    static_dir = os.path.join(build_dir, 'static')
+    if path.startswith('static/'):
+        return send_from_directory(static_dir, path[len('static/'):])
+    elif path != "" and os.path.exists(os.path.join(build_dir, path)):
         return send_from_directory(build_dir, path)
     else:
         return send_from_directory(build_dir, 'index.html')
