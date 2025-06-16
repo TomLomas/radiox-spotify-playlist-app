@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Song } from './types';
 
 // UI Components
-const Button: React.FC<{ onClick?: () => void; accent: string; children: React.ReactNode; type?: 'button' | 'submit' | 'reset'; disabled?: boolean }> = ({ onClick, accent, children, type = 'button', disabled }) => (
+const Button: React.FC<{ onClick?: () => void; accent: string; children: React.ReactNode; type?: 'button' | 'submit' | 'reset'; disabled?: boolean; className?: string }> = ({ onClick, accent, children, type = 'button', disabled, className }) => (
   <button
     onClick={onClick}
     type={type}
-    className="px-4 py-2 rounded-lg border transition-colors"
+    className={`px-4 py-2 rounded-lg border transition-colors ${className || ''}`}
     style={{ borderColor: accent, color: accent }}
     disabled={disabled}
   >
