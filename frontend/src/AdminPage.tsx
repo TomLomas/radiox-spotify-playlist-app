@@ -43,6 +43,12 @@ const AdminPage: React.FC = () => {
         const statsRes = await fetch('/admin/stats');
         const statsData = await statsRes.json();
         setFailedSongs(statsData.daily_failed || []);
+        // Fetch real script settings
+        const settingsRes = await fetch('/admin/settings');
+        const settingsData = await settingsRes.json();
+        setCheckInterval(settingsData.check_interval);
+        setDuplicateCheckInterval(settingsData.duplicate_check_interval);
+        setMaxPlaylistSize(settingsData.max_playlist_size);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
