@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Song, AdminStats, ScriptSettings } from './types';
 
 // UI Components
-const Button: React.FC<{ onClick: () => void; accent: string; children: React.ReactNode }> = ({ onClick, accent, children }) => (
+const Button: React.FC<{ onClick?: () => void; accent: string; children: React.ReactNode; type?: 'button' | 'submit' | 'reset' }> = ({ onClick, accent, children, type = 'button' }) => (
   <button
     onClick={onClick}
+    type={type}
     className="px-4 py-2 rounded-lg border transition-colors"
     style={{ borderColor: accent, color: accent }}
   >
@@ -160,7 +161,7 @@ const AdminPage: React.FC = () => {
                 required
               />
             </div>
-            <Button onClick={handleSubmit} accent={accent}>
+            <Button type="submit" accent={accent}>
               Save Settings
             </Button>
           </form>
