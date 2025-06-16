@@ -68,48 +68,37 @@ const App: React.FC = () => {
   const lastFetchTime = useRef<number>(0);
   const isFetching = useRef<boolean>(false);
   const targetTimeRef = useRef<number>(Date.now() + secondsUntilNextCheck * 1000);
+  const lastCheckTimeRef = useRef<number>(0);
 
   // Fetch status from backend
   const fetchStatus = useCallback(async () => {
-    const now = Date.now();
-    // Prevent fetching more often than every 5 seconds or if already fetching
-    if (now - lastFetchTime.current < 5000 || isFetching.current) {
-      return null;
-    }
-
+    if (isFetching.current) return;
     isFetching.current = true;
-    lastFetchTime.current = now;
 
     try {
-      const res = await fetch('/status');
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const data = await res.json();
+      const response = await fetch('/status');
+      if (!response.ok) throw new Error('Failed to fetch status');
+      const data = await response.json();
       
-      // Batch state updates
+      // Update state with new data
       setServiceState(data.service_state);
-      setStats(data.stats || {});
-      setDailyAdded(data.daily_added || []);
-      setDailyFailed(data.daily_failed || []);
+      setStats(data.stats);
+      setDailyAdded(data.daily_added);
+      setDailyFailed(data.daily_failed);
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
-      
-      // Only update timer if we get a new value from backend
-      if (data.seconds_until_next_check !== undefined) {
-        setSecondsUntilNextCheck(data.seconds_until_next_check);
+      setSecondsUntilNextCheck(data.seconds_until_next_check);
+
+      // If we're checking or just started a check, update the timer
+      if (data.is_checking || data.last_check_time !== lastCheckTimeRef.current) {
+        lastCheckTimeRef.current = data.last_check_time;
+        targetTimeRef.current = Date.now() + data.seconds_until_next_check * 1000;
       }
-      
-      return data;
-    } catch (e) {
-      console.error('Status fetch failed:', e);
-      triggerToast('Failed to fetch status from backend');
-      // On error, retry after 5 seconds
-      setTimeout(() => {
-        isFetching.current = false;
-        fetchStatus();
-      }, 5000);
-      return null;
+
+      lastFetchTime.current = Date.now();
+    } catch (error) {
+      console.error('Error fetching status:', error);
+      triggerToast('Failed to fetch status');
     } finally {
       isFetching.current = false;
     }
@@ -129,22 +118,12 @@ const App: React.FC = () => {
 
       // If we're at 0, trigger a fetch and reset the timer
       if (remaining === 0 && Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
-        fetchStatus().then(data => {
-          if (data && data.seconds_until_next_check !== undefined) {
-            targetTimeRef.current = Date.now() + data.seconds_until_next_check * 1000;
-            setSecondsUntilNextCheck(data.seconds_until_next_check);
-          }
-        });
+        fetchStatus();
       }
     };
 
     // Initial fetch
-    fetchStatus().then(data => {
-      if (data && data.seconds_until_next_check !== undefined) {
-        targetTimeRef.current = Date.now() + data.seconds_until_next_check * 1000;
-        setSecondsUntilNextCheck(data.seconds_until_next_check);
-      }
-    });
+    fetchStatus();
 
     // Set up interval for timer updates
     const intervalId = setInterval(updateTimer, 1000); // Update every second
