@@ -78,8 +78,10 @@ const App: React.FC = () => {
       setLastSong(data.last_song_added || null);
       setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
       setManualOverride(data.service_state === 'manual_override');
+      return data;
     } catch (e) {
       triggerToast('Failed to fetch status from backend');
+      return null;
     }
   }, []);
 
@@ -92,8 +94,14 @@ const App: React.FC = () => {
     const updateTimer = () => {
       setSecondsUntilNextCheck(prev => {
         if (prev <= 0) {
-          // When timer reaches 0, fetch status immediately
-          fetchStatus();
+          // When timer reaches 0, fetch status and return the new value
+          fetchStatus().then(() => {
+            // After fetching, start a new timer with the updated value
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+            }
+            timerRef.current = setInterval(updateTimer, 1000);
+          });
           return 0;
         }
         return prev - 1;
