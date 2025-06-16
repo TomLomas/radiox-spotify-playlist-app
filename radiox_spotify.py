@@ -693,9 +693,14 @@ def force_diagnostics():
     threading.Thread(target=bot_instance.run_startup_diagnostics, kwargs={'send_email': True}).start()
     return "Diagnostic check has been triggered. Results will be emailed shortly."
 
+@app.route('/test')
+def test():
+    print("TEST ENDPOINT HIT")
+    return jsonify({"message": "API routing works!"})
+
 @app.route('/status')
 def status():
-    """Returns the current status for the web UI, reading state from files for consistency."""
+    print("STATUS ENDPOINT HIT")
     try:
         with bot_instance.file_lock:
             with open(bot_instance.DAILY_ADDED_CACHE_FILE, 'r') as f: daily_added = json.load(f)
