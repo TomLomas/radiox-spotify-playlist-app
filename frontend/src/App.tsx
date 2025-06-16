@@ -142,7 +142,7 @@ const App: React.FC = () => {
     fetchStatus();
 
     // Set up interval for timer updates
-    const intervalId = setInterval(updateTimer, 100); // Update more frequently for smoother countdown
+    const intervalId = setInterval(updateTimer, 1000); // Update every second
     timerRef.current = intervalId;
 
     return () => {
