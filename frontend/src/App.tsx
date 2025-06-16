@@ -65,17 +65,38 @@ const App: React.FC = () => {
   const [lastSong, setLastSong] = useState<Song | null>(null);
   const [secondsUntilNextCheck, setSecondsUntilNextCheck] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastFetchTime = useRef<number>(0);
-  const isFetching = useRef<boolean>(false);
-  const targetTimeRef = useRef<number>(Date.now() + secondsUntilNextCheck * 1000);
-  const lastCheckTimeRef = useRef<number>(0);
-  const checkCompleteRef = useRef<boolean>(true);
+  const targetTimeRef = useRef<number>(Date.now() + 120000); // 120 seconds in milliseconds
+  const isCheckingRef = useRef<boolean>(false);
+
+  // Timer effect
+  useEffect(() => {
+    const updateTimer = () => {
+      if (isCheckingRef.current) return; // Don't update timer while checking
+
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((targetTimeRef.current - now) / 1000));
+      setSecondsUntilNextCheck(remaining);
+
+      if (remaining === 0) {
+        // Timer reached zero, wait for check completion
+        isCheckingRef.current = true;
+        setSecondsUntilNextCheck(0);
+      }
+    };
+
+    // Set up interval for timer updates
+    const intervalId = setInterval(updateTimer, 1000);
+    timerRef.current = intervalId;
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []); // Empty dependency array since we only want to set up the timer once
 
   // Fetch status from backend
   const fetchStatus = useCallback(async () => {
-    if (isFetching.current) return;
-    isFetching.current = true;
-
     try {
       const response = await fetch('/status');
       if (!response.ok) throw new Error('Failed to fetch status');
@@ -89,62 +110,22 @@ const App: React.FC = () => {
       setLastSong(data.last_song_added || null);
       setManualOverride(data.service_state === 'manual_override');
 
-      // Handle timer state
-      if (data.is_checking) {
-        // If a check is in progress, pause the timer
-        setSecondsUntilNextCheck(0);
-        checkCompleteRef.current = false;
-      } else if (!checkCompleteRef.current && data.check_complete) {
-        // If the check just completed, start a new timer
-        checkCompleteRef.current = true;
-        targetTimeRef.current = Date.now() + data.seconds_until_next_check * 1000;
-        setSecondsUntilNextCheck(data.seconds_until_next_check);
-      } else if (checkCompleteRef.current) {
-        // If we're in a normal countdown, update the timer
-        setSecondsUntilNextCheck(data.seconds_until_next_check);
+      // Handle check completion
+      if (isCheckingRef.current && data.check_complete) {
+        isCheckingRef.current = false;
+        targetTimeRef.current = Date.now() + 120000; // Start new 120s timer
+        setSecondsUntilNextCheck(120);
       }
-
-      lastFetchTime.current = Date.now();
     } catch (error) {
       console.error('Error fetching status:', error);
       triggerToast('Failed to fetch status');
-    } finally {
-      isFetching.current = false;
     }
   }, []);
 
-  // Timer effect
+  // Fetch status every 30 seconds
   useEffect(() => {
-    let isActive = true;
-
-    const updateTimer = () => {
-      if (!isActive) return;
-
-      // Only update timer if we're not checking
-      if (checkCompleteRef.current) {
-        const now = Date.now();
-        const remaining = Math.max(0, Math.floor((targetTimeRef.current - now) / 1000));
-
-        setSecondsUntilNextCheck(remaining);
-
-        // If we're at 0, trigger a fetch
-        if (remaining === 0 && Date.now() - lastFetchTime.current >= 5000 && !isFetching.current) {
-          fetchStatus();
-        }
-      }
-    };
-
-    // Initial fetch
-    fetchStatus();
-
-    // Set up interval for timer updates
-    const intervalId = setInterval(updateTimer, 1000); // Update every second
-    timerRef.current = intervalId;
-
-    return () => {
-      isActive = false;
-      clearInterval(intervalId);
-    };
+    const fetchInterval = setInterval(fetchStatus, 30000);
+    return () => clearInterval(fetchInterval);
   }, [fetchStatus]);
 
   useEffect(() => {
