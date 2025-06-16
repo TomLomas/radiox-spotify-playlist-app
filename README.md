@@ -75,6 +75,42 @@ A new modern frontend is now located in the `frontend/` directory. It uses React
   ```
 - Ensure Flask is configured to serve the built static files from `frontend/build`.
 
+## 🚀 Deploying to Render (Web + Worker)
+
+This app uses a two-process architecture for reliability:
+- **Web Service**: Serves the Flask API and React frontend
+- **Background Worker**: Runs the RadioXBot main loop (playlist checks)
+
+### 1. Push your changes to GitHub
+
+### 2. Deploy on Render
+- Go to [Render.com](https://render.com/)
+- Click "New +" → "Blueprint" and connect your repo
+- Render will detect `render.yaml` and set up both services:
+  - `radiox-spotify-web` (web service)
+  - `radiox-spotify-bot-worker` (background worker)
+- Both will share the same environment and dependencies
+
+### 3. Confirm both services are running
+- The web service should serve the dashboard and API
+- The worker should log main loop activity (playlist checks)
+
+### 4. Troubleshooting
+- If the worker is not running, check its logs for errors
+- Make sure both services are on the same branch (e.g., `beta`)
+
+---
+
+For local development, you can still run the Flask app and the bot loop separately:
+
+```sh
+# Terminal 1: Flask API (for frontend)
+flask run
+
+# Terminal 2: Main loop
+python run_bot.py
+```
+
 ## Changelog
 
 ### v7.0-beta
