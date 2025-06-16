@@ -92,17 +92,19 @@ const App: React.FC = () => {
     const updateTimer = () => {
       setSecondsUntilNextCheck(prev => {
         if (prev <= 0) {
-          // When timer reaches 0, wait 5 seconds then refresh
-          setTimeout(() => {
-            fetchStatus();
-          }, 5000);
+          // When timer reaches 0, fetch status immediately
+          fetchStatus();
           return 0;
         }
         return prev - 1;
       });
     };
 
+    // Start the timer
     timerRef.current = setInterval(updateTimer, 1000);
+
+    // Initial fetch
+    fetchStatus();
 
     return () => {
       if (timerRef.current) {
@@ -111,9 +113,8 @@ const App: React.FC = () => {
     };
   }, [fetchStatus]);
 
-  // Initial fetch and periodic refresh
+  // Periodic status refresh (every minute)
   useEffect(() => {
-    fetchStatus();
     const interval = setInterval(fetchStatus, 60000);
     return () => clearInterval(interval);
   }, [fetchStatus]);

@@ -688,6 +688,7 @@ class RadioXBot:
         if current_time - self.last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
             self.check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID); self.last_duplicate_check_time = current_time
         
+        self.update_next_check_time()  # Update the next check time after processing
         self.save_state()
 
 
