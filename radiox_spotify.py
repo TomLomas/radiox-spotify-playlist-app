@@ -60,7 +60,15 @@ BOLD = '\033[1m'
 RESET = '\033[0m'
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[logging.StreamHandler(), logging.FileHandler('app.log', encoding='utf-8')])
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Console (stdout)
+        logging.FileHandler('app.log', encoding='utf-8')
+    ]
+)
+logging.info("LOGGING CONFIGURED: Startup log from main process.")
 
 # --- Main Application Class ---
 
@@ -612,7 +620,7 @@ class RadioXBot:
 
     # --- Main Application Loop ---
     def run(self):
-        """Main monitoring loop. Checks for new tracks at intervals if should_run() is True."""
+        logging.info("[Main Loop] Entered run() method. Main loop starting.")
         while True:
             self.load_state()  # Always reload state at the start of each tick
             now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
