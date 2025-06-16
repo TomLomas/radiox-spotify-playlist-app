@@ -149,7 +149,7 @@ const App: React.FC = () => {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [fetchStatus]);
+  }, [fetchStatus, secondsUntilNextCheck]);
 
   useEffect(() => {
     if (darkMode) {
