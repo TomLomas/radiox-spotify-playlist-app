@@ -149,8 +149,8 @@ const App: React.FC = () => {
     }
   };
 
-  // Accent color selection
-  const accent = '#1DB954';  // Spotify green
+  // Dynamic accent color based on theme
+  const accent = isDarkMode ? '#a259c6' : '#1DB954';
   const accent2 = '#FF6B6B'; // Coral red
 
   // Timer display
