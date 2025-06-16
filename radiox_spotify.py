@@ -724,7 +724,6 @@ def test():
 
 @app.route('/status')
 def status():
-    print("STATUS ENDPOINT HIT")
     try:
         with bot_instance.file_lock:
             with open(bot_instance.DAILY_ADDED_CACHE_FILE, 'r') as f: daily_added = json.load(f)
