@@ -91,13 +91,23 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setSecondsUntilNextCheck((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
+    
+    if (secondsUntilNextCheck > 0) {
+      timerRef.current = setInterval(() => {
+        setSecondsUntilNextCheck((s) => (s > 0 ? s - 1 : 0));
+      }, 1000);
+    } else {
+      // When countdown reaches 0, wait 5 seconds then refresh
+      const refreshTimeout = setTimeout(() => {
+        fetchStatus();
+      }, 5000);
+      return () => clearTimeout(refreshTimeout);
+    }
+    
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [secondsUntilNextCheck]);
+  }, [secondsUntilNextCheck, fetchStatus]);
 
   useEffect(() => {
     if (darkMode) {
