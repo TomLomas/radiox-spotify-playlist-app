@@ -76,7 +76,6 @@ const App: React.FC = () => {
       setDailyAdded(data.daily_added || []);
       setDailyFailed(data.daily_failed || []);
       setLastSong(data.last_song_added || null);
-      setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
       setManualOverride(data.service_state === 'manual_override');
       return data;
     } catch (e) {
@@ -95,8 +94,12 @@ const App: React.FC = () => {
     const updateTimer = () => {
       setSecondsUntilNextCheck(prev => {
         if (prev <= 0) {
-          // When timer reaches 0, fetch status once
-          fetchStatus();
+          // When timer reaches 0, fetch status and return the new value
+          fetchStatus().then(data => {
+            if (data) {
+              setSecondsUntilNextCheck(data.seconds_until_next_check || 0);
+            }
+          });
           return 0;
         }
         return prev - 1;
