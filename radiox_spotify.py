@@ -655,9 +655,11 @@ class RadioXBot:
         """Set the next check time to now + CHECK_INTERVAL."""
         current_time = time.time()
         self.next_check_time = current_time + CHECK_INTERVAL
-        self.last_check_complete_time = current_time  # Update last check complete time
-        self.check_complete = True  # Ensure check is marked as complete
-        self.is_checking = False  # Ensure checking flag is reset
+        self.last_check_complete_time = current_time
+        self.check_complete = True
+        self.is_checking = False
+        logging.info(f"[Timer] Updated next check time: {datetime.datetime.fromtimestamp(self.next_check_time).strftime('%H:%M:%S')}")
+        logging.info(f"[Timer] Last check complete time: {datetime.datetime.fromtimestamp(self.last_check_complete_time).strftime('%H:%M:%S')}")
 
     def get_seconds_until_next_check(self):
         """Return seconds until the next scheduled check."""
@@ -692,6 +694,7 @@ class RadioXBot:
         self.is_checking = True
         self.check_complete = False
         self.last_check_time = time.time()
+        logging.info(f"[Timer] Starting check at {datetime.datetime.fromtimestamp(self.last_check_time).strftime('%H:%M:%S')}")
         
         current_song_info = self.get_current_radiox_song(self.current_station_herald_id)
         song_added = False
@@ -713,11 +716,13 @@ class RadioXBot:
         if current_time - self.last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
             self.check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID); self.last_duplicate_check_time = current_time
         
-        self.update_next_check_time()  # Update the next check time after processing
-        self.save_state()
         self.is_checking = False
         self.check_complete = True
-        self.last_check_complete_time = time.time()  # Set when check completes
+        self.last_check_complete_time = time.time()
+        logging.info(f"[Timer] Check completed at {datetime.datetime.fromtimestamp(self.last_check_complete_time).strftime('%H:%M:%S')}")
+        
+        self.update_next_check_time()
+        self.save_state()
 
 
 # --- Flask Routes & Script Execution ---
@@ -796,6 +801,9 @@ def status():
     if seconds_until_next_check == 0:
         bot_instance.update_next_check_time()
         seconds_until_next_check = bot_instance.get_seconds_until_next_check()
+    
+    logging.info(f"[Timer] Status endpoint - seconds until next check: {seconds_until_next_check}")
+    logging.info(f"[Timer] Status endpoint - last check complete time: {datetime.datetime.fromtimestamp(bot_instance.last_check_complete_time).strftime('%H:%M:%S')}")
 
     return jsonify({
         'last_song_added': daily_added[-1] if daily_added else None,

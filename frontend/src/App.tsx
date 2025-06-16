@@ -53,12 +53,16 @@ const App: React.FC = () => {
 
   // Timer effect: recalculate remaining time based on backend's last_check_complete_time
   useEffect(() => {
-    if (!lastCheckCompleteTime) return;
+    if (!lastCheckCompleteTime) {
+      console.log('[Timer] No last check complete time available');
+      return;
+    }
     
     const updateTimer = () => {
       const now = Date.now() / 1000;
       const elapsed = now - lastCheckCompleteTime;
       const remaining = Math.max(0, Math.ceil(CHECK_INTERVAL - elapsed));
+      console.log(`[Timer] Update - Now: ${new Date(now * 1000).toLocaleTimeString()}, Last Check: ${new Date(lastCheckCompleteTime * 1000).toLocaleTimeString()}, Elapsed: ${elapsed.toFixed(1)}s, Remaining: ${remaining}s`);
       setSecondsUntilNextCheck(remaining);
     };
     
@@ -81,8 +85,11 @@ const App: React.FC = () => {
       
       // Only update lastCheckCompleteTime if we get a valid timestamp
       if (data.last_check_complete_time && data.last_check_complete_time > 0) {
-        console.log('Received check complete time:', new Date(data.last_check_complete_time * 1000).toLocaleString());
+        console.log('[Timer] Received check complete time:', new Date(data.last_check_complete_time * 1000).toLocaleString());
+        console.log('[Timer] Seconds until next check:', data.seconds_until_next_check);
         setLastCheckCompleteTime(data.last_check_complete_time);
+      } else {
+        console.log('[Timer] Invalid check complete time received:', data.last_check_complete_time);
       }
     } catch (error) {
       console.error('Error fetching status:', error);
