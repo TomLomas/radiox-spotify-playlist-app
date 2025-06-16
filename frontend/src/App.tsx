@@ -66,10 +66,6 @@ const App: React.FC = () => {
   const [lastCheckCompleteTime, setLastCheckCompleteTime] = useState<number>(0);
   const [secondsUntilNextCheck, setSecondsUntilNextCheck] = useState(0);
   const CHECK_INTERVAL = 120; // seconds
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const targetTimeRef = useRef<number>(Date.now() + 120000); // 120 seconds in milliseconds
-  const isCheckingRef = useRef<boolean>(false);
-  const checkCompleteRef = useRef<boolean>(false);
 
   // Timer effect: recalculate remaining time based on backend's last_check_complete_time
   useEffect(() => {
