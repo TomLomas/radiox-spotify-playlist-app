@@ -31,7 +31,7 @@ const Card: React.FC<{ children: React.ReactNode; accent: string; className?: st
   </div>
 );
 
-const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { accent: string }> = ({ accent, children, ...props }) => (
+export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { accent: string }> = ({ accent, children, ...props }) => (
   <button
     {...props}
     className={`px-4 py-2 rounded-lg font-semibold shadow transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 mb-2 mx-1`}
