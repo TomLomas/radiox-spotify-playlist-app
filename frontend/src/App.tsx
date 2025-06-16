@@ -57,8 +57,6 @@ const App: React.FC = () => {
   const [manualOverride, setManualOverride] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
-  const [stateHistory, setStateHistory] = useState<StateHistoryEntry[]>([]);
   const [stats, setStats] = useState<Stats>({
     top_artists: '',
     unique_artists: 0,
@@ -79,7 +77,6 @@ const App: React.FC = () => {
       const res = await fetch('/status');
       const data = await res.json();
       setServiceState(data.service_state);
-      setStateHistory(data.state_history || []);
       setStats(data.stats || {});
       setDailyAdded(data.daily_added || []);
       setDailyFailed(data.daily_failed || []);
