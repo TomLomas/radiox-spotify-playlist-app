@@ -29,7 +29,11 @@ interface AppState {
   };
   seconds_until_next_check: number;
   service_state: string;
-  state_history: any[];
+  state_history: Array<{
+    timestamp: string;
+    state: string;
+    reason: string;
+  }>;
   last_check_time: number;
   is_checking: boolean;
   check_complete: boolean;
