@@ -631,10 +631,14 @@ class RadioXBot:
         return False
 
     def toggle_pause(self, reason="Admin toggle"):
+        """Toggle the service state between PLAYING and PAUSED."""
         if self.service_state == ServiceState.PLAYING:
             self.set_service_state(ServiceState.PAUSED, reason)
+            return True  # Now paused
         elif self.service_state == ServiceState.PAUSED:
             self.set_service_state(ServiceState.PLAYING, reason)
+            return False  # Now playing
+        return self.service_state == ServiceState.PAUSED  # Return current state
 
     def set_out_of_hours(self, reason="Out of hours"):
         if self.service_state != ServiceState.OUT_OF_HOURS:
@@ -873,12 +877,12 @@ def admin_force_duplicates():
 @app.route('/admin/pause_resume', methods=['POST'])
 def admin_pause_resume():
     """Toggle pause/resume override for the service. If resuming, immediately trigger a check."""
-    was_paused = bot_instance.service_state == ServiceState.PAUSED or not bot_instance.should_run()
-    paused = bot_instance.toggle_pause()
-    status = "paused" if paused else "resumed"
+    was_paused = bot_instance.service_state == ServiceState.PAUSED
+    is_now_paused = bot_instance.toggle_pause()
+    status = "paused" if is_now_paused else "resumed"
     bot_instance.log_event(f"Admin: Service {status} via web override.")
     # If we just resumed, trigger a check immediately
-    if was_paused and not paused:
+    if was_paused and not is_now_paused:
         threading.Thread(target=bot_instance.process_main_cycle).start()
     return f"Service {status}."
 
