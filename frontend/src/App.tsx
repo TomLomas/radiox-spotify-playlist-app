@@ -58,21 +58,21 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-lg">
+    <div className="min-h-screen bg-gray-900">
+      <nav className="bg-gray-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-2xl font-bold text-green-600">Radio X → Spotify</h1>
+                <h1 className="text-2xl font-bold text-purple-500">Radio X → Spotify</h1>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <button
                   onClick={() => setActiveTab('status')}
                   className={`${
                     activeTab === 'status'
-                      ? 'border-green-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                      ? 'border-purple-500 text-white'
+                      : 'border-transparent text-gray-300 hover:border-gray-300 hover:text-white'
                   } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   Status
@@ -81,8 +81,8 @@ function App() {
                   onClick={() => setActiveTab('history')}
                   className={`${
                     activeTab === 'history'
-                      ? 'border-green-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                      ? 'border-purple-500 text-white'
+                      : 'border-transparent text-gray-300 hover:border-gray-300 hover:text-white'
                   } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   History
@@ -91,8 +91,8 @@ function App() {
                   onClick={() => setActiveTab('admin')}
                   className={`${
                     activeTab === 'admin'
-                      ? 'border-green-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                      ? 'border-purple-500 text-white'
+                      : 'border-transparent text-gray-300 hover:border-gray-300 hover:text-white'
                   } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   Admin
