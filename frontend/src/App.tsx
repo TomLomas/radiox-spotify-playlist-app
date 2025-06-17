@@ -43,8 +43,8 @@ interface AppState {
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
-  const [isAdmin] = useState(false);
-  const [activeTab] = useState('status');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [activeTab, setActiveTab] = useState('status');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -85,6 +85,39 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8">
+        <div className="flex space-x-4 mb-6">
+          <button
+            onClick={() => setActiveTab('status')}
+            className={`px-4 py-2 rounded-lg ${
+              activeTab === 'status'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            Status
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-4 py-2 rounded-lg ${
+              activeTab === 'history'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            History
+          </button>
+          <button
+            onClick={() => setActiveTab('admin')}
+            className={`px-4 py-2 rounded-lg ${
+              activeTab === 'admin'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            Admin
+          </button>
+        </div>
+
         {activeTab === 'status' && (
           <div className="space-y-6">
             <StatusBar 
@@ -104,11 +137,13 @@ function App() {
           </div>
         )}
 
-        <div className="mt-6">
-          <SongHistory dailyAdded={appState.daily_added} dailyFailed={appState.daily_failed} />
-        </div>
+        {activeTab === 'history' && (
+          <div className="mt-6">
+            <SongHistory dailyAdded={appState.daily_added} dailyFailed={appState.daily_failed} />
+          </div>
+        )}
 
-        {isAdmin && (
+        {activeTab === 'admin' && (
           <div className="mt-6">
             <AdminPanel appState={{
               service_state: appState.service_state,
