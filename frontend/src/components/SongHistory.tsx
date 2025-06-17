@@ -1,112 +1,91 @@
-import React, { useState } from 'react';
-
-interface Song {
-  radio_title: string;
-  radio_artist: string;
-  album_art_url?: string;
-  timestamp: string;
-  reason?: string;
-}
+import React from 'react';
 
 interface SongHistoryProps {
-  dailyAdded: Song[];
-  dailyFailed: Song[];
+  dailyAdded: Array<{
+    radio_title: string;
+    radio_artist: string;
+    spotify_title: string;
+    spotify_artist: string;
+    spotify_id: string;
+    release_date: string;
+    album_art_url: string;
+  }>;
+  dailyFailed: Array<{
+    radio_title: string;
+    radio_artist: string;
+    reason: string;
+  }>;
 }
 
 export const SongHistory: React.FC<SongHistoryProps> = ({ dailyAdded, dailyFailed }) => {
-  const [activeTab, setActiveTab] = useState<'added' | 'failed'>('added');
-
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString();
-  };
-
   return (
-    <div className="bg-white shadow rounded-lg">
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex">
-          <button
-            onClick={() => setActiveTab('added')}
-            className={`${
-              activeTab === 'added'
-                ? 'border-green-500 text-green-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm`}
-          >
-            Added Songs ({dailyAdded.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('failed')}
-            className={`${
-              activeTab === 'failed'
-                ? 'border-red-500 text-red-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm`}
-          >
-            Failed Songs ({dailyFailed.length})
-          </button>
-        </nav>
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-3 text-purple-400">Successfully Added</h3>
+        <div className="bg-gray-800 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-700">
+              <thead className="bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Radio</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Spotify</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Release Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {dailyAdded.map((song, index) => (
+                  <tr key={index} className="hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <img className="h-10 w-10 rounded" src={song.album_art_url} alt="" />
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-white">{song.radio_title}</div>
+                          <div className="text-sm text-gray-400">{song.radio_artist}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-white">{song.spotify_title}</div>
+                      <div className="text-sm text-gray-400">{song.spotify_artist}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      {song.release_date}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="p-6">
-        {activeTab === 'added' ? (
-          <div className="space-y-4">
-            {dailyAdded.length > 0 ? (
-              dailyAdded.map((song, index) => (
-                <div key={index} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50">
-                  {song.album_art_url && (
-                    <img
-                      src={song.album_art_url}
-                      alt="Album Art"
-                      className="w-12 h-12 rounded-lg shadow-sm"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {song.radio_title}
-                    </p>
-                    <p className="text-sm text-gray-500 truncate">
-                      {song.radio_artist}
-                    </p>
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {formatTimestamp(song.timestamp)}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-4">No songs added today</p>
-            )}
+      <div>
+        <h3 className="text-lg font-semibold mb-3 text-purple-400">Failed to Add</h3>
+        <div className="bg-gray-800 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-700">
+              <thead className="bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Radio</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Reason</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {dailyFailed.map((song, index) => (
+                  <tr key={index} className="hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-white">{song.radio_title}</div>
+                      <div className="text-sm text-gray-400">{song.radio_artist}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      {song.reason}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {dailyFailed.length > 0 ? (
-              dailyFailed.map((song, index) => (
-                <div key={index} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {song.radio_title}
-                    </p>
-                    <p className="text-sm text-gray-500 truncate">
-                      {song.radio_artist}
-                    </p>
-                    {song.reason && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {song.reason}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {formatTimestamp(song.timestamp)}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-4">No failed songs today</p>
-            )}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

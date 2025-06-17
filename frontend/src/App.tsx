@@ -96,16 +96,6 @@ function App() {
             Status
           </button>
           <button
-            onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-lg ${
-              activeTab === 'history'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            History
-          </button>
-          <button
             onClick={() => setActiveTab('admin')}
             className={`px-4 py-2 rounded-lg ${
               activeTab === 'admin'
@@ -133,12 +123,10 @@ function App() {
               <ControlPanel appState={appState} />
               <StatsPanel stats={appState.stats} />
             </div>
-          </div>
-        )}
-
-        {activeTab === 'history' && (
-          <div className="mt-6">
-            <SongHistory dailyAdded={appState.daily_added} dailyFailed={appState.daily_failed} />
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold mb-4 text-purple-400">Today's History</h2>
+              <SongHistory dailyAdded={appState.daily_added} dailyFailed={appState.daily_failed} />
+            </div>
           </div>
         )}
 
