@@ -30,30 +30,36 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   }, [secondsUntilNextCheck]);
 
   useEffect(() => {
-    // Start countdown timer
-    const timer = setInterval(() => {
-      setLocalSecondsRemaining(prev => {
-        if (prev <= 0) return 0;
-        return prev - 1;
-      });
-    }, 1000);
+    // Only start countdown timer if service is not paused
+    if (serviceState !== 'paused') {
+      const timer = setInterval(() => {
+        setLocalSecondsRemaining(prev => {
+          if (prev <= 0) return 0;
+          return prev - 1;
+        });
+      }, 1000);
 
-    return () => clearInterval(timer);
-  }, []);
+      return () => clearInterval(timer);
+    }
+  }, [serviceState]);
 
   useEffect(() => {
-    // Update next check time string
-    const updateNextCheckTime = () => {
-      const now = new Date();
-      const nextCheck = new Date(now.getTime() + localSecondsRemaining * 1000);
-      setNextCheckTimeStr(nextCheck.toLocaleTimeString());
-    };
+    // Update next check time string only if service is not paused
+    if (serviceState !== 'paused') {
+      const updateNextCheckTime = () => {
+        const now = new Date();
+        const nextCheck = new Date(now.getTime() + localSecondsRemaining * 1000);
+        setNextCheckTimeStr(nextCheck.toLocaleTimeString());
+      };
 
-    updateNextCheckTime();
-    const timer = setInterval(updateNextCheckTime, 1000);
+      updateNextCheckTime();
+      const timer = setInterval(updateNextCheckTime, 1000);
 
-    return () => clearInterval(timer);
-  }, [localSecondsRemaining]);
+      return () => clearInterval(timer);
+    } else {
+      setNextCheckTimeStr('--:--:--');
+    }
+  }, [localSecondsRemaining, serviceState]);
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString();
@@ -97,6 +103,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <div className="text-gray-400 text-sm">
           {isChecking ? (
             <span>Checking now...</span>
+          ) : serviceState === 'paused' ? (
+            <span>Service paused</span>
           ) : (
             <div className="flex items-center space-x-2">
               <span>Next check at {nextCheckTimeStr}</span>
@@ -105,7 +113,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           )}
         </div>
       </div>
-      {checkComplete && (
+      {checkComplete && serviceState !== 'paused' && (
         <div className="mt-2 text-gray-400 text-sm">
           Last check completed at {formatTime(lastCheckCompleteTime)}
         </div>

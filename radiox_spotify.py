@@ -657,17 +657,20 @@ class RadioXBot:
             self.process_failed_search_queue()
 
     def update_next_check_time(self):
-        """Set the next check time to now + CHECK_INTERVAL."""
+        """Set the next check time to now + CHECK_INTERVAL only if service is not paused."""
         current_time = time.time()
-        self.next_check_time = current_time + CHECK_INTERVAL
-        self.last_check_complete_time = current_time
-        self.check_complete = True
-        self.is_checking = False
-        logging.info(f"[Timer] Updated next check time: {datetime.datetime.fromtimestamp(self.next_check_time).strftime('%H:%M:%S')}")
-        logging.info(f"[Timer] Last check complete time: {datetime.datetime.fromtimestamp(self.last_check_complete_time).strftime('%H:%M:%S')}")
+        if self.service_state != ServiceState.PAUSED:
+            self.next_check_time = current_time + CHECK_INTERVAL
+            self.last_check_complete_time = current_time
+            self.check_complete = True
+            self.is_checking = False
+            logging.info(f"[Timer] Updated next check time: {datetime.datetime.fromtimestamp(self.next_check_time).strftime('%H:%M:%S')}")
+            logging.info(f"[Timer] Last check complete time: {datetime.datetime.fromtimestamp(self.last_check_complete_time).strftime('%H:%M:%S')}")
 
     def get_seconds_until_next_check(self):
-        """Return seconds until the next scheduled check."""
+        """Return seconds until the next scheduled check, or 0 if service is paused."""
+        if self.service_state == ServiceState.PAUSED:
+            return 0
         return max(0, int(self.next_check_time - time.time()))
 
     # --- Main Application Loop ---
