@@ -110,7 +110,11 @@ function App() {
 
         {isAdmin && (
           <div className="mt-6">
-            <AdminPanel appState={appState} stateHistory={appState.state_history} />
+            <AdminPanel appState={{
+              service_state: appState.service_state,
+              queue_size: appState.queue_size,
+              state_history: appState.state_history
+            }} />
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@ import React from 'react';
 interface AdminPanelProps {
   appState: {
     service_state: string;
+    queue_size: number;
     state_history: Array<{
       timestamp: string;
       state: string;
@@ -12,100 +13,107 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ appState }) => {
-  const handleAction = async (endpoint: string) => {
+  const handleForceCheck = async () => {
     try {
-      await fetch(endpoint, { method: 'POST' });
+      await fetch('/admin/force_check', { method: 'POST' });
     } catch (error) {
-      console.error(`Error calling ${endpoint}:`, error);
+      console.error('Error forcing check:', error);
+    }
+  };
+
+  const handleCheckDuplicates = async () => {
+    try {
+      await fetch('/admin/force_duplicates', { method: 'POST' });
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+    }
+  };
+
+  const handleSendSummary = async () => {
+    try {
+      await fetch('/admin/send_summary', { method: 'POST' });
+    } catch (error) {
+      console.error('Error sending summary:', error);
+    }
+  };
+
+  const handleRetryFailed = async () => {
+    try {
+      await fetch('/admin/retry_failed', { method: 'POST' });
+    } catch (error) {
+      console.error('Error retrying failed songs:', error);
+    }
+  };
+
+  const handleSendDebugLog = async () => {
+    try {
+      await fetch('/admin/send_debug_log', { method: 'POST' });
+    } catch (error) {
+      console.error('Error sending debug log:', error);
     }
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
+    return new Date(timestamp).toLocaleTimeString();
   };
 
   return (
-    <div className="space-y-6">
-      {/* Admin Controls */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Admin Controls</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <button
-            onClick={() => handleAction('/admin/force_check')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            🔄 Force Check
-          </button>
-          <button
-            onClick={() => handleAction('/admin/force_duplicates')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-          >
-            🎵 Check Duplicates
-          </button>
-          <button
-            onClick={() => handleAction('/admin/send_summary')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          >
-            📧 Send Summary
-          </button>
-          <button
-            onClick={() => handleAction('/admin/retry_failed')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-          >
-            🔁 Retry Failed
-          </button>
-          <button
-            onClick={() => handleAction('/admin/send_debug_log')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-          >
-            📋 Send Debug Log
-          </button>
-        </div>
+    <div className="bg-gray-800 shadow rounded-lg p-6">
+      <h2 className="text-lg font-semibold text-white mb-4">Admin Controls</h2>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <button
+          onClick={handleForceCheck}
+          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
+        >
+          Force Check
+        </button>
+        <button
+          onClick={handleCheckDuplicates}
+          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
+        >
+          Check Duplicates
+        </button>
+        <button
+          onClick={handleSendSummary}
+          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
+        >
+          Send Summary
+        </button>
+        <button
+          onClick={handleRetryFailed}
+          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
+        >
+          Retry Failed
+        </button>
+        <button
+          onClick={handleSendDebugLog}
+          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
+        >
+          Send Debug Logs
+        </button>
       </div>
 
-      {/* State History */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">State History</h2>
-        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-          <table className="min-w-full divide-y divide-gray-300">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                  Timestamp
-                </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  State
-                </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Reason
-                </th>
+      <h3 className="text-md font-semibold text-white mb-2">State History</h3>
+      <div className="bg-gray-700 rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-600">
+          <thead className="bg-gray-600">
+            <tr>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Time</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">State</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Reason</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-600">
+            {appState.state_history.map((entry, index) => (
+              <tr key={index} className="hover:bg-gray-600">
+                <td className="px-4 py-2 text-sm text-gray-300">{formatTimestamp(entry.timestamp)}</td>
+                <td className="px-4 py-2 text-sm text-gray-300">{entry.state}</td>
+                <td className="px-4 py-2 text-sm text-gray-300">{entry.reason}</td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {appState.state_history.map((entry, index) => (
-                <tr key={index}>
-                  <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 sm:pl-6">
-                    {formatTimestamp(entry.timestamp)}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      entry.state === 'playing'
-                        ? 'bg-green-100 text-green-800'
-                        : entry.state === 'paused'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {entry.state}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {entry.reason}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
