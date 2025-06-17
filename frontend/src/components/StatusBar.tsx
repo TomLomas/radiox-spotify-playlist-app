@@ -81,6 +81,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     }
   };
 
+  const formatCountdown = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="bg-gray-900 shadow rounded-lg p-4 mb-4">
       <div className="flex items-center justify-between">
@@ -92,7 +98,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           {isChecking ? (
             <span>Checking now...</span>
           ) : (
-            <span>Next check at {nextCheckTimeStr}</span>
+            <div className="flex items-center space-x-2">
+              <span>Next check at {nextCheckTimeStr}</span>
+              <span className="text-purple-400">({formatCountdown(localSecondsRemaining)})</span>
+            </div>
           )}
         </div>
       </div>
