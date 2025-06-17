@@ -2,11 +2,14 @@ import React from 'react';
 
 interface ControlPanelProps {
   appState: {
-    lastSongAdded: {
+    last_song_added: {
       radio_title: string;
       radio_artist: string;
-      album_art_url?: string;
-      timestamp: string;
+      spotify_title: string;
+      spotify_artist: string;
+      spotify_id: string;
+      release_date: string;
+      album_art_url: string;
     } | null;
     service_state: string;
   };
@@ -14,9 +17,8 @@ interface ControlPanelProps {
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({ appState }) => {
   const handlePauseResume = async () => {
-    const endpoint = appState.service_state === 'playing' ? '/admin/pause' : '/admin/resume';
     try {
-      await fetch(endpoint, { method: 'POST' });
+      await fetch('/admin/pause_resume', { method: 'POST' });
     } catch (error) {
       console.error('Error toggling service state:', error);
     }
@@ -30,68 +32,50 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ appState }) => {
     }
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString();
-  };
-
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-medium text-gray-900 mb-4">Control Panel</h2>
-      
-      {/* Last Added Song */}
-      <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-500 mb-2">Last Added Song</h3>
-        {appState.lastSongAdded ? (
-          <div className="flex items-center space-x-4">
-            {appState.lastSongAdded.album_art_url && (
-              <img 
-                src={appState.lastSongAdded.album_art_url} 
-                alt="Album Art" 
-                className="w-16 h-16 rounded-lg shadow-sm"
-              />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {appState.lastSongAdded.radio_title}
-              </p>
-              <p className="text-sm text-gray-500 truncate">
-                {appState.lastSongAdded.radio_artist}
-              </p>
-              <p className="text-xs text-gray-400">
-                Added at {formatTimestamp(appState.lastSongAdded.timestamp)}
-              </p>
-            </div>
+    <div className="bg-gray-800 shadow rounded-lg p-6">
+      <h2 className="text-lg font-semibold text-white mb-4">Last Song Added</h2>
+      {appState.last_song_added ? (
+        <div className="flex items-center space-x-4">
+          {appState.last_song_added.album_art_url && (
+            <img
+              src={appState.last_song_added.album_art_url}
+              alt="Album Art"
+              className="w-16 h-16 rounded-lg shadow-sm"
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">
+              {appState.last_song_added.radio_title}
+            </p>
+            <p className="text-sm text-gray-300 truncate">
+              {appState.last_song_added.radio_artist}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Added to Spotify as: {appState.last_song_added.spotify_title}
+            </p>
           </div>
-        ) : (
-          <p className="text-sm text-gray-500">No songs added yet</p>
-        )}
-      </div>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-300">No songs added yet</p>
+      )}
 
-      {/* Control Buttons */}
-      <div className="flex flex-wrap gap-3">
+      <div className="mt-6 flex space-x-4">
         <button
           onClick={handlePauseResume}
-          className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
+          className={`${
             appState.service_state === 'playing'
-              ? 'bg-yellow-600 hover:bg-yellow-700'
-              : 'bg-green-600 hover:bg-green-700'
-          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
+              ? 'bg-red-500 hover:bg-red-600'
+              : 'bg-purple-500 hover:bg-purple-600'
+          } text-white px-4 py-2 rounded transition-colors`}
         >
-          {appState.service_state === 'playing' ? '⏸ Pause' : '▶ Resume'}
+          {appState.service_state === 'playing' ? 'Pause Service' : 'Resume Service'}
         </button>
-
         <button
           onClick={handleForceCheck}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
         >
-          🔄 Force Check
-        </button>
-
-        <button
-          onClick={() => window.location.href = '/admin/force_duplicates'}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-        >
-          🎵 Check Duplicates
+          Force Check
         </button>
       </div>
     </div>
