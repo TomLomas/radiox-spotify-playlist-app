@@ -43,8 +43,8 @@ interface AppState {
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [activeTab, setActiveTab] = useState('status');
+  const [isAdmin] = useState(false);
+  const [activeTab] = useState('status');
 
   useEffect(() => {
     const fetchData = async () => {
