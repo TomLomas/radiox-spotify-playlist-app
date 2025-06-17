@@ -1,81 +1,106 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface StatusBarProps {
-  appState: {
-    currentSong: string | null;
-    service_state: string;
-    seconds_until_next_check: number;
-    is_checking: boolean;
-  };
+  serviceState: string;
+  pausedReason: string;
+  secondsUntilNextCheck: number;
+  isChecking: boolean;
+  checkComplete: boolean;
+  lastCheckTime: number;
+  lastCheckCompleteTime: number;
+  nextCheckTime: string;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({ appState }) => {
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+export const StatusBar: React.FC<StatusBarProps> = ({
+  serviceState,
+  pausedReason,
+  secondsUntilNextCheck,
+  isChecking,
+  checkComplete,
+  lastCheckTime,
+  lastCheckCompleteTime,
+  nextCheckTime
+}) => {
+  const [localSecondsRemaining, setLocalSecondsRemaining] = useState(secondsUntilNextCheck);
+  const [nextCheckTimeStr, setNextCheckTimeStr] = useState('');
+
+  useEffect(() => {
+    // Update local timer when backend sends new value
+    setLocalSecondsRemaining(secondsUntilNextCheck);
+  }, [secondsUntilNextCheck]);
+
+  useEffect(() => {
+    // Start countdown timer
+    const timer = setInterval(() => {
+      setLocalSecondsRemaining(prev => {
+        if (prev <= 0) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    // Update next check time string
+    const updateNextCheckTime = () => {
+      const now = new Date();
+      const nextCheck = new Date(now.getTime() + localSecondsRemaining * 1000);
+      setNextCheckTimeStr(nextCheck.toLocaleTimeString());
+    };
+
+    updateNextCheckTime();
+    const timer = setInterval(updateNextCheckTime, 1000);
+
+    return () => clearInterval(timer);
+  }, [localSecondsRemaining]);
+
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString();
   };
 
   const getStatusColor = (state: string) => {
     switch (state) {
       case 'playing':
-        return 'bg-green-100 text-green-800';
+        return 'bg-purple-500';
       case 'paused':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'out_of_hours':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-yellow-500';
       default:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-red-500';
     }
   };
 
   const getStatusText = (state: string) => {
     switch (state) {
       case 'playing':
-        return 'Active';
+        return 'Running';
       case 'paused':
-        return 'Paused';
-      case 'out_of_hours':
-        return 'Out of Hours';
+        return pausedReason === 'out_of_hours' ? 'Out of Hours' : 'Paused';
       default:
-        return state;
+        return 'Error';
     }
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Current Song */}
-        <div className="flex flex-col">
-          <h3 className="text-sm font-medium text-gray-500">Now Playing</h3>
-          <p className="mt-1 text-lg font-semibold text-gray-900">
-            {appState.currentSong || 'No song playing'}
-          </p>
+    <div className="bg-gray-900 shadow rounded-lg p-4 mb-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className={`w-3 h-3 rounded-full ${getStatusColor(serviceState)}`} />
+          <span className="text-white font-medium">{getStatusText(serviceState)}</span>
         </div>
-
-        {/* Service Status */}
-        <div className="flex flex-col">
-          <h3 className="text-sm font-medium text-gray-500">Service Status</h3>
-          <div className="mt-1 flex items-center">
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(appState.service_state)}`}>
-              {getStatusText(appState.service_state)}
-            </span>
-            {appState.is_checking && (
-              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                Checking...
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Next Check */}
-        <div className="flex flex-col">
-          <h3 className="text-sm font-medium text-gray-500">Next Check</h3>
-          <p className="mt-1 text-lg font-semibold text-gray-900">
-            {formatTime(appState.seconds_until_next_check)}
-          </p>
+        <div className="text-gray-400 text-sm">
+          {isChecking ? (
+            <span>Checking now...</span>
+          ) : (
+            <span>Next check at {nextCheckTimeStr}</span>
+          )}
         </div>
       </div>
+      {checkComplete && (
+        <div className="mt-2 text-gray-400 text-sm">
+          Last check completed at {formatTime(lastCheckCompleteTime)}
+        </div>
+      )}
     </div>
   );
 }; 
