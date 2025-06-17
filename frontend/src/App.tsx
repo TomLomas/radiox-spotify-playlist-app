@@ -43,7 +43,6 @@ interface AppState {
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState('status');
 
   useEffect(() => {
