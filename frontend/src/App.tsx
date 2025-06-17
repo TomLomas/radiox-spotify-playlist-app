@@ -47,7 +47,19 @@ function App() {
       try {
         const response = await fetch('/status');
         const data = await response.json();
-        setAppState(data);
+        // Defensive: ensure stats always has all properties
+        const safeStats = {
+          top_artists: data.stats?.top_artists ?? "N/A",
+          unique_artists: data.stats?.unique_artists ?? 0,
+          most_common_failure: data.stats?.most_common_failure ?? "N/A",
+          success_rate: data.stats?.success_rate ?? "0%",
+          service_paused: data.stats?.service_paused ?? false,
+          paused_reason: data.stats?.paused_reason ?? "none"
+        };
+        setAppState({
+          ...data,
+          stats: safeStats
+        });
       } catch (error) {
         console.error('Error fetching status:', error);
       }
