@@ -23,6 +23,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const [localSecondsRemaining, setLocalSecondsRemaining] = useState(secondsUntilNextCheck);
   const [nextCheckTimeStr, setNextCheckTimeStr] = useState('');
+  const [lastCheckTimeStr, setLastCheckTimeStr] = useState('');
 
   useEffect(() => {
     // Update local timer when backend sends new value
@@ -60,6 +61,20 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       setNextCheckTimeStr('--:--:--');
     }
   }, [localSecondsRemaining, serviceState]);
+
+  useEffect(() => {
+    // Update last check time string
+    const updateLastCheckTime = () => {
+      if (lastCheckCompleteTime) {
+        setLastCheckTimeStr(new Date(lastCheckCompleteTime).toLocaleTimeString());
+      }
+    };
+
+    updateLastCheckTime();
+    const timer = setInterval(updateLastCheckTime, 1000);
+
+    return () => clearInterval(timer);
+  }, [lastCheckCompleteTime]);
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString();
@@ -115,7 +130,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       </div>
       {checkComplete && serviceState !== 'paused' && (
         <div className="mt-2 text-gray-400 text-sm">
-          Last check completed at {formatTime(lastCheckCompleteTime)}
+          Last check completed at {lastCheckTimeStr}
         </div>
       )}
     </div>

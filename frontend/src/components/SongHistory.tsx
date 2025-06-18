@@ -9,6 +9,7 @@ interface SongHistoryProps {
     spotify_id: string;
     release_date: string;
     album_art_url: string;
+    added_at: string;
   }>;
   dailyFailed: Array<{
     radio_title: string;
@@ -18,6 +19,10 @@ interface SongHistoryProps {
 }
 
 export const SongHistory: React.FC<SongHistoryProps> = ({ dailyAdded, dailyFailed }) => {
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString();
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -28,7 +33,7 @@ export const SongHistory: React.FC<SongHistoryProps> = ({ dailyAdded, dailyFaile
               <thead className="bg-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Radio</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Spotify</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Time Added</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Release Date</th>
                 </tr>
               </thead>
@@ -44,9 +49,8 @@ export const SongHistory: React.FC<SongHistoryProps> = ({ dailyAdded, dailyFaile
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-white">{song.spotify_title}</div>
-                      <div className="text-sm text-gray-400">{song.spotify_artist}</div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      {formatTime(song.added_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {song.release_date}
