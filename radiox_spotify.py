@@ -615,13 +615,9 @@ def status():
     last_check_time = getattr(bot_instance, 'last_check_complete_time', 0)
     current_time = int(time.time())
     
-    # If we're checking now, set next check to current time + interval
-    if getattr(bot_instance, 'is_checking', False):
-        next_check_time = current_time + CHECK_INTERVAL
-        seconds_until_next = CHECK_INTERVAL
-    else:
-        next_check_time = last_check_time + CHECK_INTERVAL
-        seconds_until_next = max(0, next_check_time - current_time)
+    # Always calculate next check time based on last completed check
+    next_check_time = last_check_time + CHECK_INTERVAL
+    seconds_until_next = max(0, next_check_time - current_time)
 
     # Format next check time
     next_check_time_str = datetime.datetime.fromtimestamp(next_check_time, pytz.timezone(TIMEZONE)).isoformat() if last_check_time else ''
