@@ -86,7 +86,7 @@ class RadioXBot:
         self.shutdown_summary_sent = False
         self.current_station_herald_id = None
         self.is_running = False
-        self.service_state = 'initializing'
+        self.service_state = ''
         self.paused_reason = ''
         self.seconds_until_next_check = 0
         self.is_checking = False
@@ -117,12 +117,28 @@ class RadioXBot:
         self.event_log = deque(maxlen=10)
         self.log_event("Application instance created. Waiting for initialization.")
         self.file_lock = threading.Lock()
+        self.update_service_state('initializing')
 
     def log_event(self, message):
         """Adds an event to the global log for the web UI and standard logging."""
         logging.info(message)
         clean_message = ANSI_ESCAPE.sub('', message) # Remove ANSI codes for web log
         self.event_log.appendleft(f"[{datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}] {clean_message}")
+
+    def update_service_state(self, new_state, reason=''):
+        """Updates the service state and adds an entry to the state history."""
+        if new_state != self.service_state:
+            self.service_state = new_state
+            self.paused_reason = reason
+            timestamp = datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat()
+            self.state_history.append({
+                'timestamp': timestamp,
+                'state': new_state,
+                'reason': reason
+            })
+            # Keep only the last 50 state changes
+            self.state_history = self.state_history[-50:]
+            self.log_event(f"Service state changed to {new_state}" + (f" (reason: {reason})" if reason else ""))
 
     # --- Persistent State Management ---
     def save_state(self):
@@ -529,6 +545,9 @@ class RadioXBot:
 
     # --- Main Application Loop ---
     def run(self):
+        """Main monitoring loop."""
+        self.is_running = True
+        self.update_service_state('playing')
         self.log_event("--- run_radio_monitor thread initiated. ---")
         if not self.sp: self.log_event("ERROR: Spotify client is None. Thread cannot perform Spotify actions."); return
         if self.last_summary_log_date is None: self.last_summary_log_date = datetime.date.today()
@@ -547,8 +566,7 @@ class RadioXBot:
                         self.log_event("Active hours started."); self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
                     self.process_main_cycle()
                 else:
-                    self.service_state = 'paused'
-                    self.paused_reason = 'out_of_hours'
+                    self.update_service_state('paused', 'out_of_hours')
                     if not self.shutdown_summary_sent:
                         self.log_event("End of active day. Generating and sending daily summary."); self.log_and_send_daily_summary(); self.shutdown_summary_sent = True; self.startup_email_sent = False
                     time.sleep(CHECK_INTERVAL * 5); continue
@@ -635,13 +653,9 @@ def admin_force_check():
 @app.route('/admin/pause_resume', methods=['POST'])
 def admin_pause_resume():
     if bot_instance.service_state == 'playing':
-        bot_instance.service_state = 'paused'
-        bot_instance.paused_reason = 'manual'
-        bot_instance.log_event("Service manually paused via web.")
+        bot_instance.update_service_state('paused', 'manual')
     else:
-        bot_instance.service_state = 'playing'
-        bot_instance.paused_reason = ''
-        bot_instance.log_event("Service manually resumed via web.")
+        bot_instance.update_service_state('playing')
     return f"Service {bot_instance.service_state}"
 
 @app.route('/admin/send_summary', methods=['POST'])
