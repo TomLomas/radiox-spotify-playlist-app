@@ -35,6 +35,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     if (serviceState !== 'paused') {
       const timer = setInterval(() => {
         setLocalSecondsRemaining(prev => {
+          // If we hit 0, wait for the next value from backend
           if (prev <= 0) return 0;
           return prev - 1;
         });
@@ -42,22 +43,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
       return () => clearInterval(timer);
     }
-  }, [serviceState]);
+  }, [serviceState, secondsUntilNextCheck]);
 
   useEffect(() => {
     // Update next check time string only if service is not paused
-    if (serviceState !== 'paused') {
-      const updateNextCheckTime = () => {
-        if (nextCheckTime) {
-          const nextCheck = new Date(nextCheckTime);
-          setNextCheckTimeStr(nextCheck.toLocaleTimeString());
-        }
-      };
-
-      updateNextCheckTime();
-      const timer = setInterval(updateNextCheckTime, 1000);
-
-      return () => clearInterval(timer);
+    if (serviceState !== 'paused' && nextCheckTime) {
+      const nextCheck = new Date(nextCheckTime);
+      setNextCheckTimeStr(nextCheck.toLocaleTimeString());
     } else {
       setNextCheckTimeStr('--:--:--');
     }

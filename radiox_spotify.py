@@ -614,8 +614,17 @@ def status():
     # Calculate seconds until next check based on last_check_complete_time
     last_check_time = getattr(bot_instance, 'last_check_complete_time', 0)
     current_time = int(time.time())
-    next_check_time = last_check_time + CHECK_INTERVAL
-    seconds_until_next = max(0, next_check_time - current_time)
+    
+    # If we're checking now, set next check to current time + interval
+    if getattr(bot_instance, 'is_checking', False):
+        next_check_time = current_time + CHECK_INTERVAL
+        seconds_until_next = CHECK_INTERVAL
+    else:
+        next_check_time = last_check_time + CHECK_INTERVAL
+        seconds_until_next = max(0, next_check_time - current_time)
+
+    # Format next check time
+    next_check_time_str = datetime.datetime.fromtimestamp(next_check_time, pytz.timezone(TIMEZONE)).isoformat() if last_check_time else ''
 
     # Provide safe defaults for all expected frontend fields
     return jsonify({
@@ -630,7 +639,7 @@ def status():
         'check_complete': getattr(bot_instance, 'check_complete', False),
         'last_check_time': getattr(bot_instance, 'last_check_time', 0),
         'last_check_complete_time': last_check_time,
-        'next_check_time': datetime.datetime.fromtimestamp(next_check_time, pytz.timezone(TIMEZONE)).isoformat() if last_check_time else '',
+        'next_check_time': next_check_time_str,
         'stats': getattr(bot_instance, 'stats', {}),
         'state_history': getattr(bot_instance, 'state_history', []),
     })
