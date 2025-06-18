@@ -19,8 +19,14 @@ interface SongHistoryProps {
 }
 
 export const SongHistory: React.FC<SongHistoryProps> = ({ dailyAdded, dailyFailed }) => {
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString();
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp * 1000); // Convert Unix timestamp to milliseconds
+    return date.toLocaleTimeString('en-GB', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit',
+      hour12: false 
+    });
   };
 
   return (
@@ -50,7 +56,7 @@ export const SongHistory: React.FC<SongHistoryProps> = ({ dailyAdded, dailyFaile
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      {formatTime(song.added_at)}
+                      {formatTime(Number(song.added_at))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {song.release_date}
