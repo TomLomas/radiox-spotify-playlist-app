@@ -4,3 +4,4 @@ websocket-client
 Flask
 gunicorn
 pytz
+python-dotenv

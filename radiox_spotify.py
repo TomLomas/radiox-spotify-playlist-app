@@ -23,15 +23,18 @@ from email.mime.multipart import MIMEMultipart
 from collections import deque, Counter
 import atexit
 import base64
+from dotenv import load_dotenv
 
 # --- Flask App Setup ---
 app = Flask(__name__)
 
 # --- Configuration ---
-SPOTIPY_CLIENT_ID = "89c7e2957a7e465a8eeb9d2476a82a2d"
-SPOTIPY_CLIENT_SECRET = "f8dc109892b9464ab44fba3b2502a7eb"
-SPOTIPY_REDIRECT_URI = "http://127.0.0.1:8888/callback" 
-SPOTIFY_PLAYLIST_ID = "5i13fDRDoW0gu60f74cysp" 
+load_dotenv()
+
+SPOTIPY_CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
+SPOTIPY_CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
+SPOTIPY_REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
+SPOTIFY_PLAYLIST_ID = os.getenv("SPOTIFY_PLAYLIST_ID")
 RADIOX_STATION_SLUG = "radiox" 
 
 # Script Operation Settings
@@ -48,9 +51,12 @@ END_TIME = datetime.time(22, 0)
 
 # Email Summary Settings (from environment)
 EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = os.getenv("EMAIL_PORT") 
+EMAIL_PORT = os.getenv("EMAIL_PORT")
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_FROM = os.getenv("EMAIL_FROM")
+EMAIL_TO = os.getenv("EMAIL_TO")
 EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT")
 
 BOLD = '\033[1m'
@@ -145,12 +151,16 @@ class RadioXBot:
                 client_secret=SPOTIPY_CLIENT_SECRET,
                 redirect_uri=SPOTIPY_REDIRECT_URI,
                 scope="playlist-modify-public playlist-modify-private",
-                open_browser=False,
+                open_browser=True,
                 cache_handler=spotipy.cache_handler.CacheFileHandler(cache_path=".spotipy_cache")
             )
             
             # Try to get a token from cache first
             token_info = auth_manager.get_cached_token()
+            
+            if not token_info:
+                # If no cached token, prompt user to authenticate
+                token_info = auth_manager.get_access_token(as_dict=True)
             
             if not token_info:
                 # If no cached token, we need to get a new one
