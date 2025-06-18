@@ -70,6 +70,8 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+BACKEND_VERSION = "1.0.0-beta-20240618"
+
 # --- Main Application Class ---
 
 class RadioXBot:
@@ -702,11 +704,20 @@ def status():
         'next_check_time': next_check_time_str,
         'stats': getattr(bot_instance, 'stats', {}),
         'state_history': getattr(bot_instance, 'state_history', []),
+        'backend_version': BACKEND_VERSION,
     })
 
 @app.route('/')
 def index_page():
     return render_template('index.html', active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
+
+@app.before_first_request
+def log_backend_version():
+    logging.info(f"RadioX Spotify Backend Version: {BACKEND_VERSION}")
+
+@app.route('/version')
+def version():
+    return jsonify({"backend_version": BACKEND_VERSION})
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""

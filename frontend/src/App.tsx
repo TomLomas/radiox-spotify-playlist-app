@@ -39,13 +39,17 @@ interface AppState {
   check_complete: boolean;
   last_check_complete_time: number;
   next_check_time: string | null;
+  backend_version: string;
 }
+
+const FRONTEND_VERSION = "1.0.0-beta-20240618";
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
   const [activeTab, setActiveTab] = useState('status');
   const [countdown, setCountdown] = useState<number | null>(null);
   const [lastCheckCompleteTime, setLastCheckCompleteTime] = useState<number | null>(null);
+  const [backendVersion, setBackendVersion] = useState<string>("");
 
   // Fetch status from backend
   const fetchStatus = async () => {
@@ -66,10 +70,12 @@ function App() {
       setAppState({
         ...data,
         stats: safeStats,
-        last_check_complete_time: lct
+        last_check_complete_time: lct,
+        backend_version: data.backend_version || ""
       });
       setLastCheckCompleteTime(lct);
       setCountdown(data.seconds_until_next_check);
+      setBackendVersion(data.backend_version || "");
     } catch (error) {
       console.error('Error fetching status:', error);
     }
@@ -215,6 +221,10 @@ function App() {
 
         {activeTab === 'admin' && (
           <div className="mt-6">
+            <div className="mb-4 p-4 bg-gray-800 rounded-lg flex flex-col md:flex-row md:items-center md:space-x-8">
+              <div>Frontend Version: <span className="text-purple-400">{FRONTEND_VERSION}</span></div>
+              <div>Backend Version: <span className="text-purple-400">{backendVersion}</span></div>
+            </div>
             <AdminPanel appState={{
               service_state: appState.service_state,
               queue_size: appState.queue_size,
