@@ -59,9 +59,14 @@ function App() {
           service_paused: data.stats?.service_paused ?? false,
           paused_reason: data.stats?.paused_reason ?? "none"
         };
+        // Ensure last_check_complete_time is a number
+        const lastCheckCompleteTime = typeof data.last_check_complete_time === 'number' 
+          ? data.last_check_complete_time 
+          : Date.now();
         setAppState({
           ...data,
-          stats: safeStats
+          stats: safeStats,
+          last_check_complete_time: lastCheckCompleteTime
         });
       } catch (error) {
         console.error('Error fetching status:', error);

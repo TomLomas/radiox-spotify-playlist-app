@@ -66,7 +66,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     // Update last check time string
     const updateLastCheckTime = () => {
       if (lastCheckCompleteTime) {
-        setLastCheckTimeStr(new Date(lastCheckCompleteTime).toLocaleTimeString());
+        const date = new Date(lastCheckCompleteTime * 1000); // Convert Unix timestamp to milliseconds
+        setLastCheckTimeStr(date.toLocaleTimeString());
       }
     };
 
