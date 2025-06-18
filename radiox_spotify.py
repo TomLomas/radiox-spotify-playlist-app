@@ -138,24 +138,17 @@ class RadioXBot:
 
     # --- Authentication ---
     def authenticate_spotify(self):
-        """Initializes and authenticates the Spotipy client."""
-        scope = "playlist-modify-public playlist-modify-private user-library-read"
+        """Initializes and authenticates the Spotipy client using Client Credentials flow."""
         try:
-            auth_manager = SpotifyOAuth(
+            auth_manager = spotipy.oauth2.SpotifyClientCredentials(
                 client_id=SPOTIPY_CLIENT_ID,
-                client_secret=SPOTIPY_CLIENT_SECRET,
-                redirect_uri=SPOTIPY_REDIRECT_URI,
-                scope=scope,
-                open_browser=False
+                client_secret=SPOTIPY_CLIENT_SECRET
             )
             self.sp = spotipy.Spotify(auth_manager=auth_manager)
-            user = self.sp.current_user()
-            if user:
-                self.log_event(f"Successfully authenticated with Spotify as {user['display_name']}.")
-                return True
-            else:
-                self.sp = None
-                self.log_event("ERROR: Could not get Spotify user details with token.")
+            # Test the connection by making a simple API call
+            self.sp.search('test', limit=1)
+            self.log_event("Successfully authenticated with Spotify using Client Credentials.")
+            return True
         except Exception as e:
             self.sp = None
             logging.critical(f"CRITICAL Error during Spotify Authentication: {e}", exc_info=True)
