@@ -21,18 +21,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   lastCheckCompleteTime,
   nextCheckTime
 }) => {
-  const [nextCheckTimeStr, setNextCheckTimeStr] = useState('');
   const [lastCheckTimeStr, setLastCheckTimeStr] = useState('');
-
-  // Update next check time string when it changes
-  useEffect(() => {
-    if (serviceState !== 'paused' && nextCheckTime) {
-      const nextCheck = new Date(nextCheckTime);
-      setNextCheckTimeStr(nextCheck.toLocaleTimeString());
-    } else {
-      setNextCheckTimeStr('--:--:--');
-    }
-  }, [nextCheckTime, serviceState]);
 
   // Update last check time string
   useEffect(() => {
@@ -84,7 +73,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             <span>Service paused</span>
           ) : (
             <div className="flex items-center space-x-2">
-              <span>Next check at {nextCheckTimeStr}</span>
+              <span>Next check at 00:00:00</span>
               <span className="text-purple-400">({formatCountdown(secondsUntilNextCheck)})</span>
             </div>
           )}
