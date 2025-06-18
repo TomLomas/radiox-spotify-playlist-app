@@ -139,29 +139,23 @@ class RadioXBot:
     # --- Authentication ---
     def authenticate_spotify(self):
         """Initializes and authenticates the Spotipy client."""
-        def write_cache():
-            cache_content_b64 = os.getenv("SPOTIPY_CACHE_BASE64")
-            if cache_content_b64:
-                try:
-                    cache_content_json = base64.b64decode(cache_content_b64).decode('utf-8')
-                    with open(".spotipy_cache", 'w') as f: f.write(cache_content_json)
-                    return True
-                except Exception as e: logging.error(f"Error decoding/writing Spotify cache: {e}"); return False
-            return False
-
         scope = "playlist-modify-public playlist-modify-private user-library-read"
         try:
-            write_cache()
-            auth_manager = SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET, redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, cache_path=".spotipy_cache") 
-            token_info = auth_manager.get_cached_token()
-            if token_info:
-                self.sp = spotipy.Spotify(auth_manager=auth_manager)
-                user = self.sp.current_user()
-                if user:
-                    self.log_event(f"Successfully authenticated with Spotify as {user['display_name']}.")
-                    return True
-                else: self.sp = None; self.log_event("ERROR: Could not get Spotify user details with token.")
-            else: self.sp = None; self.log_event("ERROR: Failed to obtain Spotify token.")
+            auth_manager = SpotifyOAuth(
+                client_id=SPOTIPY_CLIENT_ID,
+                client_secret=SPOTIPY_CLIENT_SECRET,
+                redirect_uri=SPOTIPY_REDIRECT_URI,
+                scope=scope,
+                open_browser=False
+            )
+            self.sp = spotipy.Spotify(auth_manager=auth_manager)
+            user = self.sp.current_user()
+            if user:
+                self.log_event(f"Successfully authenticated with Spotify as {user['display_name']}.")
+                return True
+            else:
+                self.sp = None
+                self.log_event("ERROR: Could not get Spotify user details with token.")
         except Exception as e:
             self.sp = None
             logging.critical(f"CRITICAL Error during Spotify Authentication: {e}", exc_info=True)
