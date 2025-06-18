@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: radiox-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      # Add your backend environment variables here
+      # SPOTIFY_CLIENT_ID: your_id
+      # SPOTIFY_CLIENT_SECRET: your_secret
+    depends_on:
+      - frontend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: radiox-frontend
+    restart: always
+    ports:
+      - "80:80" 
