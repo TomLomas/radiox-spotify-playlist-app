@@ -9,10 +9,6 @@ services:
     restart: always
     ports:
       - "5000:5000"
-    environment:
-      # Add your backend environment variables here
-      # SPOTIFY_CLIENT_ID: your_id
-      # SPOTIFY_CLIENT_SECRET: your_secret
     depends_on:
       - frontend
 
