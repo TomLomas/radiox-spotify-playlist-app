@@ -711,7 +711,6 @@ def status():
 def index_page():
     return render_template('index.html', active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
 
-@app.before_first_request
 def log_backend_version():
     logging.info(f"RadioX Spotify Backend Version: {BACKEND_VERSION}")
 
@@ -722,6 +721,8 @@ def version():
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
     logging.info("Background initialization started.")
+    # Log version at startup
+    log_backend_version()
     if bot_instance.authenticate_spotify():
         bot_instance.load_state() 
         bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
