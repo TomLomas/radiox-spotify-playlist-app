@@ -25,6 +25,11 @@ import atexit
 import base64
 from dotenv import load_dotenv
 
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
 # --- Flask App Setup ---
 app = Flask(__name__)
 
@@ -39,8 +44,8 @@ RADIOX_STATION_SLUG = "radiox"
 
 # Script Operation Settings
 CHECK_INTERVAL = 120  
-DUPLICATE_CHECK_INTERVAL = 30 * 60 
-MAX_PLAYLIST_SIZE = 500
+DUPLICATE_CHECK_INTERVAL = 2 * 60 * 60  # 7200 seconds
+MAX_PLAYLIST_SIZE = 200
 MAX_FAILED_SEARCH_QUEUE_SIZE = 30 
 MAX_FAILED_SEARCH_ATTEMPTS = 3    
 
@@ -102,17 +107,13 @@ class RadioXBot:
         self.DAILY_ADDED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_added.json")
         self.DAILY_FAILED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_failed.json")
 
-        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(maxlen=50)
-        self.failed_search_queue = deque(maxlen=10)
+        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(maxlen=20)
+        self.failed_search_queue = deque(maxlen=5)
         self.daily_added_songs = [] 
         self.daily_search_failures = [] 
-        self.event_log = deque(maxlen=20)
+        self.event_log = deque(maxlen=10)
         self.log_event("Application instance created. Waiting for initialization.")
         self.file_lock = threading.Lock()
-
-        # New in the __init__ method
-        self.next_check_update_thread = threading.Thread(target=self.update_next_check_timer, daemon=True)
-        self.next_check_update_thread.start()
 
     def log_event(self, message):
         """Adds an event to the global log for the web UI and standard logging."""
@@ -127,8 +128,8 @@ class RadioXBot:
             try:
                 with open(self.RECENTLY_ADDED_CACHE_FILE, 'w') as f: json.dump(list(self.RECENTLY_ADDED_SPOTIFY_IDS), f)
                 with open(self.FAILED_QUEUE_CACHE_FILE, 'w') as f: json.dump(list(self.failed_search_queue), f)
-                with open(self.DAILY_ADDED_CACHE_FILE, 'w') as f: json.dump(self.daily_added_songs[-100:], f)
-                with open(self.DAILY_FAILED_CACHE_FILE, 'w') as f: json.dump(self.daily_search_failures[-100:], f)
+                with open(self.DAILY_ADDED_CACHE_FILE, 'w') as f: json.dump(self.daily_added_songs[-50:], f)
+                with open(self.DAILY_FAILED_CACHE_FILE, 'w') as f: json.dump(self.daily_search_failures[-50:], f)
                 logging.debug("Successfully saved application state to disk.")
             except Exception as e:
                 logging.error(f"Failed to save state to disk: {e}")
@@ -139,11 +140,11 @@ class RadioXBot:
             try:
                 if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
                     with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
-                        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=50)
+                        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=20)
                         logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
                 if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
                     with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
-                        self.failed_search_queue = deque(json.load(f), maxlen=10)
+                        self.failed_search_queue = deque(json.load(f), maxlen=5)
                         logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
                 if os.path.exists(self.DAILY_ADDED_CACHE_FILE):
                     with open(self.DAILY_ADDED_CACHE_FILE, 'r') as f:
@@ -300,24 +301,17 @@ class RadioXBot:
         return None
 
     def manage_playlist_size(self, playlist_id):
-        if not self.sp: return False
         try:
-            playlist_details = self.spotify_api_call_with_retry(self.sp.playlist, playlist_id, fields='tracks.total')
-            if not playlist_details: return False
-            total_tracks = playlist_details['tracks']['total']
-            self.log_event(f"Playlist size: {total_tracks}/{MAX_PLAYLIST_SIZE}")
-            if total_tracks >= MAX_PLAYLIST_SIZE:
-                self.log_event(f"Playlist at/over limit. Removing oldest song.")
-                oldest_track_response = self.spotify_api_call_with_retry(self.sp.playlist_items, playlist_id, limit=1, offset=0, fields='items.track.uri')
-                if oldest_track_response and oldest_track_response['items']:
-                    oldest_track_uri = oldest_track_response['items'][0]['track']['uri']
-                    self.spotify_api_call_with_retry(self.sp.playlist_remove_specific_occurrences_of_items, playlist_id, items=[{'uri': oldest_track_uri, 'positions': [0]}])
-                    self.log_event(f"Removed oldest song.")
-                    time.sleep(1)
-                    return True
-                return False
-        except Exception as e: logging.error(f"Error managing playlist size: {e}"); return False
-        return True
+            # Fetch only the first (oldest) track
+            results = self.sp.playlist_items(playlist_id, limit=1, offset=0, fields='items.track.id,total')
+            total = results.get('total', 0)
+            if total >= MAX_PLAYLIST_SIZE and results['items']:
+                oldest_track = results['items'][0]['track']
+                oldest_track_id = oldest_track['id']
+                self.sp.playlist_remove_all_occurrences_of_items(playlist_id, [oldest_track_id])
+                self.log_event(f"Playlist at/over limit. Removed oldest song (ID: {oldest_track_id}).")
+        except Exception as e:
+            self.log_event(f"Error managing playlist size: {e}")
 
     def add_song_to_playlist(self, radio_x_title, radio_x_artist, spotify_track_id, playlist_id_to_use):
         if not self.sp: return False
@@ -363,31 +357,37 @@ class RadioXBot:
             return False
 
     def check_and_remove_duplicates(self, playlist_id):
-        if not self.sp: return
-        self.log_event("Starting periodic duplicate check...")
         try:
-            all_tracks, offset, limit = [], 0, 100
+            self.log_event("Starting duplicate check (paginated)...")
+            seen = set()
+            duplicates = []
+            offset = 0
+            batch_size = 50
+            total = None
             while True:
-                results = self.spotify_api_call_with_retry(self.sp.playlist_items, playlist_id, limit=limit, offset=offset, fields="items(track(id,uri,name)),next")
-                if not results or not results['items']: break
-                for item in results['items']:
-                    if item.get('track') and item['track'].get('id'): all_tracks.append(item['track'])
-                if results['next']: offset += 100
-                else: break
-            self.log_event(f"DUPLICATE_CLEANUP: Fetched {len(all_tracks)} tracks.")
-            if not all_tracks: return
-            track_counts = Counter(t['id'] for t in all_tracks if t['id'])
-            for track_id, count in track_counts.items():
-                if count > 1:
-                    track_uri = next((t['uri'] for t in all_tracks if t['id'] == track_id), None)
-                    track_name = next((t['name'] for t in all_tracks if t['id'] == track_id), "Unknown")
-                    if track_uri:
-                        self.log_event(f"DUPLICATE_CLEANUP: Track '{track_name}' found {count} times. Re-processing.")
-                        self.spotify_api_call_with_retry(self.sp.playlist_remove_all_occurrences_of_items, playlist_id, [track_uri])
-                        time.sleep(0.5); self.spotify_api_call_with_retry(self.sp.playlist_add_items, playlist_id, [track_uri])
-                        self.RECENTLY_ADDED_SPOTIFY_IDS.append(track_id)
-                        time.sleep(1)
-        except Exception as e: self.log_event(f"ERROR during duplicate cleanup: {e}")
+                results = self.sp.playlist_items(playlist_id, limit=batch_size, offset=offset, fields='items.track.id,items.track.name,items.track.artists,total')
+                if total is None:
+                    total = results.get('total', 0)
+                items = results.get('items', [])
+                if not items:
+                    break
+                for item in items:
+                    track = item['track']
+                    track_id = track['id']
+                    if track_id in seen:
+                        duplicates.append(track_id)
+                    else:
+                        seen.add(track_id)
+                offset += batch_size
+                if offset >= total:
+                    break
+            if duplicates:
+                self.sp.playlist_remove_all_occurrences_of_items(playlist_id, duplicates)
+                self.log_event(f"Removed {len(duplicates)} duplicate tracks from playlist.")
+            else:
+                self.log_event("No duplicates found.")
+        except Exception as e:
+            self.log_event(f"Error during duplicate check: {e}")
 
     def process_failed_search_queue(self):
         if not self.failed_search_queue: return
@@ -572,24 +572,19 @@ class RadioXBot:
         self.save_state()
         self.is_checking = False
 
-    def update_next_check_timer(self):
-        while True:
-            try:
-                now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
-                if self.service_state == 'playing':
-                    if hasattr(self, 'last_check_time') and self.last_check_time:
-                        elapsed = int(time.time() - self.last_check_time)
-                        remaining = max(CHECK_INTERVAL - elapsed, 0)
-                        self.seconds_until_next_check = remaining
-                        self.next_check_time = (datetime.datetime.now(pytz.timezone(TIMEZONE)) + datetime.timedelta(seconds=remaining)).isoformat()
-                        self.log_event(f"Time until next check: {remaining}s")
-                else:
-                    self.seconds_until_next_check = 0
-                    self.next_check_time = ''
-                time.sleep(60)
-            except Exception as e:
-                logging.error(f"Error in update_next_check_timer: {e}")
-                time.sleep(60)
+        if self.service_state == 'playing' and hasattr(self, 'last_check_time') and self.last_check_time:
+            elapsed = int(current_time - self.last_check_time)
+            remaining = max(CHECK_INTERVAL - elapsed, 0)
+            self.seconds_until_next_check = remaining
+            self.next_check_time = (datetime.datetime.now(pytz.timezone(TIMEZONE)) + datetime.timedelta(seconds=remaining)).isoformat()
+            self.log_event(f"Time until next check: {remaining}s")
+        else:
+            self.seconds_until_next_check = 0
+            self.next_check_time = ''
+
+        if psutil:
+            mem = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
+            self.log_event(f"[MEMORY] Backend RSS: {mem:.1f} MiB")
 
 
 # --- Flask Routes & Script Execution ---
