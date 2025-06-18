@@ -600,17 +600,65 @@ def force_duplicates():
     threading.Thread(target=bot_instance.check_and_remove_duplicates, args=(SPOTIFY_PLAYLIST_ID,)).start()
     return "Duplicate check has been triggered. Check logs for progress."
 
+@app.route('/admin/force_duplicates', methods=['POST'])
+def admin_force_duplicates():
+    return force_duplicates()
+
 @app.route('/force_queue')
 def force_queue():
     bot_instance.log_event("Failed queue processing manually triggered via web.")
     threading.Thread(target=bot_instance.process_failed_search_queue).start()
     return "Processing of one item from the failed search queue has been triggered. Check logs for progress."
 
+@app.route('/admin/force_queue', methods=['POST'])
+def admin_force_queue():
+    return force_queue()
+
 @app.route('/force_diagnostics')
 def force_diagnostics():
     bot_instance.log_event("Diagnostic check manually triggered via web.")
     threading.Thread(target=bot_instance.run_startup_diagnostics, kwargs={'send_email': True}).start()
     return "Diagnostic check has been triggered. Results will be emailed shortly."
+
+@app.route('/admin/force_diagnostics', methods=['POST'])
+def admin_force_diagnostics():
+    return force_diagnostics()
+
+@app.route('/admin/force_check', methods=['POST'])
+def admin_force_check():
+    bot_instance.log_event("Manual check triggered via web.")
+    threading.Thread(target=bot_instance.process_main_cycle).start()
+    return "Manual check has been triggered. Check logs for progress."
+
+@app.route('/admin/pause_resume', methods=['POST'])
+def admin_pause_resume():
+    if bot_instance.service_state == 'playing':
+        bot_instance.service_state = 'paused'
+        bot_instance.paused_reason = 'manual'
+        bot_instance.log_event("Service manually paused via web.")
+    else:
+        bot_instance.service_state = 'playing'
+        bot_instance.paused_reason = ''
+        bot_instance.log_event("Service manually resumed via web.")
+    return f"Service {bot_instance.service_state}"
+
+@app.route('/admin/send_summary', methods=['POST'])
+def admin_send_summary():
+    bot_instance.log_event("Daily summary manually triggered via web.")
+    threading.Thread(target=bot_instance.log_and_send_daily_summary).start()
+    return "Daily summary has been triggered. Check email for results."
+
+@app.route('/admin/retry_failed', methods=['POST'])
+def admin_retry_failed():
+    bot_instance.log_event("Failed songs retry manually triggered via web.")
+    threading.Thread(target=bot_instance.process_failed_search_queue).start()
+    return "Retrying failed songs. Check logs for progress."
+
+@app.route('/admin/send_debug_log', methods=['POST'])
+def admin_send_debug_log():
+    bot_instance.log_event("Debug log manually triggered via web.")
+    threading.Thread(target=bot_instance.send_debug_log).start()
+    return "Debug log has been triggered. Check email for results."
 
 @app.route('/status')
 def status():
