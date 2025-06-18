@@ -221,10 +221,6 @@ function App() {
 
         {activeTab === 'admin' && (
           <div className="mt-6">
-            <div className="mb-4 p-4 bg-gray-800 rounded-lg flex flex-col md:flex-row md:items-center md:space-x-8">
-              <div>Frontend Version: <span className="text-purple-400">{FRONTEND_VERSION}</span></div>
-              <div>Backend Version: <span className="text-purple-400">{backendVersion}</span></div>
-            </div>
             <AdminPanel appState={{
               service_state: appState.service_state,
               queue_size: appState.queue_size,
