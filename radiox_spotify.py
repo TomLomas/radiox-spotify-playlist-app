@@ -79,6 +79,16 @@ class RadioXBot:
         self.shutdown_summary_sent = False
         self.current_station_herald_id = None
         self.is_running = False
+        self.service_state = 'initializing'
+        self.paused_reason = ''
+        self.seconds_until_next_check = 0
+        self.is_checking = False
+        self.check_complete = False
+        self.last_check_time = 0
+        self.last_check_complete_time = 0
+        self.next_check_time = ''
+        self.stats = {}
+        self.state_history = []
 
         # Persistent Data Structures
         self.CACHE_DIR = ".cache"
@@ -511,11 +521,14 @@ class RadioXBot:
                     self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
                     self.last_summary_log_date = now_local.date()
                 if START_TIME <= now_local.time() <= END_TIME:
+                    self.service_state = 'playing'
+                    self.paused_reason = ''
                     if not self.startup_email_sent:
                         self.log_event("Active hours started."); self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
                     self.process_main_cycle()
                 else:
-                    self.log_event(f"Outside of active hours. Pausing...")
+                    self.service_state = 'paused'
+                    self.paused_reason = 'out_of_hours'
                     if not self.shutdown_summary_sent:
                         self.log_event("End of active day. Generating and sending daily summary."); self.log_and_send_daily_summary(); self.shutdown_summary_sent = True; self.startup_email_sent = False
                     time.sleep(CHECK_INTERVAL * 5); continue
@@ -546,7 +559,14 @@ class RadioXBot:
         if current_time - self.last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
             self.check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID); self.last_duplicate_check_time = current_time
         
+        self.last_check_time = int(current_time)
+        self.is_checking = True
+        self.check_complete = True
+        self.last_check_complete_time = int(time.time())
+        self.seconds_until_next_check = CHECK_INTERVAL
+        self.next_check_time = (datetime.datetime.now(pytz.timezone(TIMEZONE)) + datetime.timedelta(seconds=CHECK_INTERVAL)).isoformat()
         self.save_state()
+        self.is_checking = False
 
 
 # --- Flask Routes & Script Execution ---
@@ -573,24 +593,34 @@ def force_diagnostics():
 
 @app.route('/status')
 def status():
-    # Corrected: Reads state from files to ensure consistency across processes
+    # Reads state from files to ensure consistency across processes
     try:
         with bot_instance.file_lock:
             with open(bot_instance.DAILY_ADDED_CACHE_FILE, 'r') as f: daily_added = json.load(f)
             with open(bot_instance.DAILY_FAILED_CACHE_FILE, 'r') as f: daily_failed = json.load(f)
             with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: failed_queue = json.load(f)
     except FileNotFoundError:
-        # Handle case where cache files don't exist yet
         daily_added, daily_failed, failed_queue = [], [], []
     except Exception as e:
         logging.error(f"Error reading state for /status endpoint: {e}")
         daily_added, daily_failed, failed_queue = [], [], []
 
+    # Provide safe defaults for all expected frontend fields
     return jsonify({
         'last_song_added': daily_added[-1] if daily_added else None,
         'queue_size': len(failed_queue),
         'daily_added': daily_added,
-        'daily_failed': daily_failed
+        'daily_failed': daily_failed,
+        'service_state': getattr(bot_instance, 'service_state', 'error'),
+        'paused_reason': getattr(bot_instance, 'paused_reason', ''),
+        'seconds_until_next_check': getattr(bot_instance, 'seconds_until_next_check', 0),
+        'is_checking': getattr(bot_instance, 'is_checking', False),
+        'check_complete': getattr(bot_instance, 'check_complete', False),
+        'last_check_time': getattr(bot_instance, 'last_check_time', 0),
+        'last_check_complete_time': getattr(bot_instance, 'last_check_complete_time', 0),
+        'next_check_time': getattr(bot_instance, 'next_check_time', ''),
+        'stats': getattr(bot_instance, 'stats', {}),
+        'state_history': getattr(bot_instance, 'state_history', []),
     })
 
 @app.route('/')
