@@ -10,9 +10,11 @@ interface AdminPanelProps {
       reason: string;
     }>;
   };
+  backendVersion: string;
+  frontendVersion: string;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ appState }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion, frontendVersion }) => {
   const handleForceCheck = async () => {
     try {
       await fetch('/admin/force_check', { method: 'POST' });
@@ -60,6 +62,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState }) => {
   return (
     <div className="bg-gray-800 shadow rounded-lg p-6">
       <h2 className="text-lg font-semibold text-white mb-4">Admin Controls</h2>
+      
+      <div className="mb-4 p-4 bg-gray-700 rounded-lg flex flex-col md:flex-row md:items-center md:space-x-8">
+        <div>Frontend Version: <span className="text-purple-400">{frontendVersion}</span></div>
+        <div>Backend Version: <span className="text-purple-400">{backendVersion}</span></div>
+      </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <button

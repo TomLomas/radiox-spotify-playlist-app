@@ -229,7 +229,7 @@ function App() {
               service_state: appState.service_state,
               queue_size: appState.queue_size,
               state_history: appState.state_history
-            }} />
+            }} backendVersion={backendVersion} frontendVersion={FRONTEND_VERSION} />
           </div>
         )}
       </div>
