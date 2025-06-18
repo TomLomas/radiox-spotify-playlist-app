@@ -106,6 +106,7 @@ class RadioXBot:
         self.FAILED_QUEUE_CACHE_FILE = os.path.join(self.CACHE_DIR, "failed_queue.json")
         self.DAILY_ADDED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_added.json")
         self.DAILY_FAILED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_failed.json")
+        self.LAST_CHECK_COMPLETE_FILE = os.path.join(self.CACHE_DIR, "last_check_complete_time.txt")
 
         self.RECENTLY_ADDED_SPOTIFY_IDS = deque(maxlen=20)
         self.failed_search_queue = deque(maxlen=5)
@@ -156,6 +157,18 @@ class RadioXBot:
                         logging.info(f"Loaded {len(self.daily_search_failures)} daily failed searches from cache.")
             except Exception as e:
                 logging.error(f"Failed to load state from disk: {e}")
+
+    def save_last_check_complete_time(self):
+        with open(self.LAST_CHECK_COMPLETE_FILE, 'w') as f:
+            f.write(str(self.last_check_complete_time))
+
+    def load_last_check_complete_time(self):
+        if os.path.exists(self.LAST_CHECK_COMPLETE_FILE):
+            with open(self.LAST_CHECK_COMPLETE_FILE, 'r') as f:
+                try:
+                    self.last_check_complete_time = int(f.read().strip())
+                except Exception:
+                    self.last_check_complete_time = 0
 
     # --- Authentication ---
     def authenticate_spotify(self):
@@ -568,6 +581,7 @@ class RadioXBot:
         self.is_checking = True
         self.check_complete = True
         self.last_check_complete_time = int(time.time())
+        self.save_last_check_complete_time()
         self.save_state()
         self.is_checking = False
 
@@ -606,6 +620,7 @@ def status():
             with open(bot_instance.DAILY_ADDED_CACHE_FILE, 'r') as f: daily_added = json.load(f)
             with open(bot_instance.DAILY_FAILED_CACHE_FILE, 'r') as f: daily_failed = json.load(f)
             with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: failed_queue = json.load(f)
+            bot_instance.load_last_check_complete_time()
     except FileNotFoundError:
         daily_added, daily_failed, failed_queue = [], [], []
     except Exception as e:
