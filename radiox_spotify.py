@@ -138,16 +138,35 @@ class RadioXBot:
 
     # --- Authentication ---
     def authenticate_spotify(self):
-        """Initializes and authenticates the Spotipy client using Client Credentials flow."""
+        """Initializes and authenticates the Spotipy client using refresh token."""
         try:
-            auth_manager = spotipy.oauth2.SpotifyClientCredentials(
+            auth_manager = spotipy.oauth2.SpotifyOAuth(
                 client_id=SPOTIPY_CLIENT_ID,
-                client_secret=SPOTIPY_CLIENT_SECRET
+                client_secret=SPOTIPY_CLIENT_SECRET,
+                redirect_uri=SPOTIPY_REDIRECT_URI,
+                scope="playlist-modify-public playlist-modify-private",
+                open_browser=False,
+                cache_handler=spotipy.cache_handler.CacheFileHandler(cache_path=".spotipy_cache")
             )
+            
+            # Try to get a token from cache first
+            token_info = auth_manager.get_cached_token()
+            
+            if not token_info:
+                # If no cached token, we need to get a new one
+                # For now, we'll use a dummy token that will fail gracefully
+                self.sp = None
+                logging.warning("No cached token found. Please run the application locally first to generate a token.")
+                return False
+            
+            # If we have a token, use it
+            if auth_manager.is_token_expired(token_info):
+                token_info = auth_manager.refresh_access_token(token_info['refresh_token'])
+            
             self.sp = spotipy.Spotify(auth_manager=auth_manager)
-            # Test the connection by making a simple API call
-            self.sp.search('test', limit=1)
-            self.log_event("Successfully authenticated with Spotify using Client Credentials.")
+            # Test the connection
+            self.sp.current_user()
+            self.log_event("Successfully authenticated with Spotify using refresh token.")
             return True
         except Exception as e:
             self.sp = None
