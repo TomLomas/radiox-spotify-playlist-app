@@ -567,20 +567,8 @@ class RadioXBot:
         self.is_checking = True
         self.check_complete = True
         self.last_check_complete_time = int(time.time())
-        self.seconds_until_next_check = CHECK_INTERVAL
-        self.next_check_time = (datetime.datetime.now(pytz.timezone(TIMEZONE)) + datetime.timedelta(seconds=CHECK_INTERVAL)).isoformat()
         self.save_state()
         self.is_checking = False
-
-        if self.service_state == 'playing' and hasattr(self, 'last_check_time') and self.last_check_time:
-            elapsed = int(current_time - self.last_check_time)
-            remaining = max(CHECK_INTERVAL - elapsed, 0)
-            self.seconds_until_next_check = remaining
-            self.next_check_time = (datetime.datetime.now(pytz.timezone(TIMEZONE)) + datetime.timedelta(seconds=remaining)).isoformat()
-            self.log_event(f"Time until next check: {remaining}s")
-        else:
-            self.seconds_until_next_check = 0
-            self.next_check_time = ''
 
         if psutil:
             mem = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
@@ -623,6 +611,12 @@ def status():
         logging.error(f"Error reading state for /status endpoint: {e}")
         daily_added, daily_failed, failed_queue = [], [], []
 
+    # Calculate seconds until next check based on last_check_complete_time
+    last_check_time = getattr(bot_instance, 'last_check_complete_time', 0)
+    current_time = int(time.time())
+    next_check_time = last_check_time + CHECK_INTERVAL
+    seconds_until_next = max(0, next_check_time - current_time)
+
     # Provide safe defaults for all expected frontend fields
     return jsonify({
         'last_song_added': daily_added[-1] if daily_added else None,
@@ -631,12 +625,12 @@ def status():
         'daily_failed': daily_failed,
         'service_state': getattr(bot_instance, 'service_state', 'error'),
         'paused_reason': getattr(bot_instance, 'paused_reason', ''),
-        'seconds_until_next_check': getattr(bot_instance, 'seconds_until_next_check', 0),
+        'seconds_until_next_check': seconds_until_next,
         'is_checking': getattr(bot_instance, 'is_checking', False),
         'check_complete': getattr(bot_instance, 'check_complete', False),
         'last_check_time': getattr(bot_instance, 'last_check_time', 0),
-        'last_check_complete_time': getattr(bot_instance, 'last_check_complete_time', 0),
-        'next_check_time': getattr(bot_instance, 'next_check_time', ''),
+        'last_check_complete_time': last_check_time,
+        'next_check_time': datetime.datetime.fromtimestamp(next_check_time, pytz.timezone(TIMEZONE)).isoformat() if last_check_time else '',
         'stats': getattr(bot_instance, 'stats', {}),
         'state_history': getattr(bot_instance, 'state_history', []),
     })
