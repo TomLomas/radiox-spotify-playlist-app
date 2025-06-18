@@ -63,11 +63,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
     <div className="bg-gray-800 shadow rounded-lg p-6">
       <h2 className="text-lg font-semibold text-white mb-4">Admin Controls</h2>
       
-      <div className="mb-4 p-4 bg-gray-700 rounded-lg flex flex-col md:flex-row md:items-center md:space-x-8">
-        <div>Frontend Version: <span className="text-purple-400">{frontendVersion}</span></div>
-        <div>Backend Version: <span className="text-purple-400">{backendVersion}</span></div>
-      </div>
-      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <button
           onClick={handleForceCheck}
@@ -102,7 +97,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
       </div>
 
       <h3 className="text-md font-semibold text-white mb-2">State History</h3>
-      <div className="bg-gray-700 rounded-lg overflow-hidden">
+      <div className="bg-gray-700 rounded-lg overflow-hidden mb-6">
         <table className="min-w-full divide-y divide-gray-600">
           <thead className="bg-gray-600">
             <tr>
@@ -121,6 +116,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="p-4 bg-gray-700 rounded-lg flex flex-col md:flex-row md:items-center md:space-x-8">
+        <div>Frontend Version: <span className="text-purple-400">{frontendVersion}</span></div>
+        <div>Backend Version: <span className="text-purple-400">{backendVersion}</span></div>
       </div>
     </div>
   );
