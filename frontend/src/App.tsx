@@ -104,8 +104,11 @@ function App() {
     if (countdown === null) return;
 
     if (countdown <= 0) {
-      // When countdown hits zero, check for new cycle
-      const checkForUpdate = async () => {
+      // When countdown hits zero, immediately fetch status
+      fetchStatus();
+      
+      // Set up a check timer to verify if a new cycle completed
+      checkTimer = setTimeout(async () => {
         try {
           const response = await fetch('/status');
           const data = await response.json();
@@ -131,15 +134,14 @@ function App() {
             setCountdown(data.seconds_until_next_check);
           } else {
             // Not yet, check again in 30 seconds
-            checkTimer = setTimeout(() => setCountdown(0), 30000);
+            setCountdown(0);
           }
         } catch (error) {
           console.error('Error fetching status:', error);
           // On error, wait 30 seconds before retrying
-          checkTimer = setTimeout(() => setCountdown(0), 30000);
+          setCountdown(0);
         }
-      };
-      checkForUpdate();
+      }, 30000);
     } else {
       // Normal countdown
       timer = setInterval(() => {
