@@ -77,10 +77,6 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     return () => clearInterval(timer);
   }, [lastCheckCompleteTime]);
 
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString();
-  };
-
   const getStatusColor = (state: string) => {
     switch (state) {
       case 'playing':
