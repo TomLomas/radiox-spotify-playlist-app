@@ -75,14 +75,34 @@ function App() {
     }
   };
 
-  // On mount, fetch status
+  // Initialize app state and start polling
   useEffect(() => {
-    fetchStatus();
+    let isInitialized = false;
+    let timer: NodeJS.Timeout | null = null;
+    let checkTimer: NodeJS.Timeout | null = null;
+
+    const initializeAndPoll = async () => {
+      if (isInitialized) return;
+      isInitialized = true;
+      await fetchStatus();
+    };
+
+    initializeAndPoll();
+
+    // Cleanup function
+    return () => {
+      if (timer) clearInterval(timer);
+      if (checkTimer) clearTimeout(checkTimer);
+    };
   }, []);
 
   // Countdown timer logic
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    let checkTimer: NodeJS.Timeout | null = null;
+
     if (countdown === null) return;
+
     if (countdown <= 0) {
       // When countdown hits zero, check for new cycle
       const checkForUpdate = async () => {
@@ -110,21 +130,28 @@ function App() {
             setLastCheckCompleteTime(lct);
             setCountdown(data.seconds_until_next_check);
           } else {
-            // Not yet, check again in 5 seconds
-            setTimeout(() => setCountdown(0), 5000);
+            // Not yet, check again in 30 seconds
+            checkTimer = setTimeout(() => setCountdown(0), 30000);
           }
         } catch (error) {
           console.error('Error fetching status:', error);
-          setTimeout(() => setCountdown(0), 5000);
+          // On error, wait 30 seconds before retrying
+          checkTimer = setTimeout(() => setCountdown(0), 30000);
         }
       };
       checkForUpdate();
-      return;
+    } else {
+      // Normal countdown
+      timer = setInterval(() => {
+        setCountdown(prev => (prev !== null ? prev - 1 : null));
+      }, 1000);
     }
-    const timer = setInterval(() => {
-      setCountdown(prev => (prev !== null ? prev - 1 : null));
-    }, 1000);
-    return () => clearInterval(timer);
+
+    // Cleanup function
+    return () => {
+      if (timer) clearInterval(timer);
+      if (checkTimer) clearTimeout(checkTimer);
+    };
   }, [countdown, lastCheckCompleteTime]);
 
   if (!appState) {
