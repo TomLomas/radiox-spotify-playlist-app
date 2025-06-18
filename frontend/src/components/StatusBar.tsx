@@ -48,9 +48,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     // Update next check time string only if service is not paused
     if (serviceState !== 'paused') {
       const updateNextCheckTime = () => {
-        const now = new Date();
-        const nextCheck = new Date(now.getTime() + localSecondsRemaining * 1000);
-        setNextCheckTimeStr(nextCheck.toLocaleTimeString());
+        if (nextCheckTime) {
+          const nextCheck = new Date(nextCheckTime);
+          setNextCheckTimeStr(nextCheck.toLocaleTimeString());
+        }
       };
 
       updateNextCheckTime();
@@ -60,7 +61,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     } else {
       setNextCheckTimeStr('--:--:--');
     }
-  }, [localSecondsRemaining, serviceState]);
+  }, [nextCheckTime, serviceState]);
 
   useEffect(() => {
     // Update last check time string
