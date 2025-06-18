@@ -44,39 +44,88 @@ interface AppState {
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
   const [activeTab, setActiveTab] = useState('status');
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [lastCheckCompleteTime, setLastCheckCompleteTime] = useState<number | null>(null);
 
+  // Fetch status from backend
+  const fetchStatus = async () => {
+    try {
+      const response = await fetch('/status');
+      const data = await response.json();
+      const safeStats = {
+        top_artists: data.stats?.top_artists ?? "N/A",
+        unique_artists: data.stats?.unique_artists ?? 0,
+        most_common_failure: data.stats?.most_common_failure ?? "N/A",
+        success_rate: data.stats?.success_rate ?? "0%",
+        service_paused: data.stats?.service_paused ?? false,
+        paused_reason: data.stats?.paused_reason ?? "none"
+      };
+      const lct = typeof data.last_check_complete_time === 'number' 
+        ? data.last_check_complete_time 
+        : Date.now();
+      setAppState({
+        ...data,
+        stats: safeStats,
+        last_check_complete_time: lct
+      });
+      setLastCheckCompleteTime(lct);
+      setCountdown(data.seconds_until_next_check);
+    } catch (error) {
+      console.error('Error fetching status:', error);
+    }
+  };
+
+  // On mount, fetch status
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('/status');
-        const data = await response.json();
-        // Defensive: ensure stats always has all properties
-        const safeStats = {
-          top_artists: data.stats?.top_artists ?? "N/A",
-          unique_artists: data.stats?.unique_artists ?? 0,
-          most_common_failure: data.stats?.most_common_failure ?? "N/A",
-          success_rate: data.stats?.success_rate ?? "0%",
-          service_paused: data.stats?.service_paused ?? false,
-          paused_reason: data.stats?.paused_reason ?? "none"
-        };
-        // Ensure last_check_complete_time is a number
-        const lastCheckCompleteTime = typeof data.last_check_complete_time === 'number' 
-          ? data.last_check_complete_time 
-          : Date.now();
-        setAppState({
-          ...data,
-          stats: safeStats,
-          last_check_complete_time: lastCheckCompleteTime
-        });
-      } catch (error) {
-        console.error('Error fetching status:', error);
-      }
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    fetchStatus();
   }, []);
+
+  // Countdown timer logic
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      // When countdown hits zero, check for new cycle
+      const checkForUpdate = async () => {
+        try {
+          const response = await fetch('/status');
+          const data = await response.json();
+          const lct = typeof data.last_check_complete_time === 'number' 
+            ? data.last_check_complete_time 
+            : Date.now();
+          if (lct !== lastCheckCompleteTime) {
+            // New cycle completed, update everything
+            const safeStats = {
+              top_artists: data.stats?.top_artists ?? "N/A",
+              unique_artists: data.stats?.unique_artists ?? 0,
+              most_common_failure: data.stats?.most_common_failure ?? "N/A",
+              success_rate: data.stats?.success_rate ?? "0%",
+              service_paused: data.stats?.service_paused ?? false,
+              paused_reason: data.stats?.paused_reason ?? "none"
+            };
+            setAppState({
+              ...data,
+              stats: safeStats,
+              last_check_complete_time: lct
+            });
+            setLastCheckCompleteTime(lct);
+            setCountdown(data.seconds_until_next_check);
+          } else {
+            // Not yet, check again in 5 seconds
+            setTimeout(() => setCountdown(0), 5000);
+          }
+        } catch (error) {
+          console.error('Error fetching status:', error);
+          setTimeout(() => setCountdown(0), 5000);
+        }
+      };
+      checkForUpdate();
+      return;
+    }
+    const timer = setInterval(() => {
+      setCountdown(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown, lastCheckCompleteTime]);
 
   if (!appState) {
     return (
@@ -117,7 +166,7 @@ function App() {
             <StatusBar 
               serviceState={appState.service_state}
               pausedReason={appState.stats.paused_reason}
-              secondsUntilNextCheck={appState.seconds_until_next_check}
+              secondsUntilNextCheck={countdown ?? appState.seconds_until_next_check}
               isChecking={appState.is_checking}
               checkComplete={appState.check_complete}
               lastCheckTime={appState.last_check_time}
