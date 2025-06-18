@@ -21,32 +21,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   lastCheckCompleteTime,
   nextCheckTime
 }) => {
-  const [localSecondsRemaining, setLocalSecondsRemaining] = useState(secondsUntilNextCheck);
   const [nextCheckTimeStr, setNextCheckTimeStr] = useState('');
   const [lastCheckTimeStr, setLastCheckTimeStr] = useState('');
 
+  // Update next check time string when it changes
   useEffect(() => {
-    // Update local timer when backend sends new value
-    setLocalSecondsRemaining(secondsUntilNextCheck);
-  }, [secondsUntilNextCheck]);
-
-  useEffect(() => {
-    // Only start countdown timer if service is not paused
-    if (serviceState !== 'paused') {
-      const timer = setInterval(() => {
-        setLocalSecondsRemaining(prev => {
-          // If we hit 0, wait for the next value from backend
-          if (prev <= 0) return 0;
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [serviceState, secondsUntilNextCheck]);
-
-  useEffect(() => {
-    // Update next check time string only if service is not paused
     if (serviceState !== 'paused' && nextCheckTime) {
       const nextCheck = new Date(nextCheckTime);
       setNextCheckTimeStr(nextCheck.toLocaleTimeString());
@@ -55,19 +34,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     }
   }, [nextCheckTime, serviceState]);
 
+  // Update last check time string
   useEffect(() => {
-    // Update last check time string
-    const updateLastCheckTime = () => {
-      if (lastCheckCompleteTime) {
-        const date = new Date(lastCheckCompleteTime * 1000); // Convert Unix timestamp to milliseconds
-        setLastCheckTimeStr(date.toLocaleTimeString());
-      }
-    };
-
-    updateLastCheckTime();
-    const timer = setInterval(updateLastCheckTime, 1000);
-
-    return () => clearInterval(timer);
+    if (lastCheckCompleteTime) {
+      const date = new Date(lastCheckCompleteTime * 1000);
+      setLastCheckTimeStr(date.toLocaleTimeString());
+    }
   }, [lastCheckCompleteTime]);
 
   const getStatusColor = (state: string) => {
@@ -113,7 +85,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           ) : (
             <div className="flex items-center space-x-2">
               <span>Next check at {nextCheckTimeStr}</span>
-              <span className="text-purple-400">({formatCountdown(localSecondsRemaining)})</span>
+              <span className="text-purple-400">({formatCountdown(secondsUntilNextCheck)})</span>
             </div>
           )}
         </div>
