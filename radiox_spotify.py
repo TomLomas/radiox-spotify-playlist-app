@@ -102,11 +102,11 @@ class RadioXBot:
         self.DAILY_ADDED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_added.json")
         self.DAILY_FAILED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_failed.json")
 
-        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(maxlen=200) 
-        self.failed_search_queue = deque(maxlen=MAX_FAILED_SEARCH_QUEUE_SIZE)
+        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(maxlen=50)
+        self.failed_search_queue = deque(maxlen=10)
         self.daily_added_songs = [] 
         self.daily_search_failures = [] 
-        self.event_log = deque(maxlen=50)
+        self.event_log = deque(maxlen=20)
         self.log_event("Application instance created. Waiting for initialization.")
         self.file_lock = threading.Lock()
 
@@ -127,8 +127,8 @@ class RadioXBot:
             try:
                 with open(self.RECENTLY_ADDED_CACHE_FILE, 'w') as f: json.dump(list(self.RECENTLY_ADDED_SPOTIFY_IDS), f)
                 with open(self.FAILED_QUEUE_CACHE_FILE, 'w') as f: json.dump(list(self.failed_search_queue), f)
-                with open(self.DAILY_ADDED_CACHE_FILE, 'w') as f: json.dump(self.daily_added_songs, f)
-                with open(self.DAILY_FAILED_CACHE_FILE, 'w') as f: json.dump(self.daily_search_failures, f)
+                with open(self.DAILY_ADDED_CACHE_FILE, 'w') as f: json.dump(self.daily_added_songs[-100:], f)
+                with open(self.DAILY_FAILED_CACHE_FILE, 'w') as f: json.dump(self.daily_search_failures[-100:], f)
                 logging.debug("Successfully saved application state to disk.")
             except Exception as e:
                 logging.error(f"Failed to save state to disk: {e}")
@@ -139,11 +139,11 @@ class RadioXBot:
             try:
                 if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
                     with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
-                        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=200)
+                        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=50)
                         logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
                 if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
                     with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
-                        self.failed_search_queue = deque(json.load(f), maxlen=MAX_FAILED_SEARCH_QUEUE_SIZE)
+                        self.failed_search_queue = deque(json.load(f), maxlen=10)
                         logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
                 if os.path.exists(self.DAILY_ADDED_CACHE_FILE):
                     with open(self.DAILY_ADDED_CACHE_FILE, 'r') as f:
@@ -575,7 +575,6 @@ class RadioXBot:
     def update_next_check_timer(self):
         while True:
             try:
-                # Only update if in active hours
                 now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
                 if self.service_state == 'playing':
                     if hasattr(self, 'last_check_time') and self.last_check_time:
@@ -583,15 +582,14 @@ class RadioXBot:
                         remaining = max(CHECK_INTERVAL - elapsed, 0)
                         self.seconds_until_next_check = remaining
                         self.next_check_time = (datetime.datetime.now(pytz.timezone(TIMEZONE)) + datetime.timedelta(seconds=remaining)).isoformat()
-                        if remaining % 5 == 0 or remaining < 10:
-                            self.log_event(f"Time until next check: {remaining}s")
+                        self.log_event(f"Time until next check: {remaining}s")
                 else:
                     self.seconds_until_next_check = 0
                     self.next_check_time = ''
-                time.sleep(1)
+                time.sleep(60)
             except Exception as e:
                 logging.error(f"Error in update_next_check_timer: {e}")
-                time.sleep(5)
+                time.sleep(60)
 
 
 # --- Flask Routes & Script Execution ---
