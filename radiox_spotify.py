@@ -332,6 +332,7 @@ class RadioXBot:
 
             self.daily_added_songs.append({
                 "timestamp": datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat(),
+                "added_at": self.last_check_complete_time,  # Unix timestamp of last check complete
                 "radio_title": radio_x_title, 
                 "radio_artist": radio_x_artist, 
                 "spotify_title": spotify_name, 
