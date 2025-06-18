@@ -110,6 +110,10 @@ class RadioXBot:
         self.log_event("Application instance created. Waiting for initialization.")
         self.file_lock = threading.Lock()
 
+        # New in the __init__ method
+        self.next_check_update_thread = threading.Thread(target=self.update_next_check_timer, daemon=True)
+        self.next_check_update_thread.start()
+
     def log_event(self, message):
         """Adds an event to the global log for the web UI and standard logging."""
         logging.info(message)
@@ -567,6 +571,27 @@ class RadioXBot:
         self.next_check_time = (datetime.datetime.now(pytz.timezone(TIMEZONE)) + datetime.timedelta(seconds=CHECK_INTERVAL)).isoformat()
         self.save_state()
         self.is_checking = False
+
+    def update_next_check_timer(self):
+        while True:
+            try:
+                # Only update if in active hours
+                now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+                if self.service_state == 'playing':
+                    if hasattr(self, 'last_check_time') and self.last_check_time:
+                        elapsed = int(time.time() - self.last_check_time)
+                        remaining = max(CHECK_INTERVAL - elapsed, 0)
+                        self.seconds_until_next_check = remaining
+                        self.next_check_time = (datetime.datetime.now(pytz.timezone(TIMEZONE)) + datetime.timedelta(seconds=remaining)).isoformat()
+                        if remaining % 5 == 0 or remaining < 10:
+                            self.log_event(f"Time until next check: {remaining}s")
+                else:
+                    self.seconds_until_next_check = 0
+                    self.next_check_time = ''
+                time.sleep(1)
+            except Exception as e:
+                logging.error(f"Error in update_next_check_timer: {e}")
+                time.sleep(5)
 
 
 # --- Flask Routes & Script Execution ---
