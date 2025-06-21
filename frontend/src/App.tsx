@@ -77,14 +77,21 @@ function App() {
   useEffect(() => {
     fetchStatus(); // Initial fetch
 
+    console.log('Setting up SSE connection...');
     const eventSource = new EventSource('/stream');
 
+    eventSource.onopen = () => {
+      console.log('SSE connection opened successfully');
+    };
+
     eventSource.addEventListener('new_log', (event) => {
+      console.log('Received new_log event:', event.data);
       const { log_entry } = JSON.parse(event.data);
       setLogs(prevLogs => [log_entry, ...prevLogs.slice(0, 99)]);
     });
 
     eventSource.addEventListener('state_change', (event) => {
+      console.log('Received state_change event:', event.data);
       const { state, reason } = JSON.parse(event.data);
       setAppState(prevState => {
         if (!prevState) return null;
@@ -97,11 +104,16 @@ function App() {
     });
 
     eventSource.addEventListener('status_update', (event) => {
+      console.log('Received status_update event:', event.data);
       const data = JSON.parse(event.data);
       // If it's a timer update, just refresh the status to get updated countdown
       if (data.timer_update || data.last_check_complete_time) {
         fetchStatus();
       }
+    });
+
+    eventSource.addEventListener('test', (event) => {
+      console.log('Received test event:', event.data);
     });
 
     eventSource.onerror = (err) => {
@@ -110,9 +122,61 @@ function App() {
     };
 
     return () => {
+      console.log('Closing SSE connection');
       eventSource.close();
     };
   }, []);
+
+  const handleForceCheck = async () => {
+    try {
+      const response = await fetch('/force_check', { method: 'POST' });
+      if (response.ok) {
+        console.log('Force check initiated');
+      } else {
+        console.error('Force check failed');
+      }
+    } catch (error) {
+      console.error('Error during force check:', error);
+    }
+  };
+
+  const testSSE = async () => {
+    try {
+      const response = await fetch('/test_sse');
+      const result = await response.text();
+      console.log('SSE test result:', result);
+    } catch (error) {
+      console.error('SSE test failed:', error);
+    }
+  };
+
+  const handleResume = async () => {
+    try {
+      const response = await fetch('/resume', { method: 'POST' });
+      if (response.ok) {
+        console.log('Service resumed');
+        fetchStatus(); // Refresh status
+      } else {
+        console.error('Resume failed');
+      }
+    } catch (error) {
+      console.error('Error resuming service:', error);
+    }
+  };
+
+  const handlePause = async () => {
+    try {
+      const response = await fetch('/pause', { method: 'POST' });
+      if (response.ok) {
+        console.log('Service paused');
+        fetchStatus(); // Refresh status
+      } else {
+        console.error('Pause failed');
+      }
+    } catch (error) {
+      console.error('Error pausing service:', error);
+    }
+  };
 
   if (!appState) {
     return (
@@ -167,6 +231,34 @@ function App() {
             <div className="mt-8">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Today's History</h2>
               <SongHistory dailyAdded={appState.daily_added} dailyFailed={appState.daily_failed} />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleResume}
+                disabled={appState.service_state === 'running'}
+                className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-4 py-2 rounded"
+              >
+                Resume Service
+              </button>
+              <button
+                onClick={handlePause}
+                disabled={appState.service_state === 'paused'}
+                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-4 py-2 rounded"
+              >
+                Pause Service
+              </button>
+              <button
+                onClick={handleForceCheck}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+              >
+                Force Check
+              </button>
+              <button
+                onClick={testSSE}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
+              >
+                Test SSE
+              </button>
             </div>
           </div>
         )}

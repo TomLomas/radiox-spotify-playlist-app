@@ -74,7 +74,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.1.5"
+BACKEND_VERSION = "1.1.6"
 
 # --- Main Application Class ---
 
@@ -853,6 +853,16 @@ def initialize_bot():
         monitor_thread.start()
     else:
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
+
+@app.route('/test_sse')
+def test_sse():
+    """Test endpoint to verify SSE is working."""
+    try:
+        with app.app_context():
+            sse.publish({"test": "SSE is working!", "timestamp": datetime.datetime.now().isoformat()}, type='test')
+        return "SSE test event sent"
+    except Exception as e:
+        return f"SSE test failed: {e}"
 
 # --- Script Execution ---
 if __name__ == "__main__":
