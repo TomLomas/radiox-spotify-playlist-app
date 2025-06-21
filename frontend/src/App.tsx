@@ -25,7 +25,7 @@ interface AppState {
     max_playlist_size: number;
     top_artists: [string, number][];
     unique_artists: number;
-    most_common_failure: string;
+    decade_spread: [string, string][];
     success_rate: string;
     service_paused: boolean;
     paused_reason: string;
@@ -45,7 +45,7 @@ interface AppState {
   backend_version: string;
 }
 
-const FRONTEND_VERSION = "1.0.8";
+const FRONTEND_VERSION = "1.0.9";
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
@@ -64,7 +64,7 @@ function App() {
         max_playlist_size: data.stats?.max_playlist_size ?? 500,
         top_artists: Array.isArray(data.stats?.top_artists) ? data.stats.top_artists : [],
         unique_artists: data.stats?.unique_artists ?? 0,
-        most_common_failure: data.stats?.most_common_failure ?? "N/A",
+        decade_spread: Array.isArray(data.stats?.decade_spread) ? data.stats.decade_spread : [],
         success_rate: data.stats?.success_rate ?? "0%",
         service_paused: data.stats?.service_paused ?? false,
         paused_reason: data.stats?.paused_reason ?? "none"
@@ -133,7 +133,7 @@ function App() {
               max_playlist_size: data.stats?.max_playlist_size ?? 500,
               top_artists: Array.isArray(data.stats?.top_artists) ? data.stats.top_artists : [],
               unique_artists: data.stats?.unique_artists ?? 0,
-              most_common_failure: data.stats?.most_common_failure ?? "N/A",
+              decade_spread: Array.isArray(data.stats?.decade_spread) ? data.stats.decade_spread : [],
               success_rate: data.stats?.success_rate ?? "0%",
               service_paused: data.stats?.service_paused ?? false,
               paused_reason: data.stats?.paused_reason ?? "none"

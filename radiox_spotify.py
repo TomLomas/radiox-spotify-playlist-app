@@ -70,7 +70,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.0.8"
+BACKEND_VERSION = "1.0.9"
 
 # --- Main Application Class ---
 
@@ -567,20 +567,28 @@ class RadioXBot:
 
         artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
         most_common = artist_counts.most_common(3)
-        # Instead of a string, send a list of tuples for ranking
         top_artists_list = [(artist, count) for artist, count in most_common] if most_common else []
         unique_artist_count = len(artist_counts)
         total_processed = len(self.daily_added_songs) + len(self.daily_search_failures)
         success_rate = f"{(len(self.daily_added_songs) / total_processed * 100):.1f}%" if total_processed > 0 else "0%"
-        most_common_failure = Counter(item['reason'] for item in self.daily_search_failures).most_common(1)
-        most_common_failure_str = most_common_failure[0][0] if most_common_failure else "N/A"
+        
+        songs_with_dates = [s for s in self.daily_added_songs if s.get('release_date') and '-' in s['release_date']]
+        decade_spread = []
+        if songs_with_dates:
+            decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
+            total_dated_songs = len(songs_with_dates)
+            sorted_decades = decade_counts.most_common()
+            decade_spread = [
+                (f"{decade}s", f"{((count / total_dated_songs) * 100):.0f}%")
+                for decade, count in sorted_decades
+            ]
 
         self.stats = {
             "playlist_size": playlist_size,
             "max_playlist_size": MAX_PLAYLIST_SIZE,
             "top_artists": top_artists_list,
             "unique_artists": unique_artist_count,
-            "most_common_failure": most_common_failure_str,
+            "decade_spread": decade_spread,
             "success_rate": success_rate,
             "service_paused": self.service_state == "paused",
             "paused_reason": self.paused_reason,
