@@ -33,7 +33,8 @@ except ImportError:
 
 # --- Flask App Setup ---
 app = Flask(__name__)
-app.config["REDIS_URL"] = os.getenv("REDIS_URL", "redis://localhost:6379")
+app.config["REDIS_URL"] = "redis://redis:6379"
+app.config["SSE_REDIS_URL"] = "redis://redis:6379"
 app.register_blueprint(sse, url_prefix='/stream')
 
 # --- Configuration ---
@@ -55,7 +56,7 @@ MAX_FAILED_SEARCH_ATTEMPTS = 3
 # Active Time Window (BST/GMT Aware)
 TIMEZONE = 'Europe/London'
 START_TIME = datetime.time(7, 0)
-END_TIME = datetime.time(22, 0)
+END_TIME = datetime.time(6, 0)  # Changed from 22:00 to 06:00 for testing
 
 # Email Summary Settings (from environment)
 EMAIL_HOST = os.getenv("EMAIL_HOST")
@@ -73,7 +74,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.1.3"
+BACKEND_VERSION = "1.1.4"
 
 # --- Main Application Class ---
 
@@ -129,8 +130,12 @@ class RadioXBot:
         timestamp = f"[{datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}]"
         log_entry = f"{timestamp} {clean_message}"
         self.event_log.appendleft(log_entry)
-        with app.app_context():
-            sse.publish({"log_entry": log_entry}, type='new_log')
+        try:
+            with app.app_context():
+                sse.publish({"log_entry": log_entry}, type='new_log')
+                logging.debug(f"SSE: Published new_log event")
+        except Exception as e:
+            logging.error(f"SSE: Failed to publish new_log event: {e}")
 
     def update_service_state(self, new_state, reason=''):
         """Updates the service state and adds an entry to the state history."""
@@ -146,8 +151,12 @@ class RadioXBot:
             # Keep only the last 50 state changes
             self.state_history = self.state_history[-50:]
             self.log_event(f"Service state changed to {new_state}" + (f" (reason: {reason})" if reason else ""))
-            with app.app_context():
-                sse.publish({"state": new_state, "reason": reason}, type='state_change')
+            try:
+                with app.app_context():
+                    sse.publish({"state": new_state, "reason": reason}, type='state_change')
+                    logging.debug(f"SSE: Published state_change event")
+            except Exception as e:
+                logging.error(f"SSE: Failed to publish state_change event: {e}")
 
     # --- Persistent State Management ---
     def save_state(self):
@@ -621,9 +630,11 @@ class RadioXBot:
                         self.service_state == 'playing'):
                         with app.app_context():
                             sse.publish({"timer_update": True}, type='status_update')
+                            logging.debug(f"SSE: Published timer_update event")
                     time.sleep(30)  # Update every 30 seconds
                 except Exception as e:
                     # Don't log timer update errors to avoid spam
+                    logging.debug(f"SSE: Timer update error (suppressed): {e}")
                     time.sleep(30)
         
         timer_thread = threading.Thread(target=timer_update_loop, daemon=True)
@@ -683,8 +694,12 @@ class RadioXBot:
         self.save_last_check_complete_time()
         self.save_state()
         self.is_checking = False
-        with app.app_context():
-            sse.publish({"last_check_complete_time": self.last_check_complete_time}, type='status_update')
+        try:
+            with app.app_context():
+                sse.publish({"last_check_complete_time": self.last_check_complete_time}, type='status_update')
+                logging.debug(f"SSE: Published status_update event after main cycle")
+        except Exception as e:
+            logging.error(f"SSE: Failed to publish status_update event: {e}")
 
         if psutil:
             mem = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
@@ -735,6 +750,7 @@ def admin_force_check():
             # Publish status update after manual check completes
             with app.app_context():
                 sse.publish({"last_check_complete_time": bot_instance.last_check_complete_time}, type='status_update')
+                logging.debug(f"SSE: Published status_update event after manual check")
         except Exception as e:
             bot_instance.log_event(f"Error during manual check: {e}")
     
