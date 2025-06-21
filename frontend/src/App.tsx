@@ -14,6 +14,7 @@ interface AppState {
     spotify_id: string;
     release_date: string;
     album_art_url: string;
+    album_name: string;
   } | null;
   current_song: string | null;
   queue_size: number;
@@ -44,7 +45,7 @@ interface AppState {
   backend_version: string;
 }
 
-const FRONTEND_VERSION = "1.0.3-playlist-count-20240621";
+const FRONTEND_VERSION = "1.0.6";
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);

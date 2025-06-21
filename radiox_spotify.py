@@ -70,7 +70,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.0.3-playlist-count-20240621"
+BACKEND_VERSION = "1.0.6"
 
 # --- Main Application Class ---
 
@@ -365,6 +365,7 @@ class RadioXBot:
             spotify_artists_str = ", ".join([a.get('name', '') for a in track_details.get('artists', [])])
             release_date = track_details.get('album', {}).get('release_date', 'N/A')
             album_art_url = track_details['album']['images'][1]['url'] if track_details.get('album', {}).get('images') and len(track_details['album']['images']) > 1 else None
+            album_name = track_details.get('album', {}).get('name', 'N/A')
 
             self.daily_added_songs.append({
                 "timestamp": datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat(),
@@ -375,7 +376,8 @@ class RadioXBot:
                 "spotify_artist": spotify_artists_str, 
                 "spotify_id": spotify_track_id, 
                 "release_date": release_date,
-                "album_art_url": album_art_url
+                "album_art_url": album_art_url,
+                "album_name": album_name
             })
             self.log_event(f"SUCCESS: Added '{BOLD}{radio_x_title}{RESET}' by '{BOLD}{radio_x_artist}{RESET}' to playlist.")
             self.RECENTLY_ADDED_SPOTIFY_IDS.append(spotify_track_id)
@@ -420,7 +422,7 @@ class RadioXBot:
                 
                 self.log_event(f"Removing all instances of {len(tracks_to_remove)} duplicate track(s)...")
                 for i in range(0, len(tracks_to_remove), 100):
-                    self.sp.remove_playlist_items(playlist_id, tracks_to_remove[i:i+100])
+                    self.sp.playlist_remove_items(playlist_id, tracks_to_remove[i:i+100])
                 
                 self.log_event(f"Re-adding single instance for {len(duplicates_to_readd)} track(s)...")
                 self.sp.playlist_add_items(playlist_id, list(duplicates_to_readd))
