@@ -73,7 +73,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.1.2"
+BACKEND_VERSION = "1.1.3"
 
 # --- Main Application Class ---
 
@@ -616,12 +616,15 @@ class RadioXBot:
         def timer_update_loop():
             while self.is_running:
                 try:
-                    with app.app_context():
-                        sse.publish({"timer_update": True}, type='status_update')
-                    time.sleep(10)  # Update every 10 seconds
+                    # Only send timer updates during active hours when service is playing
+                    if (START_TIME <= datetime.datetime.now(pytz.timezone(TIMEZONE)).time() <= END_TIME and 
+                        self.service_state == 'playing'):
+                        with app.app_context():
+                            sse.publish({"timer_update": True}, type='status_update')
+                    time.sleep(30)  # Update every 30 seconds
                 except Exception as e:
-                    logging.error(f"Timer update error: {e}")
-                    time.sleep(10)
+                    # Don't log timer update errors to avoid spam
+                    time.sleep(30)
         
         timer_thread = threading.Thread(target=timer_update_loop, daemon=True)
         timer_thread.start()
