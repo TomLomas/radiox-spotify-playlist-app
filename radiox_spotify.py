@@ -70,7 +70,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.0.7"
+BACKEND_VERSION = "1.0.8"
 
 # --- Main Application Class ---
 
@@ -398,42 +398,32 @@ class RadioXBot:
             return False
 
     def check_and_remove_duplicates(self, playlist_id):
+        """Checks for and removes duplicate tracks in the playlist."""
+        if not self.sp: return
+        self.log_event("Starting periodic duplicate check...")
         try:
-            self.log_event("Starting duplicate check...")
-            all_items = []
-            offset = 0
+            all_tracks, offset, limit = [], 0, 100
             while True:
-                results = self.sp.playlist_items(playlist_id, limit=50, offset=offset, fields="items(track(id)),total")
-                if not results or not results['items']:
-                    break
-                all_items.extend(item['track'] for item in results['items'] if item and item.get('track'))
-                offset += len(results['items'])
-                if offset >= results.get('total', 0):
-                    break
-            
-            if not all_items:
-                self.log_event("Playlist is empty or tracks could not be fetched.")
-                return
-
-            track_counts = Counter(track['id'] for track in all_items if track and track.get('id'))
-            
-            duplicates_to_readd = {track_id for track_id, count in track_counts.items() if count > 1}
-
-            if duplicates_to_readd:
-                track_ids_to_remove = list(duplicates_to_readd)
-                
-                self.log_event(f"Removing all instances of {len(track_ids_to_remove)} duplicate track(s)...")
-                for i in range(0, len(track_ids_to_remove), 100):
-                    self.sp.playlist_remove_all_occurrences_of_items(playlist_id, track_ids_to_remove[i:i+100])
-                
-                self.log_event(f"Re-adding single instance for {len(duplicates_to_readd)} track(s)...")
-                self.sp.playlist_add_items(playlist_id, list(duplicates_to_readd))
-                
-                self.log_event("Duplicate cleanup complete.")
-            else:
-                self.log_event("No duplicates found.")
-        except Exception as e:
-            self.log_event(f"Error during duplicate check: {e}")
+                results = self.spotify_api_call_with_retry(self.sp.playlist_items, playlist_id, limit=limit, offset=offset, fields="items(track(id,uri,name)),next")
+                if not results or not results['items']: break
+                for item in results['items']:
+                    if item.get('track') and item['track'].get('id'): all_tracks.append(item['track'])
+                if results['next']: offset += 100
+                else: break
+            self.log_event(f"DUPLICATE_CLEANUP: Fetched {len(all_tracks)} tracks.")
+            if not all_tracks: return
+            track_counts = Counter(t['id'] for t in all_tracks if t['id'])
+            for track_id, count in track_counts.items():
+                if count > 1:
+                    track_uri = next((t['uri'] for t in all_tracks if t['id'] == track_id), None)
+                    track_name = next((t['name'] for t in all_tracks if t['id'] == track_id), "Unknown")
+                    if track_uri:
+                        self.log_event(f"DUPLICATE_CLEANUP: Track '{track_name}' found {count} times. Re-processing.")
+                        self.spotify_api_call_with_retry(self.sp.playlist_remove_all_occurrences_of_items, playlist_id, [track_uri])
+                        time.sleep(0.5); self.spotify_api_call_with_retry(self.sp.playlist_add_items, playlist_id, [track_uri])
+                        self.RECENTLY_ADDED_SPOTIFY_IDS.append(track_id)
+                        time.sleep(1)
+        except Exception as e: self.log_event(f"ERROR during duplicate cleanup: {e}")
 
     def process_failed_search_queue(self):
         if not self.failed_search_queue: return
