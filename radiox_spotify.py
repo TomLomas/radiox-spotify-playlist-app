@@ -73,7 +73,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.1.0"
+BACKEND_VERSION = "1.1.1"
 
 # --- Main Application Class ---
 
@@ -129,7 +129,8 @@ class RadioXBot:
         timestamp = f"[{datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}]"
         log_entry = f"{timestamp} {clean_message}"
         self.event_log.appendleft(log_entry)
-        sse.publish({"log_entry": log_entry}, type='new_log')
+        with app.app_context():
+            sse.publish({"log_entry": log_entry}, type='new_log')
 
     def update_service_state(self, new_state, reason=''):
         """Updates the service state and adds an entry to the state history."""
@@ -145,7 +146,8 @@ class RadioXBot:
             # Keep only the last 50 state changes
             self.state_history = self.state_history[-50:]
             self.log_event(f"Service state changed to {new_state}" + (f" (reason: {reason})" if reason else ""))
-            sse.publish({"state": new_state, "reason": reason}, type='state_change')
+            with app.app_context():
+                sse.publish({"state": new_state, "reason": reason}, type='state_change')
 
     # --- Persistent State Management ---
     def save_state(self):
@@ -663,7 +665,8 @@ class RadioXBot:
         self.save_last_check_complete_time()
         self.save_state()
         self.is_checking = False
-        sse.publish({"last_check_complete_time": self.last_check_complete_time}, type='status_update')
+        with app.app_context():
+            sse.publish({"last_check_complete_time": self.last_check_complete_time}, type='status_update')
 
         if psutil:
             mem = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
