@@ -12,9 +12,10 @@ interface AdminPanelProps {
   };
   backendVersion: string;
   frontendVersion: string;
+  onTestSSE: () => void;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion, frontendVersion }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion, frontendVersion, onTestSSE }) => {
   const handleForceCheck = async () => {
     try {
       await fetch('/admin/force_check', { method: 'POST' });
@@ -94,6 +95,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
             className="bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow"
           >
             Send Debug Logs
+          </button>
+          <button
+            onClick={onTestSSE}
+            className="bg-indigo-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-600 transition-colors shadow"
+          >
+            Test SSE
           </button>
         </div>
       </div>

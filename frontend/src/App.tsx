@@ -265,11 +265,12 @@ function App() {
 
         {activeTab === 'admin' && (
           <div className="mt-6">
-            <AdminPanel appState={{
-              service_state: appState.service_state,
-              queue_size: appState.queue_size,
-              state_history: appState.state_history
-            }} backendVersion={appState.backend_version} frontendVersion={FRONTEND_VERSION} />
+            <AdminPanel 
+              appState={appState} 
+              backendVersion={appState.backend_version} 
+              frontendVersion={FRONTEND_VERSION}
+              onTestSSE={testSSE} 
+            />
           </div>
         )}
       </div>
