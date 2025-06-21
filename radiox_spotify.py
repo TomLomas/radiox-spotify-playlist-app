@@ -73,7 +73,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.1.1"
+BACKEND_VERSION = "1.1.2"
 
 # --- Main Application Class ---
 
@@ -611,6 +611,21 @@ class RadioXBot:
         self.log_event("--- run_radio_monitor thread initiated. ---")
         if not self.sp: self.log_event("ERROR: Spotify client is None. Thread cannot perform Spotify actions."); return
         if self.last_summary_log_date is None: self.last_summary_log_date = datetime.date.today()
+        
+        # Start timer update thread
+        def timer_update_loop():
+            while self.is_running:
+                try:
+                    with app.app_context():
+                        sse.publish({"timer_update": True}, type='status_update')
+                    time.sleep(10)  # Update every 10 seconds
+                except Exception as e:
+                    logging.error(f"Timer update error: {e}")
+                    time.sleep(10)
+        
+        timer_thread = threading.Thread(target=timer_update_loop, daemon=True)
+        timer_thread.start()
+        
         while True:
             try:
                 now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
@@ -710,7 +725,17 @@ def admin_force_diagnostics():
 @app.route('/admin/force_check', methods=['POST'])
 def admin_force_check():
     bot_instance.log_event("Manual check triggered via web.")
-    threading.Thread(target=bot_instance.process_main_cycle).start()
+    
+    def run_manual_check():
+        try:
+            bot_instance.process_main_cycle()
+            # Publish status update after manual check completes
+            with app.app_context():
+                sse.publish({"last_check_complete_time": bot_instance.last_check_complete_time}, type='status_update')
+        except Exception as e:
+            bot_instance.log_event(f"Error during manual check: {e}")
+    
+    threading.Thread(target=run_manual_check).start()
     return "Manual check has been triggered. Check logs for progress."
 
 @app.route('/admin/pause_resume', methods=['POST'])

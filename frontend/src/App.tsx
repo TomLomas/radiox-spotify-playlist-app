@@ -45,7 +45,7 @@ interface AppState {
   backend_version: string;
 }
 
-const FRONTEND_VERSION = "1.1.0";
+const FRONTEND_VERSION = "1.1.1";
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
@@ -96,8 +96,12 @@ function App() {
       });
     });
 
-    eventSource.addEventListener('status_update', () => {
-      fetchStatus();
+    eventSource.addEventListener('status_update', (event) => {
+      const data = JSON.parse(event.data);
+      // If it's a timer update, just refresh the status to get updated countdown
+      if (data.timer_update || data.last_check_complete_time) {
+        fetchStatus();
+      }
     });
 
     eventSource.onerror = (err) => {
