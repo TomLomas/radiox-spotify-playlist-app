@@ -44,7 +44,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ appState }) => {
             <img
               src={lastSong.album_art_url}
               alt="Album Art"
-              className="w-24 h-24 rounded-lg shadow-sm"
+              className="w-44 h-44 rounded-lg shadow-sm"
             />
             <div className="flex-1 min-w-0">
               <p className="text-lg font-bold text-white truncate">{lastSong.radio_title}</p>
