@@ -23,6 +23,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const [nextCheckTimeStr, setNextCheckTimeStr] = useState('');
   const [lastCheckTimeStr, setLastCheckTimeStr] = useState('');
+  const [countdown, setCountdown] = useState('');
 
   // Update next check time string when it changes
   useEffect(() => {
@@ -41,6 +42,32 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       setLastCheckTimeStr(date.toLocaleTimeString());
     }
   }, [lastCheckCompleteTime]);
+
+  useEffect(() => {
+    const calculateCountdown = () => {
+      if (nextCheckTime) {
+        const now = new Date().getTime();
+        const nextCheck = new Date(nextCheckTime).getTime();
+        const distance = nextCheck - now;
+
+        if (distance < 0) {
+          setCountdown('Now');
+          return;
+        }
+
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        setCountdown(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      } else {
+        setCountdown('');
+      }
+    };
+
+    calculateCountdown(); // Initial calculation
+    const interval = setInterval(calculateCountdown, 1000); // Update every second
+
+    return () => clearInterval(interval); // Cleanup on component unmount
+  }, [nextCheckTime]);
 
   const getStatusColor = (state: string) => {
     switch (state) {
@@ -85,7 +112,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           ) : (
             <div className="flex items-center space-x-2">
               <span>Next check at {nextCheckTimeStr}</span>
-              <span className="text-purple-400">({formatCountdown(secondsUntilNextCheck)})</span>
+              <span className="text-purple-400">({countdown})</span>
             </div>
           )}
         </div>

@@ -78,19 +78,15 @@ function App() {
     fetchStatus(); // Initial fetch
 
     const eventSource = new EventSource('/stream');
-    console.log('EventSource created for /stream. Initial readyState:', eventSource.readyState);
+    console.log('EventSource created for /stream.');
 
     eventSource.onopen = () => {
-      console.log('SSE connection opened successfully. readyState:', eventSource.readyState);
+      console.log('SSE connection opened successfully.');
     };
 
     eventSource.onerror = (err) => {
-      console.error('EventSource error. readyState:', eventSource.readyState, 'Error object:', err);
+      console.error('EventSource error:', err);
     };
-    
-    const readyStateInterval = setInterval(() => {
-      console.log('Periodic SSE readyState check:', eventSource.readyState, '(0=CONNECTING, 1=OPEN, 2=CLOSED)');
-    }, 5000);
 
     eventSource.addEventListener('new_log', (event) => {
       console.log('Received new_log event:', event.data);
@@ -127,7 +123,6 @@ function App() {
     return () => {
       console.log('Closing SSE connection');
       eventSource.close();
-      clearInterval(readyStateInterval);
     };
   }, []);
 
@@ -235,34 +230,6 @@ function App() {
             <div className="mt-8">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Today's History</h2>
               <SongHistory dailyAdded={appState.daily_added} dailyFailed={appState.daily_failed} />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleResume}
-                disabled={appState.service_state === 'running'}
-                className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-4 py-2 rounded"
-              >
-                Resume Service
-              </button>
-              <button
-                onClick={handlePause}
-                disabled={appState.service_state === 'paused'}
-                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-4 py-2 rounded"
-              >
-                Pause Service
-              </button>
-              <button
-                onClick={handleForceCheck}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-              >
-                Force Check
-              </button>
-              <button
-                onClick={testSSE}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
-              >
-                Test SSE
-              </button>
             </div>
           </div>
         )}
