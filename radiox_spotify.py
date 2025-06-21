@@ -45,13 +45,13 @@ RADIOX_STATION_SLUG = "radiox"
 # Script Operation Settings
 CHECK_INTERVAL = 120  
 DUPLICATE_CHECK_INTERVAL = 2 * 60 * 60  # 7200 seconds
-MAX_PLAYLIST_SIZE = 200
+MAX_PLAYLIST_SIZE = 500
 MAX_FAILED_SEARCH_QUEUE_SIZE = 30 
 MAX_FAILED_SEARCH_ATTEMPTS = 3    
 
 # Active Time Window (BST/GMT Aware)
 TIMEZONE = 'Europe/London'
-START_TIME = datetime.time(7, 30)
+START_TIME = datetime.time(7, 0)
 END_TIME = datetime.time(22, 0)
 
 # Email Summary Settings (from environment)
@@ -70,7 +70,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.0.0-beta-20240618"
+BACKEND_VERSION = "1.0.3-playlist-count-20240621"
 
 # --- Main Application Class ---
 
@@ -175,6 +175,8 @@ class RadioXBot:
                         logging.info(f"Loaded {len(self.daily_search_failures)} daily failed searches from cache.")
             except Exception as e:
                 logging.error(f"Failed to load state from disk: {e}")
+        # After loading, immediately calculate stats from the cache
+        self.update_stats()
 
     def save_last_check_complete_time(self):
         with open(self.LAST_CHECK_COMPLETE_FILE, 'w') as f:
@@ -338,11 +340,14 @@ class RadioXBot:
             total = results.get('total', 0)
             if total >= MAX_PLAYLIST_SIZE and results['items']:
                 oldest_track = results['items'][0]['track']
-                oldest_track_id = oldest_track['id']
-                self.sp.playlist_remove_all_occurrences_of_items(playlist_id, [oldest_track_id])
-                self.log_event(f"Playlist at/over limit. Removed oldest song (ID: {oldest_track_id}).")
+                if oldest_track:
+                    oldest_track_id = oldest_track['id']
+                    self.sp.playlist_remove_all_occurrences_of_items(playlist_id, [oldest_track_id])
+                    self.log_event(f"Playlist at/over limit. Removed oldest song (ID: {oldest_track_id}).")
+            return True
         except Exception as e:
             self.log_event(f"Error managing playlist size: {e}")
+            return False
 
     def add_song_to_playlist(self, radio_x_title, radio_x_artist, spotify_track_id, playlist_id_to_use):
         if not self.sp: return False
@@ -390,32 +395,37 @@ class RadioXBot:
 
     def check_and_remove_duplicates(self, playlist_id):
         try:
-            self.log_event("Starting duplicate check (paginated)...")
-            seen = set()
-            duplicates = []
+            self.log_event("Starting duplicate check...")
+            all_items = []
             offset = 0
-            batch_size = 50
-            total = None
             while True:
-                results = self.sp.playlist_items(playlist_id, limit=batch_size, offset=offset, fields='items.track.id,items.track.name,items.track.artists,total')
-                if total is None:
-                    total = results.get('total', 0)
-                items = results.get('items', [])
-                if not items:
+                results = self.sp.playlist_items(playlist_id, limit=50, offset=offset, fields="items(track(id)),total")
+                if not results or not results['items']:
                     break
-                for item in items:
-                    track = item['track']
-                    track_id = track['id']
-                    if track_id in seen:
-                        duplicates.append(track_id)
-                    else:
-                        seen.add(track_id)
-                offset += batch_size
-                if offset >= total:
+                all_items.extend(item['track'] for item in results['items'] if item and item.get('track'))
+                offset += len(results['items'])
+                if offset >= results.get('total', 0):
                     break
-            if duplicates:
-                self.sp.playlist_remove_all_occurrences_of_items(playlist_id, duplicates)
-                self.log_event(f"Removed {len(duplicates)} duplicate tracks from playlist.")
+            
+            if not all_items:
+                self.log_event("Playlist is empty or tracks could not be fetched.")
+                return
+
+            track_counts = Counter(track['id'] for track in all_items if track and track.get('id'))
+            
+            duplicates_to_readd = {track_id for track_id, count in track_counts.items() if count > 1}
+
+            if duplicates_to_readd:
+                tracks_to_remove = [{'uri': f"spotify:track:{track_id}"} for track_id in duplicates_to_readd]
+                
+                self.log_event(f"Removing all instances of {len(tracks_to_remove)} duplicate track(s)...")
+                for i in range(0, len(tracks_to_remove), 100):
+                    self.sp.remove_playlist_items(playlist_id, tracks_to_remove[i:i+100])
+                
+                self.log_event(f"Re-adding single instance for {len(duplicates_to_readd)} track(s)...")
+                self.sp.playlist_add_items(playlist_id, list(duplicates_to_readd))
+                
+                self.log_event("Duplicate cleanup complete.")
             else:
                 self.log_event("No duplicates found.")
         except Exception as e:
@@ -491,6 +501,13 @@ class RadioXBot:
         except Exception as e: logging.error(f"Could not generate daily stats: {e}"); return ""
 
     def log_and_send_daily_summary(self):
+        if not self.daily_added_songs and not self.daily_search_failures:
+            self.log_event("Daily summary skipped: No new songs added or failed.")
+            self.daily_added_songs.clear()
+            self.daily_search_failures.clear()
+            self.save_state()
+            return
+
         summary_date = self.last_summary_log_date.isoformat()
         stats_html = self.get_daily_stats_html()
         html = f"""
@@ -542,6 +559,38 @@ class RadioXBot:
         
         if send_email:
             self.send_startup_notification("".join(results))
+
+    def update_stats(self):
+        """Calculates and updates the bot's statistics."""
+        try:
+            # Get current playlist size
+            playlist_details = self.spotify_api_call_with_retry(self.sp.playlist, SPOTIFY_PLAYLIST_ID, fields='tracks.total')
+            playlist_size = playlist_details['tracks']['total'] if playlist_details and 'tracks' in playlist_details else 0
+            self.log_event(f"Current playlist size: {playlist_size}/{MAX_PLAYLIST_SIZE}")
+        except Exception as e:
+            playlist_size = 0 # Default on error
+            logging.error(f"Could not fetch playlist size for stats: {e}")
+
+        artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
+        most_common = artist_counts.most_common(3)
+        # Instead of a string, send a list of tuples for ranking
+        top_artists_list = [(artist, count) for artist, count in most_common] if most_common else []
+        unique_artist_count = len(artist_counts)
+        total_processed = len(self.daily_added_songs) + len(self.daily_search_failures)
+        success_rate = f"{(len(self.daily_added_songs) / total_processed * 100):.1f}%" if total_processed > 0 else "0%"
+        most_common_failure = Counter(item['reason'] for item in self.daily_search_failures).most_common(1)
+        most_common_failure_str = most_common_failure[0][0] if most_common_failure else "N/A"
+
+        self.stats = {
+            "playlist_size": playlist_size,
+            "max_playlist_size": MAX_PLAYLIST_SIZE,
+            "top_artists": top_artists_list,
+            "unique_artists": unique_artist_count,
+            "most_common_failure": most_common_failure_str,
+            "success_rate": success_rate,
+            "service_paused": self.service_state == "paused",
+            "paused_reason": self.paused_reason,
+        }
 
     # --- Main Application Loop ---
     def run(self):
@@ -597,6 +646,7 @@ class RadioXBot:
         if current_time - self.last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
             self.check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID); self.last_duplicate_check_time = current_time
         
+        self.update_stats()
         self.last_check_time = int(current_time)
         self.is_checking = True
         self.check_complete = True

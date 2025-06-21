@@ -20,7 +20,9 @@ interface AppState {
   daily_added: any[];
   daily_failed: any[];
   stats: {
-    top_artists: string;
+    playlist_size: number;
+    max_playlist_size: number;
+    top_artists: [string, number][];
     unique_artists: number;
     most_common_failure: string;
     success_rate: string;
@@ -42,7 +44,7 @@ interface AppState {
   backend_version: string;
 }
 
-const FRONTEND_VERSION = "1.0.0-beta-20240618";
+const FRONTEND_VERSION = "1.0.3-playlist-count-20240621";
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
@@ -57,7 +59,9 @@ function App() {
       const response = await fetch('/status');
       const data = await response.json();
       const safeStats = {
-        top_artists: data.stats?.top_artists ?? "N/A",
+        playlist_size: data.stats?.playlist_size ?? 0,
+        max_playlist_size: data.stats?.max_playlist_size ?? 500,
+        top_artists: Array.isArray(data.stats?.top_artists) ? data.stats.top_artists : [],
         unique_artists: data.stats?.unique_artists ?? 0,
         most_common_failure: data.stats?.most_common_failure ?? "N/A",
         success_rate: data.stats?.success_rate ?? "0%",
@@ -124,7 +128,9 @@ function App() {
           if (lct !== lastCheckCompleteTime) {
             // New cycle completed, update everything
             const safeStats = {
-              top_artists: data.stats?.top_artists ?? "N/A",
+              playlist_size: data.stats?.playlist_size ?? 0,
+              max_playlist_size: data.stats?.max_playlist_size ?? 500,
+              top_artists: Array.isArray(data.stats?.top_artists) ? data.stats.top_artists : [],
               unique_artists: data.stats?.unique_artists ?? 0,
               most_common_failure: data.stats?.most_common_failure ?? "N/A",
               success_rate: data.stats?.success_rate ?? "0%",
