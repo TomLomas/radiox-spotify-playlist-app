@@ -420,11 +420,11 @@ class RadioXBot:
             duplicates_to_readd = {track_id for track_id, count in track_counts.items() if count > 1}
 
             if duplicates_to_readd:
-                tracks_to_remove = [{'uri': f"spotify:track:{track_id}"} for track_id in duplicates_to_readd]
+                track_ids_to_remove = list(duplicates_to_readd)
                 
-                self.log_event(f"Removing all instances of {len(tracks_to_remove)} duplicate track(s)...")
-                for i in range(0, len(tracks_to_remove), 100):
-                    self.sp.playlist_remove_items(playlist_id, tracks_to_remove[i:i+100])
+                self.log_event(f"Removing all instances of {len(track_ids_to_remove)} duplicate track(s)...")
+                for i in range(0, len(track_ids_to_remove), 100):
+                    self.sp.playlist_remove_all_occurrences_of_items(playlist_id, track_ids_to_remove[i:i+100])
                 
                 self.log_event(f"Re-adding single instance for {len(duplicates_to_readd)} track(s)...")
                 self.sp.playlist_add_items(playlist_id, list(duplicates_to_readd))
