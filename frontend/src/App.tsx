@@ -50,9 +50,7 @@ const FRONTEND_VERSION = "1.1.0";
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
   const [activeTab, setActiveTab] = useState('status');
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [lastCheckCompleteTime, setLastCheckCompleteTime] = useState<number | null>(null);
-  const [backendVersion, setBackendVersion] = useState<string>("");
+  const [logs, setLogs] = useState<string[]>([]);
 
   // Fetch status from backend
   const fetchStatus = async () => {
@@ -69,103 +67,48 @@ function App() {
         service_paused: data.stats?.service_paused ?? false,
         paused_reason: data.stats?.paused_reason ?? "none"
       };
-      const lct = typeof data.last_check_complete_time === 'number' 
-        ? data.last_check_complete_time 
-        : Date.now();
-      setAppState({
-        ...data,
-        stats: safeStats,
-        last_check_complete_time: lct,
-        backend_version: data.backend_version || ""
-      });
-      setLastCheckCompleteTime(lct);
-      setCountdown(data.seconds_until_next_check);
-      setBackendVersion(data.backend_version || "");
+      setAppState({ ...data, stats: safeStats });
     } catch (error) {
       console.error('Error fetching status:', error);
     }
   };
 
-  // Initialize app state and start polling
+  // Initialize app state and start listening for SSE
   useEffect(() => {
-    let isInitialized = false;
-    let timer: NodeJS.Timeout | null = null;
-    let checkTimer: NodeJS.Timeout | null = null;
+    fetchStatus(); // Initial fetch
 
-    const initializeAndPoll = async () => {
-      if (isInitialized) return;
-      isInitialized = true;
-      await fetchStatus();
+    const eventSource = new EventSource('/stream');
+
+    eventSource.addEventListener('new_log', (event) => {
+      const { log_entry } = JSON.parse(event.data);
+      setLogs(prevLogs => [log_entry, ...prevLogs.slice(0, 99)]);
+    });
+
+    eventSource.addEventListener('state_change', (event) => {
+      const { state, reason } = JSON.parse(event.data);
+      setAppState(prevState => {
+        if (!prevState) return null;
+        return {
+          ...prevState,
+          service_state: state,
+          stats: { ...prevState.stats, service_paused: state === 'paused', paused_reason: reason }
+        };
+      });
+    });
+
+    eventSource.addEventListener('status_update', () => {
+      fetchStatus();
+    });
+
+    eventSource.onerror = (err) => {
+      console.error('EventSource failed:', err);
+      eventSource.close();
     };
 
-    initializeAndPoll();
-
-    // Cleanup function
     return () => {
-      if (timer) clearInterval(timer);
-      if (checkTimer) clearTimeout(checkTimer);
+      eventSource.close();
     };
   }, []);
-
-  // Countdown timer logic
-  useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
-    let pollTimer: NodeJS.Timeout | null = null;
-
-    if (countdown === null) return;
-
-    if (countdown <= 0) {
-      // When countdown hits zero, start polling frequently for the result
-      // of the new cycle.
-      const pollForNewStatus = async () => {
-        try {
-          const response = await fetch('/status');
-          const data = await response.json();
-          const lct = typeof data.last_check_complete_time === 'number' 
-            ? data.last_check_complete_time 
-            : 0;
-            
-          if (lct > (lastCheckCompleteTime || 0)) {
-            // New cycle completed, update everything
-            if (pollTimer) clearInterval(pollTimer); // Stop polling
-            
-            const safeStats = {
-              playlist_size: data.stats?.playlist_size ?? 0,
-              max_playlist_size: data.stats?.max_playlist_size ?? 500,
-              top_artists: Array.isArray(data.stats?.top_artists) ? data.stats.top_artists : [],
-              unique_artists: data.stats?.unique_artists ?? 0,
-              decade_spread: Array.isArray(data.stats?.decade_spread) ? data.stats.decade_spread : [],
-              success_rate: data.stats?.success_rate ?? "0%",
-              service_paused: data.stats?.service_paused ?? false,
-              paused_reason: data.stats?.paused_reason ?? "none"
-            };
-            setAppState({
-              ...data,
-              stats: safeStats,
-              last_check_complete_time: lct
-            });
-            setLastCheckCompleteTime(lct);
-            setCountdown(data.seconds_until_next_check);
-          }
-        } catch (error) {
-          console.error('Error polling for status:', error);
-        }
-      };
-      
-      pollTimer = setInterval(pollForNewStatus, 2000); // Poll every 2 seconds
-    } else {
-      // Normal countdown
-      timer = setInterval(() => {
-        setCountdown(prev => (prev !== null ? prev - 1 : null));
-      }, 1000);
-    }
-
-    // Cleanup function
-    return () => {
-      if (timer) clearInterval(timer);
-      if (pollTimer) clearInterval(pollTimer);
-    };
-  }, [countdown, lastCheckCompleteTime]);
 
   if (!appState) {
     return (
@@ -206,7 +149,7 @@ function App() {
             <StatusBar 
               serviceState={appState.service_state}
               pausedReason={appState.stats.paused_reason}
-              secondsUntilNextCheck={countdown ?? appState.seconds_until_next_check}
+              secondsUntilNextCheck={appState.seconds_until_next_check}
               isChecking={appState.is_checking}
               checkComplete={appState.check_complete}
               lastCheckTime={appState.last_check_time}
@@ -230,7 +173,7 @@ function App() {
               service_state: appState.service_state,
               queue_size: appState.queue_size,
               state_history: appState.state_history
-            }} backendVersion={backendVersion} frontendVersion={FRONTEND_VERSION} />
+            }} backendVersion={appState.backend_version} frontendVersion={FRONTEND_VERSION} />
           </div>
         )}
       </div>

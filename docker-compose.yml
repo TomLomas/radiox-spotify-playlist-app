@@ -10,13 +10,22 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPOTIPY_CLIENT_ID=89c7e2957a7e465a8eeb9d2476a82a2d
-      - SPOTIPY_CLIENT_SECRET=f8dc109892b9464ab44fba3b2502a7eb
-      - SPOTIPY_REDIRECT_URI=http://127.0.0.1:8888/callback
-      - SPOTIFY_PLAYLIST_ID=5i13fDRDoW0gu60f74cysp
-      - RADIOX_STATION_NAME=radiox
+      - PYTHONUNBUFFERED=1
+      - SPOTIPY_CLIENT_ID=${SPOTIPY_CLIENT_ID}
+      - SPOTIPY_CLIENT_SECRET=${SPOTIPY_CLIENT_SECRET}
+      - SPOTIPY_REDIRECT_URI=${SPOTIPY_REDIRECT_URI}
+      - SPOTIFY_PLAYLIST_ID=${SPOTIFY_PLAYLIST_ID}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_TO=${EMAIL_TO}
+      - EMAIL_RECIPIENT=${EMAIL_RECIPIENT}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - frontend
+      - redis
 
   frontend:
     build:
@@ -25,4 +34,11 @@ services:
     container_name: radiox-frontend
     restart: always
     ports:
-      - "80:80" 
+      - "80:80"
+    depends_on:
+      - backend
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379" 

@@ -2,6 +2,9 @@ spotipy
 requests
 websocket-client
 Flask
-gunicorn
 pytz
+gunicorn
 python-dotenv
+psutil
+flask-sse
+redis
