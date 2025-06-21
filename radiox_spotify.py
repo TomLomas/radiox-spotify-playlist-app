@@ -70,7 +70,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.0.6"
+BACKEND_VERSION = "1.0.7"
 
 # --- Main Application Class ---
 
@@ -366,6 +366,8 @@ class RadioXBot:
             release_date = track_details.get('album', {}).get('release_date', 'N/A')
             album_art_url = track_details['album']['images'][1]['url'] if track_details.get('album', {}).get('images') and len(track_details['album']['images']) > 1 else None
             album_name = track_details.get('album', {}).get('name', 'N/A')
+
+            self.log_event(f"DEBUG: Album details found. Name: '{album_name}', Art URL present: {album_art_url is not None}")
 
             self.daily_added_songs.append({
                 "timestamp": datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat(),
