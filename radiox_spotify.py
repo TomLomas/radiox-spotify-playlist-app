@@ -25,6 +25,7 @@ import atexit
 import base64
 from dotenv import load_dotenv
 from flask_sse import sse
+import redis
 
 try:
     import psutil
@@ -863,6 +864,20 @@ def test_sse():
         return "SSE test event sent"
     except Exception as e:
         return f"SSE test failed: {e}"
+
+@app.route('/stream')
+def stream():
+    """SSE endpoint."""
+    logging.info("Client connected to /stream endpoint.")
+    def event_stream():
+        # Continuously yield messages from Redis pub/sub
+        pubsub = redis_client.pubsub()
+        pubsub.subscribe('radiox_spotify_events')
+        for message in pubsub.listen():
+            if message['type'] == 'message':
+                yield f"data: {message['data'].decode('utf-8')}\n\n"
+
+    return Response(event_stream(), content_type='text/event-stream')
 
 # --- Script Execution ---
 if __name__ == "__main__":

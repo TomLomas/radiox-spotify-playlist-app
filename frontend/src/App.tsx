@@ -77,12 +77,20 @@ function App() {
   useEffect(() => {
     fetchStatus(); // Initial fetch
 
-    console.log('Setting up SSE connection...');
     const eventSource = new EventSource('/stream');
+    console.log('EventSource created for /stream. Initial readyState:', eventSource.readyState);
 
     eventSource.onopen = () => {
-      console.log('SSE connection opened successfully');
+      console.log('SSE connection opened successfully. readyState:', eventSource.readyState);
     };
+
+    eventSource.onerror = (err) => {
+      console.error('EventSource error. readyState:', eventSource.readyState, 'Error object:', err);
+    };
+    
+    const readyStateInterval = setInterval(() => {
+      console.log('Periodic SSE readyState check:', eventSource.readyState, '(0=CONNECTING, 1=OPEN, 2=CLOSED)');
+    }, 5000);
 
     eventSource.addEventListener('new_log', (event) => {
       console.log('Received new_log event:', event.data);
@@ -116,14 +124,10 @@ function App() {
       console.log('Received test event:', event.data);
     });
 
-    eventSource.onerror = (err) => {
-      console.error('EventSource failed:', err);
-      eventSource.close();
-    };
-
     return () => {
       console.log('Closing SSE connection');
       eventSource.close();
+      clearInterval(readyStateInterval);
     };
   }, []);
 
