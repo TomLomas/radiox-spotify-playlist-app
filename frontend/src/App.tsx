@@ -45,7 +45,7 @@ interface AppState {
   backend_version: string;
 }
 
-const FRONTEND_VERSION = "1.0.9";
+const FRONTEND_VERSION = "1.1.0";
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
@@ -110,24 +110,25 @@ function App() {
   // Countdown timer logic
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
-    let checkTimer: NodeJS.Timeout | null = null;
+    let pollTimer: NodeJS.Timeout | null = null;
 
     if (countdown === null) return;
 
     if (countdown <= 0) {
-      // When countdown hits zero, immediately fetch status
-      fetchStatus();
-      
-      // Set up a check timer to verify if a new cycle completed
-      checkTimer = setTimeout(async () => {
+      // When countdown hits zero, start polling frequently for the result
+      // of the new cycle.
+      const pollForNewStatus = async () => {
         try {
           const response = await fetch('/status');
           const data = await response.json();
           const lct = typeof data.last_check_complete_time === 'number' 
             ? data.last_check_complete_time 
-            : Date.now();
-          if (lct !== lastCheckCompleteTime) {
+            : 0;
+            
+          if (lct > (lastCheckCompleteTime || 0)) {
             // New cycle completed, update everything
+            if (pollTimer) clearInterval(pollTimer); // Stop polling
+            
             const safeStats = {
               playlist_size: data.stats?.playlist_size ?? 0,
               max_playlist_size: data.stats?.max_playlist_size ?? 500,
@@ -145,16 +146,13 @@ function App() {
             });
             setLastCheckCompleteTime(lct);
             setCountdown(data.seconds_until_next_check);
-          } else {
-            // Not yet, check again in 30 seconds
-            setCountdown(0);
           }
         } catch (error) {
-          console.error('Error fetching status:', error);
-          // On error, wait 30 seconds before retrying
-          setCountdown(0);
+          console.error('Error polling for status:', error);
         }
-      }, 30000);
+      };
+      
+      pollTimer = setInterval(pollForNewStatus, 2000); // Poll every 2 seconds
     } else {
       // Normal countdown
       timer = setInterval(() => {
@@ -165,7 +163,7 @@ function App() {
     // Cleanup function
     return () => {
       if (timer) clearInterval(timer);
-      if (checkTimer) clearTimeout(checkTimer);
+      if (pollTimer) clearInterval(pollTimer);
     };
   }, [countdown, lastCheckCompleteTime]);
 
