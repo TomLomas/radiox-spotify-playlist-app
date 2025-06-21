@@ -56,7 +56,7 @@ MAX_FAILED_SEARCH_ATTEMPTS = 3
 # Active Time Window (BST/GMT Aware)
 TIMEZONE = 'Europe/London'
 START_TIME = datetime.time(7, 0)
-END_TIME = datetime.time(6, 0)  # Changed from 22:00 to 06:00 for testing
+END_TIME = datetime.time(23, 59)  # Changed to 23:59 for testing (simplified)
 
 # Email Summary Settings (from environment)
 EMAIL_HOST = os.getenv("EMAIL_HOST")
@@ -74,7 +74,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.1.4"
+BACKEND_VERSION = "1.1.5"
 
 # --- Main Application Class ---
 
@@ -648,6 +648,7 @@ class RadioXBot:
                     self.startup_email_sent, self.shutdown_summary_sent = False, False
                     self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
                     self.last_summary_log_date = now_local.date()
+                # Handle time window that spans midnight (7am to 6am)
                 if START_TIME <= now_local.time() <= END_TIME:
                     self.service_state = 'playing'
                     self.paused_reason = ''
