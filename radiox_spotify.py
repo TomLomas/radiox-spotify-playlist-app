@@ -75,7 +75,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.1.6"
+BACKEND_VERSION = "1.1.7"
 
 # --- Main Application Class ---
 
