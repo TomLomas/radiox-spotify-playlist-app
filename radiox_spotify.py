@@ -57,7 +57,7 @@ MAX_FAILED_SEARCH_ATTEMPTS = 3
 # Active Time Window (BST/GMT Aware)
 TIMEZONE = 'Europe/London'
 START_TIME = datetime.time(7, 0)
-END_TIME = datetime.time(23, 59)  # Changed to 23:59 for testing (simplified)
+END_TIME = datetime.time(22, 0)  # Changed to 22:00 (10:00 PM)
 
 # Email Summary Settings (from environment)
 EMAIL_HOST = os.getenv("EMAIL_HOST")
@@ -75,7 +75,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.1.8"
+BACKEND_VERSION = "1.1.9"
 
 # --- Main Application Class ---
 
