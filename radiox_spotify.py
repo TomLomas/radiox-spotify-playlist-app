@@ -75,7 +75,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.1.7"
+BACKEND_VERSION = "1.1.8"
 
 # --- Main Application Class ---
 
@@ -390,7 +390,7 @@ class RadioXBot:
 
             self.daily_added_songs.append({
                 "timestamp": datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat(),
-                "added_at": self.last_check_complete_time,  # Unix timestamp of last check complete
+                "added_at": int(time.time()),  # Use current Unix timestamp for accuracy
                 "radio_title": radio_x_title, 
                 "radio_artist": radio_x_artist, 
                 "spotify_title": spotify_name, 
@@ -477,7 +477,7 @@ class RadioXBot:
         if not self.daily_added_songs and not self.daily_search_failures: return ""
         try:
             artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
-            most_common = artist_counts.most_common(3)
+            most_common = artist_counts.most_common(5)
             top_artists_str = ", ".join([f"{artist} ({count})" for artist, count in most_common]) if most_common else "N/A"
             unique_artist_count = len(artist_counts)
             failure_reasons = Counter(item['reason'] for item in self.daily_search_failures)
@@ -497,7 +497,8 @@ class RadioXBot:
                     newest_song_str = f"{newest_song['spotify_title']} by {newest_song['spotify_artist']} ({newest_song['release_date'][:4]})"
                     decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
                     total_dated_songs = len(songs_with_dates)
-                    decade_breakdown_str = " | ".join([f"<b>{decade}s:</b> {((decade_counts[decade] / total_dated_songs) * 100):.0f}%%" for decade in sorted(decade_counts.keys())])
+                    sorted_decades = decade_counts.most_common(5)
+                    decade_breakdown_str = " | ".join([f"<b>{decade}s:</b> {((count / total_dated_songs) * 100):.0f}%%" for decade, count in sorted_decades])
             stats_html = f"""
             <h3>Daily Stats</h3>
             <p><b>Success Rate:</b> {success_rate:.1f}%% ({len(self.daily_added_songs)} added / {total_processed} processed)<br>
@@ -585,7 +586,7 @@ class RadioXBot:
             logging.error(f"Could not fetch playlist size for stats: {e}")
 
         artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
-        most_common = artist_counts.most_common(3)
+        most_common = artist_counts.most_common(5)
         top_artists_list = [(artist, count) for artist, count in most_common] if most_common else []
         unique_artist_count = len(artist_counts)
         total_processed = len(self.daily_added_songs) + len(self.daily_search_failures)
@@ -596,7 +597,7 @@ class RadioXBot:
         if songs_with_dates:
             decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
             total_dated_songs = len(songs_with_dates)
-            sorted_decades = decade_counts.most_common()
+            sorted_decades = decade_counts.most_common(5)
             decade_spread = [
                 (f"{decade}s", f"{((count / total_dated_songs) * 100):.0f}%")
                 for decade, count in sorted_decades
