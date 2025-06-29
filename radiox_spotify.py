@@ -122,7 +122,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.2.2"
+BACKEND_VERSION = "1.2.3"
 
 # --- Main Application Class ---
 
@@ -940,11 +940,11 @@ class RadioXBot:
                     <h2>✅ Successfully Added ({len(self.daily_added_songs)})</h2>
                     {''.join([f'''
                     <div class="list-item">
-                        <div class="song-title">{item['radio_title']}</div>
-                        <div class="song-artist">{item['radio_artist']}</div>
+                        <div class="song-title">{item.get('radio_title', 'Unknown')}</div>
+                        <div class="song-artist">{item.get('radio_artist', 'Unknown')}</div>
                         <div class="song-meta">
-                            Added at {datetime.datetime.fromisoformat(item['timestamp']).strftime('%H:%M:%S')}
-                            {f" • Released: {item['release_date'][:4]}" if item.get('release_date') else ''}
+                            Added at {datetime.datetime.fromisoformat(item.get('timestamp', '')).strftime('%H:%M:%S') if item.get('timestamp') else 'Unknown'}
+                            {f" • Released: {item.get('release_date', '')[:4]}" if item.get('release_date') else ''}
                         </div>
                     </div>
                     ''' for item in self.daily_added_songs]) if self.daily_added_songs else '<div class="empty-state">No songs were added today</div>'}
@@ -954,9 +954,9 @@ class RadioXBot:
                     <h2>❌ Failed Searches ({len(self.daily_search_failures)})</h2>
                     {''.join([f'''
                     <div class="list-item failure-item">
-                        <div class="song-title">{item['radio_title']}</div>
-                        <div class="song-artist">{item['radio_artist']}</div>
-                        <div class="failure-reason">Reason: {item['reason']}</div>
+                        <div class="song-title">{item.get('radio_title', 'Unknown')}</div>
+                        <div class="song-artist">{item.get('radio_artist', 'Unknown')}</div>
+                        <div class="failure-reason">Reason: {item.get('reason', 'Unknown')}</div>
                     </div>
                     ''' for item in self.daily_search_failures]) if self.daily_search_failures else '<div class="empty-state">No failures today - great job!</div>'}
                 </div>
