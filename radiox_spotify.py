@@ -32,6 +32,46 @@ try:
 except ImportError:
     psutil = None
 
+# --- Custom Log Handler for Debug Logs ---
+class DebugLogHandler(logging.Handler):
+    def __init__(self, max_entries=1000):
+        super().__init__()
+        self.log_entries = deque(maxlen=max_entries)
+        self.lock = threading.Lock()
+    
+    def emit(self, record):
+        with self.lock:
+            # Format the log entry
+            formatted_entry = self.format(record)
+            self.log_entries.append({
+                'timestamp': record.created,
+                'level': record.levelname,
+                'message': formatted_entry,
+                'module': record.module,
+                'funcName': record.funcName,
+                'lineno': record.lineno
+            })
+    
+    def get_logs(self, level_filter=None, max_entries=None):
+        """Get stored log entries, optionally filtered by level."""
+        with self.lock:
+            logs = list(self.log_entries)
+            if level_filter:
+                # Convert level names to numeric values for comparison
+                level_nums = {'DEBUG': 10, 'INFO': 20, 'WARNING': 30, 'ERROR': 40, 'CRITICAL': 50}
+                filter_level = level_nums.get(level_filter.upper(), 0)
+                logs = [log for log in logs if level_nums.get(log['level'], 0) >= filter_level]
+            
+            if max_entries:
+                logs = logs[-max_entries:]
+            
+            return logs
+    
+    def clear_logs(self):
+        """Clear stored log entries."""
+        with self.lock:
+            self.log_entries.clear()
+
 # --- Flask App Setup ---
 app = Flask(__name__)
 app.config["REDIS_URL"] = "redis://redis:6379"
@@ -73,9 +113,16 @@ BOLD = '\033[1m'
 RESET = '\033[0m'
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Set up logging with custom handler for debug logs
+debug_log_handler = DebugLogHandler(max_entries=2000)
+debug_log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
-BACKEND_VERSION = "1.1.9"
+# Configure root logger
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+root_logger = logging.getLogger()
+root_logger.addHandler(debug_log_handler)
+
+BACKEND_VERSION = "1.2.2"
 
 # --- Main Application Class ---
 
@@ -523,21 +570,410 @@ class RadioXBot:
             return
 
         summary_date = self.last_summary_log_date.isoformat()
-        stats_html = self.get_daily_stats_html()
-        html = f"""
-        <html><head><style>body{{font-family:sans-serif;}} table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #ddd;padding:8px}} th{{background-color:#f2f2f2}} h2{{border-bottom:2px solid #ccc;padding-bottom:5px}} h3{{margin-top:20px}}</style></head><body>
-            <h2>Radio X Spotify Adder Daily Summary: {summary_date}</h2>{stats_html}<h2><b>ADDED (Total: {len(self.daily_added_songs)})</b></h2>
-        """
+        
+        # Get current playlist stats
+        try:
+            playlist_details = self.spotify_api_call_with_retry(self.sp.playlist, SPOTIFY_PLAYLIST_ID, fields='name,tracks.total')
+            playlist_name = playlist_details['name'] if playlist_details else 'Unknown'
+            playlist_size = playlist_details['tracks']['total'] if playlist_details and 'tracks' in playlist_details else 0
+        except Exception as e:
+            playlist_name = 'Error fetching'
+            playlist_size = 0
+        
+        # Calculate rich statistics
+        total_processed = len(self.daily_added_songs) + len(self.daily_search_failures)
+        success_rate = (len(self.daily_added_songs) / total_processed * 100) if total_processed > 0 else 100
+        
+        # Artist statistics
+        artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
+        top_artists = artist_counts.most_common(5)
+        unique_artist_count = len(artist_counts)
+        
+        # Decade analysis
+        songs_with_dates = [s for s in self.daily_added_songs if s.get('release_date') and '-' in s['release_date']]
+        decade_spread = []
+        if songs_with_dates:
+            decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
+            total_dated_songs = len(songs_with_dates)
+            sorted_decades = decade_counts.most_common(5)
+            decade_spread = [
+                (f"{decade}s", f"{((count / total_dated_songs) * 100):.0f}%")
+                for decade, count in sorted_decades
+            ]
+        
+        # Time analysis
+        hour_counts = Counter()
         if self.daily_added_songs:
-            html += "<table><tr><th>Title</th><th>Artist</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td></tr>" for item in self.daily_added_songs]) + "</table>"
-        else: html += "<p>No songs were added today.</p>"
-        html += f"<br><h2><b>FAILED (Total: {len(self.daily_search_failures)})</b></h2>"
-        if self.daily_search_failures:
-            html += "<table><tr><th>Title</th><th>Artist</th><th>Reason</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td><td>{item['reason']}</td></tr>" for item in self.daily_search_failures]) + "</table>"
-        else: html += "<p>No unresolved failures today.</p>"
-        html += "</body></html>"
-        self.send_summary_email(html, subject=f"Radio X Spotify Adder Daily Summary - {summary_date}")
-        self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
+            for item in self.daily_added_songs:
+                try:
+                    timestamp = datetime.datetime.fromisoformat(item['timestamp'])
+                    hour_counts[timestamp.hour] += 1
+                except:
+                    pass
+        
+        busiest_hour = hour_counts.most_common(1)[0] if hour_counts else (0, 0)
+        
+        # Failure analysis
+        failure_reasons = Counter(item['reason'] for item in self.daily_search_failures)
+        
+        # Create the enhanced email
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Radio X Daily Summary - {summary_date}</title>
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }}
+                
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    padding: 20px;
+                }}
+                
+                .container {{
+                    max-width: 800px;
+                    margin: 0 auto;
+                    background: white;
+                    border-radius: 20px;
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                    overflow: hidden;
+                }}
+                
+                .header {{
+                    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+                    color: white;
+                    padding: 40px 30px;
+                    text-align: center;
+                }}
+                
+                .header h1 {{
+                    font-size: 2.5em;
+                    font-weight: 300;
+                    margin-bottom: 10px;
+                }}
+                
+                .header .date {{
+                    font-size: 1.2em;
+                    opacity: 0.9;
+                }}
+                
+                .stats-grid {{
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 20px;
+                    padding: 30px;
+                    background: #f8f9fa;
+                }}
+                
+                .stat-card {{
+                    background: white;
+                    padding: 25px;
+                    border-radius: 15px;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+                    text-align: center;
+                    transition: transform 0.3s ease;
+                }}
+                
+                .stat-card:hover {{
+                    transform: translateY(-5px);
+                }}
+                
+                .stat-number {{
+                    font-size: 2.5em;
+                    font-weight: bold;
+                    color: #1e3c72;
+                    margin-bottom: 10px;
+                }}
+                
+                .stat-label {{
+                    color: #666;
+                    font-size: 0.9em;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }}
+                
+                .progress-bar {{
+                    width: 100%;
+                    height: 8px;
+                    background: #e9ecef;
+                    border-radius: 4px;
+                    overflow: hidden;
+                    margin-top: 10px;
+                }}
+                
+                .progress-fill {{
+                    height: 100%;
+                    background: linear-gradient(90deg, #28a745, #20c997);
+                    border-radius: 4px;
+                    transition: width 0.3s ease;
+                }}
+                
+                .section {{
+                    padding: 30px;
+                    border-bottom: 1px solid #e9ecef;
+                }}
+                
+                .section:last-child {{
+                    border-bottom: none;
+                }}
+                
+                .section h2 {{
+                    color: #1e3c72;
+                    font-size: 1.8em;
+                    margin-bottom: 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }}
+                
+                .section h2::before {{
+                    content: '';
+                    width: 4px;
+                    height: 30px;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    border-radius: 2px;
+                }}
+                
+                .list-item {{
+                    background: #f8f9fa;
+                    padding: 15px;
+                    margin-bottom: 10px;
+                    border-radius: 10px;
+                    border-left: 4px solid #667eea;
+                }}
+                
+                .song-title {{
+                    font-weight: bold;
+                    color: #1e3c72;
+                    font-size: 1.1em;
+                }}
+                
+                .song-artist {{
+                    color: #666;
+                    font-style: italic;
+                }}
+                
+                .song-meta {{
+                    font-size: 0.9em;
+                    color: #888;
+                    margin-top: 5px;
+                }}
+                
+                .failure-item {{
+                    background: #fff5f5;
+                    border-left-color: #dc3545;
+                }}
+                
+                .failure-reason {{
+                    color: #dc3545;
+                    font-weight: bold;
+                }}
+                
+                .top-artists-list {{
+                    list-style: none;
+                }}
+                
+                .top-artists-list li {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px 0;
+                    border-bottom: 1px solid #e9ecef;
+                }}
+                
+                .top-artists-list li:last-child {{
+                    border-bottom: none;
+                }}
+                
+                .artist-rank {{
+                    background: #667eea;
+                    color: white;
+                    width: 25px;
+                    height: 25px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.8em;
+                    font-weight: bold;
+                }}
+                
+                .artist-count {{
+                    background: #e9ecef;
+                    color: #1e3c72;
+                    padding: 4px 12px;
+                    border-radius: 15px;
+                    font-weight: bold;
+                }}
+                
+                .decade-item {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px 0;
+                }}
+                
+                .decade-percentage {{
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    padding: 4px 12px;
+                    border-radius: 15px;
+                    font-weight: bold;
+                }}
+                
+                .empty-state {{
+                    text-align: center;
+                    padding: 40px;
+                    color: #666;
+                    font-style: italic;
+                }}
+                
+                .footer {{
+                    background: #1e3c72;
+                    color: white;
+                    text-align: center;
+                    padding: 20px;
+                    font-size: 0.9em;
+                }}
+                
+                @media (max-width: 600px) {{
+                    .stats-grid {{
+                        grid-template-columns: 1fr;
+                    }}
+                    
+                    .header h1 {{
+                        font-size: 2em;
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🎵 Radio X Daily Summary</h1>
+                    <div class="date">{summary_date}</div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{len(self.daily_added_songs)}</div>
+                        <div class="stat-label">Songs Added</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {success_rate}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number">{success_rate:.1f}%</div>
+                        <div class="stat-label">Success Rate</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {success_rate}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number">{unique_artist_count}</div>
+                        <div class="stat-label">Unique Artists</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number">{playlist_size}</div>
+                        <div class="stat-label">Playlist Size</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {(playlist_size/MAX_PLAYLIST_SIZE)*100}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number">{busiest_hour[1]}</div>
+                        <div class="stat-label">Busiest Hour ({busiest_hour[0]:02d}:00)</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number">{len(self.failed_search_queue)}</div>
+                        <div class="stat-label">In Retry Queue</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>🏆 Top Artists Today</h2>
+                    {f'''
+                    <ul class="top-artists-list">
+                        {''.join([f'''
+                        <li>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div class="artist-rank">{idx + 1}</div>
+                                <span style="font-weight: bold;">{artist}</span>
+                            </div>
+                            <div class="artist-count">{count}</div>
+                        </li>
+                        ''' for idx, (artist, count) in enumerate(top_artists)])}
+                    </ul>
+                    ''' if top_artists else '<div class="empty-state">No artists added today</div>'}
+                </div>
+                
+                {f'''
+                <div class="section">
+                    <h2>📊 Decade Breakdown</h2>
+                    <div style="margin-top: 15px;">
+                        {''.join([f'''
+                        <div class="decade-item">
+                            <span style="font-weight: bold;">{decade}</span>
+                            <div class="decade-percentage">{percentage}</div>
+                        </div>
+                        ''' for decade, percentage in decade_spread])}
+                    </div>
+                </div>
+                ''' if decade_spread else ''}
+                
+                <div class="section">
+                    <h2>✅ Successfully Added ({len(self.daily_added_songs)})</h2>
+                    {''.join([f'''
+                    <div class="list-item">
+                        <div class="song-title">{item['radio_title']}</div>
+                        <div class="song-artist">{item['radio_artist']}</div>
+                        <div class="song-meta">
+                            Added at {datetime.datetime.fromisoformat(item['timestamp']).strftime('%H:%M:%S')}
+                            {f" • Released: {item['release_date'][:4]}" if item.get('release_date') else ''}
+                        </div>
+                    </div>
+                    ''' for item in self.daily_added_songs]) if self.daily_added_songs else '<div class="empty-state">No songs were added today</div>'}
+                </div>
+                
+                <div class="section">
+                    <h2>❌ Failed Searches ({len(self.daily_search_failures)})</h2>
+                    {''.join([f'''
+                    <div class="list-item failure-item">
+                        <div class="song-title">{item['radio_title']}</div>
+                        <div class="song-artist">{item['radio_artist']}</div>
+                        <div class="failure-reason">Reason: {item['reason']}</div>
+                    </div>
+                    ''' for item in self.daily_search_failures]) if self.daily_search_failures else '<div class="empty-state">No failures today - great job!</div>'}
+                </div>
+                
+                <div class="footer">
+                    <p>Generated by Radio X Spotify Adder v{BACKEND_VERSION}</p>
+                    <p>Playlist: {playlist_name}</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        self.send_summary_email(html, subject=f"🎵 Radio X Daily Summary - {summary_date}")
+        self.daily_added_songs.clear()
+        self.daily_search_failures.clear()
+        self.save_state()
 
     def send_startup_notification(self, status_report_html_rows):
         if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
@@ -555,6 +991,146 @@ class RadioXBot:
         </body></html>
         """
         self.send_summary_email(html_body, subject=subject)
+
+    def send_debug_log(self):
+        """Sends a debug log email with actual log entries from the application runtime."""
+        if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
+            self.log_event("Email settings not configured. Skipping debug log.")
+            return
+        
+        self.log_event("Sending debug log email...")
+        now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+        subject = f"Radio X Spotify Adder Debug Log - {now_local.strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        # Get all log entries from the debug handler
+        all_logs = debug_log_handler.get_logs()
+        
+        # Filter for errors, warnings, and critical messages (most important for debugging)
+        error_logs = debug_log_handler.get_logs(level_filter='ERROR')
+        warning_logs = debug_log_handler.get_logs(level_filter='WARNING')
+        critical_logs = debug_log_handler.get_logs(level_filter='CRITICAL')
+        
+        # Get recent info logs (last 50) for context
+        recent_info_logs = debug_log_handler.get_logs(level_filter='INFO', max_entries=50)
+        
+        # Format log entries for email
+        def format_log_section(title, logs, max_entries=None):
+            if not logs:
+                return f"<h3>{title}</h3><p>No entries found.</p>"
+            
+            if max_entries:
+                logs = logs[-max_entries:]
+            
+            html = f"<h3>{title} ({len(logs)} entries)</h3>"
+            html += "<table style='border-collapse: collapse; width: 100%; font-family: monospace; font-size: 12px;'>"
+            html += "<tr style='background-color: #f2f2f2;'><th style='border: 1px solid #ddd; padding: 8px;'>Time</th><th style='border: 1px solid #ddd; padding: 8px;'>Level</th><th style='border: 1px solid #ddd; padding: 8px;'>Message</th><th style='border: 1px solid #ddd; padding: 8px;'>Location</th></tr>"
+            
+            for log in logs:
+                timestamp = datetime.datetime.fromtimestamp(log['timestamp'], pytz.timezone(TIMEZONE)).strftime('%Y-%m-%d %H:%M:%S')
+                level_color = {
+                    'DEBUG': '#808080',
+                    'INFO': '#000000', 
+                    'WARNING': '#FF8C00',
+                    'ERROR': '#FF0000',
+                    'CRITICAL': '#8B0000'
+                }.get(log['level'], '#000000')
+                
+                location = f"{log['module']}.{log['funcName']}:{log['lineno']}"
+                html += f"<tr><td style='border: 1px solid #ddd; padding: 4px;'>{timestamp}</td><td style='border: 1px solid #ddd; padding: 4px; color: {level_color}; font-weight: bold;'>{log['level']}</td><td style='border: 1px solid #ddd; padding: 4px;'>{log['message']}</td><td style='border: 1px solid #ddd; padding: 4px; font-size: 10px;'>{location}</td></tr>"
+            
+            html += "</table>"
+            return html
+        
+        # Build email content
+        html_body = f"""
+        <html><head><style>
+            body {{ font-family: sans-serif; margin: 20px; }}
+            h2 {{ border-bottom: 2px solid #ccc; padding-bottom: 5px; }}
+            h3 {{ margin-top: 20px; color: #333; }}
+            table {{ border-collapse: collapse; width: 100%; }}
+            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+            th {{ background-color: #f2f2f2; font-weight: bold; }}
+            .summary {{ background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+        </style></head>
+        <body>
+            <h2>Radio X Spotify Adder Debug Log</h2>
+            <p>Generated at <b>{now_local.strftime("%Y-%m-%d %H:%M:%S %Z")}</b></p>
+            
+            <div class="summary">
+                <h3>Log Summary</h3>
+                <p><strong>Total Log Entries:</strong> {len(all_logs)}</p>
+                <p><strong>Critical Messages:</strong> {len(critical_logs)}</p>
+                <p><strong>Error Messages:</strong> {len(error_logs)}</p>
+                <p><strong>Warning Messages:</strong> {len(warning_logs)}</p>
+                <p><strong>Info Messages:</strong> {len(recent_info_logs)} (showing last 50)</p>
+            </div>
+            
+            {format_log_section("Critical Messages", critical_logs)}
+            {format_log_section("Error Messages", error_logs)}
+            {format_log_section("Warning Messages", warning_logs)}
+            {format_log_section("Recent Info Messages", recent_info_logs)}
+            
+            <p style='margin-top: 30px; font-size: 12px; color: #666;'>
+                This debug log contains all log entries captured during the application runtime. 
+                Critical, Error, and Warning messages are shown in full, while Info messages are limited to the most recent 50 entries.
+            </p>
+        </body></html>
+        """
+        
+        self.send_summary_email(html_body, subject=subject)
+        self.log_event("Debug log email sent successfully.")
+        
+    def test_daily_summary_with_cached_data(self):
+        """Creates a test daily summary using cached data from previous days."""
+        if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
+            self.log_event("Email settings not configured. Skipping test daily summary.")
+            return
+        
+        self.log_event("Creating test daily summary with cached data...")
+        
+        # Load cached data
+        cached_added_songs = []
+        cached_failed_songs = []
+        
+        try:
+            with self.file_lock:
+                if os.path.exists(self.DAILY_ADDED_CACHE_FILE):
+                    with open(self.DAILY_ADDED_CACHE_FILE, 'r') as f:
+                        cached_added_songs = json.load(f)
+                if os.path.exists(self.DAILY_FAILED_CACHE_FILE):
+                    with open(self.DAILY_FAILED_CACHE_FILE, 'r') as f:
+                        cached_failed_songs = json.load(f)
+        except Exception as e:
+            self.log_event(f"Error loading cached data: {e}")
+            return
+        
+        if not cached_added_songs and not cached_failed_songs:
+            self.log_event("No cached data found for test summary.")
+            return
+        
+        # Temporarily replace current daily data with cached data
+        original_added = self.daily_added_songs.copy()
+        original_failed = self.daily_search_failures.copy()
+        original_summary_date = self.last_summary_log_date
+        
+        try:
+            self.daily_added_songs = cached_added_songs
+            self.daily_search_failures = cached_failed_songs
+            
+            # Set the summary date to yesterday for the test
+            yesterday = datetime.date.today() - datetime.timedelta(days=1)
+            self.last_summary_log_date = yesterday
+            
+            # Create and send the test summary
+            self.log_and_send_daily_summary()
+            
+            self.log_event("Test daily summary sent successfully using cached data.")
+            
+        finally:
+            # Restore original data
+            self.daily_added_songs = original_added
+            self.daily_search_failures = original_failed
+            self.last_summary_log_date = original_summary_date
         
     def run_startup_diagnostics(self, send_email=False):
         self.log_event("--- Running Startup Diagnostics ---")
@@ -785,6 +1361,12 @@ def admin_send_debug_log():
     bot_instance.log_event("Debug log manually triggered via web.")
     threading.Thread(target=bot_instance.send_debug_log).start()
     return "Debug log has been triggered. Check email for results."
+
+@app.route('/admin/test_daily_summary', methods=['POST'])
+def admin_test_daily_summary():
+    bot_instance.log_event("Daily summary test manually triggered via web.")
+    threading.Thread(target=bot_instance.test_daily_summary_with_cached_data).start()
+    return "Daily summary test has been triggered. Check email for results."
 
 @app.route('/status')
 def status():
