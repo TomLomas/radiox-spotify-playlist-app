@@ -14,7 +14,7 @@ import logging
 import re 
 import websocket 
 import threading 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, Response
 import datetime
 import pytz 
 import smtplib 
@@ -78,6 +78,15 @@ app.config["REDIS_URL"] = "redis://redis:6379"
 app.config["SSE_REDIS_URL"] = "redis://redis:6379"
 app.register_blueprint(sse, url_prefix='/stream')
 
+# Initialize Redis client for SSE
+try:
+    redis_client = redis.from_url("redis://redis:6379")
+    redis_client.ping()  # Test connection
+    logging.info("Redis connection established successfully")
+except Exception as e:
+    logging.error(f"Failed to connect to Redis: {e}")
+    redis_client = None
+
 # --- Configuration ---
 load_dotenv()
 
@@ -122,7 +131,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.2.8"
+BACKEND_VERSION = "1.2.9"
 
 # --- Main Application Class ---
 
@@ -1463,14 +1472,19 @@ def initialize_bot():
     logging.info("Background initialization started.")
     # Log version at startup
     log_backend_version()
-    if bot_instance.authenticate_spotify():
+    
+    # Try to authenticate with Spotify, but don't fail if it doesn't work
+    auth_success = bot_instance.authenticate_spotify()
+    if auth_success:
         bot_instance.load_state() 
         bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
         
         monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
         monitor_thread.start()
+        logging.info("Background initialization completed successfully.")
     else:
-        logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
+        logging.warning("Spotify authentication failed. The main monitoring thread will not start, but the web interface will still be available.")
+        bot_instance.update_service_state('error', 'Spotify authentication failed')
 
 @app.route('/test_sse')
 def test_sse():
@@ -1487,12 +1501,20 @@ def stream():
     """SSE endpoint."""
     logging.info("Client connected to /stream endpoint.")
     def event_stream():
+        if redis_client is None:
+            yield f"data: {json.dumps({'error': 'Redis not available'})}\n\n"
+            return
+        
         # Continuously yield messages from Redis pub/sub
-        pubsub = redis_client.pubsub()
-        pubsub.subscribe('radiox_spotify_events')
-        for message in pubsub.listen():
-            if message['type'] == 'message':
-                yield f"data: {message['data'].decode('utf-8')}\n\n"
+        try:
+            pubsub = redis_client.pubsub()
+            pubsub.subscribe('radiox_spotify_events')
+            for message in pubsub.listen():
+                if message['type'] == 'message':
+                    yield f"data: {message['data'].decode('utf-8')}\n\n"
+        except Exception as e:
+            logging.error(f"Error in SSE stream: {e}")
+            yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
 
     return Response(event_stream(), content_type='text/event-stream')
 
