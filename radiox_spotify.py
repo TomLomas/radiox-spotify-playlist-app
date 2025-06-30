@@ -122,7 +122,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.2.3"
+BACKEND_VERSION = "1.2.4"
 
 # --- Main Application Class ---
 
@@ -617,6 +617,12 @@ class RadioXBot:
         failure_reasons = Counter(item['reason'] for item in self.daily_search_failures)
         
         # Create the enhanced email
+        def format_release_date(item):
+            release_date = item.get('release_date', '')
+            if release_date and len(release_date) >= 4:
+                return f" • Released: {release_date[:4]}"
+            return ""
+        
         html = f"""
         <!DOCTYPE html>
         <html>
@@ -944,7 +950,7 @@ class RadioXBot:
                         <div class="song-artist">{item.get('radio_artist', 'Unknown')}</div>
                         <div class="song-meta">
                             Added at {datetime.datetime.fromisoformat(item.get('timestamp', '')).strftime('%H:%M:%S') if item.get('timestamp') else 'Unknown'}
-                            {f" • Released: {item.get('release_date', '')[:4]}" if item.get('release_date') else ''}
+                            {format_release_date(item)}
                         </div>
                     </div>
                     ''' for item in self.daily_added_songs]) if self.daily_added_songs else '<div class="empty-state">No songs were added today</div>'}
