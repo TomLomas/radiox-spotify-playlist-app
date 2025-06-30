@@ -122,7 +122,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.2.5"
+BACKEND_VERSION = "1.2.6"
 
 # --- Main Application Class ---
 
@@ -540,8 +540,8 @@ class RadioXBot:
                 if songs_with_dates:
                     songs_with_dates.sort(key=lambda x: x['release_date'])
                     oldest_song, newest_song = songs_with_dates[0], songs_with_dates[-1]
-                    oldest_song_str = f"{oldest_song['spotify_title']} by {oldest_song['spotify_artist']} ({oldest_song['release_date'][:4]})"
-                    newest_song_str = f"{newest_song['spotify_title']} by {newest_song['spotify_artist']} ({newest_song['release_date'][:4]})"
+                            oldest_song_str = f"{oldest_song.get('spotify_title', 'Unknown')} by {oldest_song.get('spotify_artist', 'Unknown')} ({oldest_song.get('release_date', 'Unknown')[:4] if oldest_song.get('release_date') else 'Unknown'})"
+        newest_song_str = f"{newest_song.get('spotify_title', 'Unknown')} by {newest_song.get('spotify_artist', 'Unknown')} ({newest_song.get('release_date', 'Unknown')[:4] if newest_song.get('release_date') else 'Unknown'})"
                     decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
                     total_dated_songs = len(songs_with_dates)
                     sorted_decades = decade_counts.most_common(5)
@@ -1050,8 +1050,8 @@ class RadioXBot:
                     'CRITICAL': '#8B0000'
                 }.get(log['level'], '#000000')
                 
-                location = f"{log['module']}.{log['funcName']}:{log['lineno']}"
-                html += f"<tr><td style='border: 1px solid #ddd; padding: 4px;'>{timestamp}</td><td style='border: 1px solid #ddd; padding: 4px; color: {level_color}; font-weight: bold;'>{log['level']}</td><td style='border: 1px solid #ddd; padding: 4px;'>{log['message']}</td><td style='border: 1px solid #ddd; padding: 4px; font-size: 10px;'>{location}</td></tr>"
+                location = f"{log.get('module', 'unknown')}.{log.get('funcName', 'unknown')}:{log.get('lineno', 'unknown')}"
+                html += f"<tr><td style='border: 1px solid #ddd; padding: 4px;'>{timestamp}</td><td style='border: 1px solid #ddd; padding: 4px; color: {level_color}; font-weight: bold;'>{log.get('level', 'UNKNOWN')}</td><td style='border: 1px solid #ddd; padding: 4px;'>{log.get('message', 'No message')}</td><td style='border: 1px solid #ddd; padding: 4px; font-size: 10px;'>{location}</td></tr>"
             
             html += "</table>"
             return html
@@ -1153,7 +1153,7 @@ class RadioXBot:
         try:
             if self.sp: results.append("<tr><td>Spotify Authentication</td><td style='color:green;'>SUCCESS</td><td>Authenticated successfully.</td></tr>")
             else: raise Exception("Spotify client not initialized.")
-            playlist = self.spotify_api_call_with_retry(self.sp.playlist, SPOTIFY_PLAYLIST_ID, fields='name,id'); results.append(f"<tr><td>Playlist Access</td><td style='color:green;'>SUCCESS</td><td>Accessed playlist '{playlist['name']}'.</td></tr>")
+            playlist = self.spotify_api_call_with_retry(self.sp.playlist, SPOTIFY_PLAYLIST_ID, fields='name,id'); results.append(f"<tr><td>Playlist Access</td><td style='color:green;'>SUCCESS</td><td>Accessed playlist '{playlist.get('name', 'Unknown')}'.</td></tr>")
             if self.search_song_on_spotify("Wonderwall", "Oasis"): results.append("<tr><td>Test Search</td><td style='color:green;'>SUCCESS</td><td>Test search for 'Wonderwall' was successful.</td></tr>")
             else: results.append("<tr><td>Test Search</td><td style='color:red;'>FAIL</td><td>Test search for 'Wonderwall' returned no results.</td></tr>")
             tz = pytz.timezone(TIMEZONE); now = datetime.datetime.now(tz).strftime('%Z'); results.append(f"<tr><td>Timezone Check</td><td style='color:green;'>SUCCESS</td><td>Timezone '{TIMEZONE}' loaded (Current: {now}).</td></tr>")
