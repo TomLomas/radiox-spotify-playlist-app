@@ -122,7 +122,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.2.7"
+BACKEND_VERSION = "1.2.8"
 
 # --- Main Application Class ---
 
@@ -498,13 +498,13 @@ class RadioXBot:
         item['attempts'] += 1
         spotify_id = self.search_song_on_spotify(item['title'], item['artist'], is_retry_from_queue=True)
         if spotify_id:
-            self.add_song_to_playlist(item['title'], item['artist'], spotify_id, SPOTIFY_PLAYLIST_ID)
-        elif item['attempts'] < MAX_FAILED_SEARCH_ATTEMPTS:
+            self.add_song_to_playlist(item.get('title', 'Unknown'), item.get('artist', 'Unknown'), spotify_id, SPOTIFY_PLAYLIST_ID)
+        elif item.get('attempts', 0) < MAX_FAILED_SEARCH_ATTEMPTS:
             self.failed_search_queue.append(item)
-            self.log_event(f"PFSQ: Re-queued '{item['title']}' (Attempts: {item['attempts']}).")
+            self.log_event(f"PFSQ: Re-queued '{item.get('title', 'Unknown')}' (Attempts: {item.get('attempts', 0)}).")
         else:
-            self.log_event(f"PFSQ: Max retries reached for '{item['title']}'. Discarding.")
-            self.daily_search_failures.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": item['title'], "radio_artist": item['artist'], "reason": f"Max retries ({MAX_FAILED_SEARCH_ATTEMPTS}) from failed search queue exhausted."})
+            self.log_event(f"PFSQ: Max retries reached for '{item.get('title', 'Unknown')}'. Discarding.")
+            self.daily_search_failures.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": item.get('title', 'Unknown'), "radio_artist": item.get('artist', 'Unknown'), "reason": f"Max retries ({MAX_FAILED_SEARCH_ATTEMPTS}) from failed search queue exhausted."})
 
     # --- Email & Summary Functions ---
     def send_summary_email(self, html_body, subject):
@@ -523,17 +523,17 @@ class RadioXBot:
     def get_daily_stats_html(self):
         if not self.daily_added_songs and not self.daily_search_failures: return ""
         try:
-            artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
+            artist_counts = Counter(item.get('radio_artist', 'Unknown') for item in self.daily_added_songs)
             most_common = artist_counts.most_common(5)
             top_artists_str = ", ".join([f"{artist} ({count})" for artist, count in most_common]) if most_common else "N/A"
             unique_artist_count = len(artist_counts)
-            failure_reasons = Counter(item['reason'] for item in self.daily_search_failures)
+            failure_reasons = Counter(item.get('reason', 'Unknown') for item in self.daily_search_failures)
             failure_breakdown_str = "; ".join([f"{reason}: {count}" for reason, count in failure_reasons.items()]) or "None"
             total_processed = len(self.daily_added_songs) + len(self.daily_search_failures)
             success_rate = (len(self.daily_added_songs) / total_processed * 100) if total_processed > 0 else 100
             busiest_hour_str, newest_song_str, oldest_song_str, decade_breakdown_str = "N/A", "N/A", "N/A", ""
             if self.daily_added_songs:
-                hour_counts = Counter(datetime.datetime.fromisoformat(item['timestamp']).hour for item in self.daily_added_songs)
+                hour_counts = Counter(datetime.datetime.fromisoformat(item.get('timestamp', '')).hour for item in self.daily_added_songs if item.get('timestamp'))
                 busiest_hour, song_count = hour_counts.most_common(1)[0]
                 busiest_hour_str = f"{busiest_hour:02d}:00 - {busiest_hour:02d}:59 ({song_count} songs)"
                 songs_with_dates = [s for s in self.daily_added_songs if s.get('release_date') and '-' in s['release_date']]
@@ -585,7 +585,7 @@ class RadioXBot:
         success_rate = (len(self.daily_added_songs) / total_processed * 100) if total_processed > 0 else 100
         
         # Artist statistics
-        artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
+        artist_counts = Counter(item.get('radio_artist', 'Unknown') for item in self.daily_added_songs)
         top_artists = artist_counts.most_common(5)
         unique_artist_count = len(artist_counts)
         
@@ -606,7 +606,7 @@ class RadioXBot:
         if self.daily_added_songs:
             for item in self.daily_added_songs:
                 try:
-                    timestamp = datetime.datetime.fromisoformat(item['timestamp'])
+                    timestamp = datetime.datetime.fromisoformat(item.get('timestamp', ''))
                     hour_counts[timestamp.hour] += 1
                 except:
                     pass
@@ -614,7 +614,7 @@ class RadioXBot:
         busiest_hour = hour_counts.most_common(1)[0] if hour_counts else (0, 0)
         
         # Failure analysis
-        failure_reasons = Counter(item['reason'] for item in self.daily_search_failures)
+        failure_reasons = Counter(item.get('reason', 'Unknown') for item in self.daily_search_failures)
         
         # Create the enhanced email
         def format_release_date(item):
@@ -631,6 +631,53 @@ class RadioXBot:
                 except:
                     return 'Unknown'
             return 'Unknown'
+        
+        def format_song_item(item):
+            title = item.get('radio_title', 'Unknown')
+            artist = item.get('radio_artist', 'Unknown')
+            timestamp = format_timestamp(item)
+            release_date = format_release_date(item)
+            return f'''
+                    <div class="list-item">
+                        <div class="song-title">{title}</div>
+                        <div class="song-artist">{artist}</div>
+                        <div class="song-meta">
+                            Added at {timestamp}
+                            {release_date}
+                        </div>
+                    </div>
+                    '''
+        
+        def format_failure_item(item):
+            title = item.get('radio_title', 'Unknown')
+            artist = item.get('radio_artist', 'Unknown')
+            reason = item.get('reason', 'Unknown')
+            return f'''
+                    <div class="list-item failure-item">
+                        <div class="song-title">{title}</div>
+                        <div class="song-artist">{artist}</div>
+                        <div class="failure-reason">Reason: {reason}</div>
+                    </div>
+                    '''
+        
+        def format_artist_item(idx, artist, count):
+            return f'''
+                        <li>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div class="artist-rank">{idx + 1}</div>
+                                <span style="font-weight: bold;">{artist}</span>
+                            </div>
+                            <div class="artist-count">{count}</div>
+                        </li>
+                        '''
+        
+        def format_decade_item(decade, percentage):
+            return f'''
+                        <div class="decade-item">
+                            <span style="font-weight: bold;">{decade}</span>
+                            <div class="decade-percentage">{percentage}</div>
+                        </div>
+                        '''
         
         html = f"""
         <!DOCTYPE html>
@@ -924,15 +971,7 @@ class RadioXBot:
                     <h2>🏆 Top Artists Today</h2>
                     {f'''
                     <ul class="top-artists-list">
-                        {''.join([f'''
-                        <li>
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <div class="artist-rank">{idx + 1}</div>
-                                <span style="font-weight: bold;">{artist}</span>
-                            </div>
-                            <div class="artist-count">{count}</div>
-                        </li>
-                        ''' for idx, (artist, count) in enumerate(top_artists)])}
+                        {''.join([format_artist_item(idx, artist, count) for idx, (artist, count) in enumerate(top_artists)])}
                     </ul>
                     ''' if top_artists else '<div class="empty-state">No artists added today</div>'}
                 </div>
@@ -941,39 +980,19 @@ class RadioXBot:
                 <div class="section">
                     <h2>📊 Decade Breakdown</h2>
                     <div style="margin-top: 15px;">
-                        {''.join([f'''
-                        <div class="decade-item">
-                            <span style="font-weight: bold;">{decade}</span>
-                            <div class="decade-percentage">{percentage}</div>
-                        </div>
-                        ''' for decade, percentage in decade_spread])}
+                        {''.join([format_decade_item(decade, percentage) for decade, percentage in decade_spread])}
                     </div>
                 </div>
                 ''' if decade_spread else ''}
                 
                 <div class="section">
                     <h2>✅ Successfully Added ({len(self.daily_added_songs)})</h2>
-                    {''.join([f'''
-                    <div class="list-item">
-                        <div class="song-title">{item.get('radio_title', 'Unknown')}</div>
-                        <div class="song-artist">{item.get('radio_artist', 'Unknown')}</div>
-                        <div class="song-meta">
-                            Added at {format_timestamp(item)}
-                            {format_release_date(item)}
-                        </div>
-                    </div>
-                    ''' for item in self.daily_added_songs]) if self.daily_added_songs else '<div class="empty-state">No songs were added today</div>'}
+                    {''.join([format_song_item(item) for item in self.daily_added_songs]) if self.daily_added_songs else '<div class="empty-state">No songs were added today</div>'}
                 </div>
                 
                 <div class="section">
                     <h2>❌ Failed Searches ({len(self.daily_search_failures)})</h2>
-                    {''.join([f'''
-                    <div class="list-item failure-item">
-                        <div class="song-title">{item.get('radio_title', 'Unknown')}</div>
-                        <div class="song-artist">{item.get('radio_artist', 'Unknown')}</div>
-                        <div class="failure-reason">Reason: {item.get('reason', 'Unknown')}</div>
-                    </div>
-                    ''' for item in self.daily_search_failures]) if self.daily_search_failures else '<div class="empty-state">No failures today - great job!</div>'}
+                    {''.join([format_failure_item(item) for item in self.daily_search_failures]) if self.daily_search_failures else '<div class="empty-state">No failures today - great job!</div>'}
                 </div>
                 
                 <div class="footer">
@@ -1176,7 +1195,7 @@ class RadioXBot:
             playlist_size = 0 # Default on error
             logging.error(f"Could not fetch playlist size for stats: {e}")
 
-        artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
+        artist_counts = Counter(item.get('radio_artist', 'Unknown') for item in self.daily_added_songs)
         most_common = artist_counts.most_common(5)
         top_artists_list = [(artist, count) for artist, count in most_common] if most_common else []
         unique_artist_count = len(artist_counts)
