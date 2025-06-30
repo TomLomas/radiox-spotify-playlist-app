@@ -122,7 +122,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.2.4"
+BACKEND_VERSION = "1.2.5"
 
 # --- Main Application Class ---
 
@@ -623,6 +623,15 @@ class RadioXBot:
                 return f" • Released: {release_date[:4]}"
             return ""
         
+        def format_timestamp(item):
+            timestamp = item.get('timestamp')
+            if timestamp:
+                try:
+                    return datetime.datetime.fromisoformat(timestamp).strftime('%H:%M:%S')
+                except:
+                    return 'Unknown'
+            return 'Unknown'
+        
         html = f"""
         <!DOCTYPE html>
         <html>
@@ -949,7 +958,7 @@ class RadioXBot:
                         <div class="song-title">{item.get('radio_title', 'Unknown')}</div>
                         <div class="song-artist">{item.get('radio_artist', 'Unknown')}</div>
                         <div class="song-meta">
-                            Added at {datetime.datetime.fromisoformat(item.get('timestamp', '')).strftime('%H:%M:%S') if item.get('timestamp') else 'Unknown'}
+                            Added at {format_timestamp(item)}
                             {format_release_date(item)}
                         </div>
                     </div>
