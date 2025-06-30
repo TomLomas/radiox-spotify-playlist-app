@@ -122,7 +122,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.2.6"
+BACKEND_VERSION = "1.2.7"
 
 # --- Main Application Class ---
 
@@ -540,8 +540,8 @@ class RadioXBot:
                 if songs_with_dates:
                     songs_with_dates.sort(key=lambda x: x['release_date'])
                     oldest_song, newest_song = songs_with_dates[0], songs_with_dates[-1]
-                            oldest_song_str = f"{oldest_song.get('spotify_title', 'Unknown')} by {oldest_song.get('spotify_artist', 'Unknown')} ({oldest_song.get('release_date', 'Unknown')[:4] if oldest_song.get('release_date') else 'Unknown'})"
-        newest_song_str = f"{newest_song.get('spotify_title', 'Unknown')} by {newest_song.get('spotify_artist', 'Unknown')} ({newest_song.get('release_date', 'Unknown')[:4] if newest_song.get('release_date') else 'Unknown'})"
+                    oldest_song_str = f"{oldest_song.get('spotify_title', 'Unknown')} by {oldest_song.get('spotify_artist', 'Unknown')} ({oldest_song.get('release_date', 'Unknown')[:4] if oldest_song.get('release_date') else 'Unknown'})"
+                    newest_song_str = f"{newest_song.get('spotify_title', 'Unknown')} by {newest_song.get('spotify_artist', 'Unknown')} ({newest_song.get('release_date', 'Unknown')[:4] if newest_song.get('release_date') else 'Unknown'})"
                     decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
                     total_dated_songs = len(songs_with_dates)
                     sorted_decades = decade_counts.most_common(5)
