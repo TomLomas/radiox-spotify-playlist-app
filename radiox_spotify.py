@@ -997,7 +997,6 @@ class RadioXBot:
         """Main monitoring loop."""
         self.is_running = True
         self.update_service_state('playing')
-        self.log_event("=== Main monitoring loop started ===")
         logging.info("RadioX monitoring thread is now running")
         if not self.sp: 
             self.log_event("ERROR: Spotify client is None. Thread cannot perform Spotify actions.")
@@ -1030,7 +1029,6 @@ class RadioXBot:
             try:
                 now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
                 if self.last_summary_log_date < now_local.date():
-                    self.log_event(f"New day detected ({now_local.date().isoformat()}). Resetting daily flags.")
                     logging.info(f"New day detected: {now_local.date().isoformat()}")
                     self.startup_email_sent, self.shutdown_summary_sent = False, False
                     self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
@@ -1040,21 +1038,20 @@ class RadioXBot:
                     self.service_state = 'playing'
                     self.paused_reason = ''
                     if not self.startup_email_sent:
-                        self.log_event("Active hours started."); self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
+                        self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
                         logging.info("Active hours started - sending startup notification")
                     logging.info("=== Starting monitoring cycle ===")
                     self.process_main_cycle()
                 else:
                     self.update_service_state('paused', 'out_of_hours')
                     if not self.shutdown_summary_sent:
-                        self.log_event("End of active day. Generating and sending daily summary."); self.log_and_send_daily_summary(); self.shutdown_summary_sent = True; self.startup_email_sent = False
+                        self.log_and_send_daily_summary(); self.shutdown_summary_sent = True; self.startup_email_sent = False
                         logging.info("End of active day - sending daily summary")
                     logging.info("Outside active hours - pausing monitoring")
                     time.sleep(CHECK_INTERVAL * 5); continue
             except Exception as e: 
                 logging.error(f"CRITICAL UNHANDLED ERROR in main loop: {e}", exc_info=True); 
                 time.sleep(CHECK_INTERVAL * 2) 
-            self.log_event(f"Cycle complete. Waiting {CHECK_INTERVAL}s..."); 
             logging.info(f"Cycle complete. Waiting {CHECK_INTERVAL} seconds before next cycle...")
             time.sleep(CHECK_INTERVAL)
 
@@ -1074,19 +1071,15 @@ class RadioXBot:
             if not title or not artist: 
                 logging.warning("Empty title or artist from Radio X.")
             elif radiox_id == self.last_added_radiox_track_id: 
-                self.log_event(f"Song '{title}' by '{artist}' (ID: {radiox_id}) same as last. Skipping.")
                 logging.info(f"Skipping duplicate song: {title} by {artist}")
             else:
-                self.log_event(f"New song: '{title}' by '{artist}'")
                 logging.info(f"Processing new song: {title} by {artist}")
                 spotify_track_id = self.search_song_on_spotify(title, artist, radiox_id) 
                 if spotify_track_id:
                     if self.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID): 
-                        song_added = True 
-                        logging.info(f"Successfully added song to playlist: {title}")
+                        song_added = True
                 self.last_added_radiox_track_id = radiox_id 
         else: 
-            self.log_event("No new track info from Radio X.")
             logging.info("No new track information available from Radio X")
         
         if self.failed_search_queue and (song_added or (time.time() % (CHECK_INTERVAL * 4) < CHECK_INTERVAL)): self.process_failed_search_queue()
