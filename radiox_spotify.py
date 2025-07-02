@@ -2142,7 +2142,7 @@ def stream():
                     yield f"data: {message['data'].decode('utf-8')}\n\n"
         except Exception as e:
             logging.error(f"Error in SSE stream: {e}")
-            yield f"data: {json.dumps({'error': 'Stream error')}\n\n"
+            yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
 
     return Response(event_stream(), content_type='text/event-stream', headers={
         'Cache-Control': 'no-cache',
