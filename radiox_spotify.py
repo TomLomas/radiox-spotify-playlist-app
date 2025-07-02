@@ -98,17 +98,34 @@ class ProblemLogFilter(logging.Filter):
 
 log_file = 'radiox_debug.log'
 
+# Clear any existing handlers to avoid conflicts
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
 # Set up logging: all logs to stdout, filtered logs to file
-root_handlers = [
-    logging.StreamHandler(sys.stdout),
-    logging.handlers.RotatingFileHandler(log_file, maxBytes=2*1024*1024, backupCount=2)
-]
-root_handlers[1].addFilter(ProblemLogFilter())
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setLevel(logging.INFO)
+stdout_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+file_handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=2*1024*1024, backupCount=2)
+file_handler.setLevel(logging.WARNING)  # Only warnings and errors to file
+file_handler.addFilter(ProblemLogFilter())
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+# Configure root logger
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=root_handlers
+    level=logging.INFO,
+    handlers=[stdout_handler, file_handler],
+    force=True  # Force reconfiguration
 )
+
+# Ensure immediate flushing
+sys.stdout.flush()
+sys.stderr.flush()
+
+# Test logging immediately
+logging.info("=== RadioX Spotify Backend Starting ===")
+logging.info("Logging system initialized successfully")
 
 BACKEND_VERSION = "1.4.4"
 
@@ -980,9 +997,15 @@ class RadioXBot:
         """Main monitoring loop."""
         self.is_running = True
         self.update_service_state('playing')
-        self.log_event("--- run_radio_monitor thread initiated. ---")
-        if not self.sp: self.log_event("ERROR: Spotify client is None. Thread cannot perform Spotify actions."); return
-        if self.last_summary_log_date is None: self.last_summary_log_date = datetime.date.today()
+        self.log_event("=== Main monitoring loop started ===")
+        logging.info("RadioX monitoring thread is now running")
+        if not self.sp: 
+            self.log_event("ERROR: Spotify client is None. Thread cannot perform Spotify actions.")
+            logging.error("Spotify client is None - monitoring thread cannot continue")
+            return
+        if self.last_summary_log_date is None: 
+            self.last_summary_log_date = datetime.date.today()
+            logging.info(f"Initialized last_summary_log_date to {self.last_summary_log_date}")
         
         # Start timer update thread
         def timer_update_loop():
@@ -1008,6 +1031,7 @@ class RadioXBot:
                 now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
                 if self.last_summary_log_date < now_local.date():
                     self.log_event(f"New day detected ({now_local.date().isoformat()}). Resetting daily flags.")
+                    logging.info(f"New day detected: {now_local.date().isoformat()}")
                     self.startup_email_sent, self.shutdown_summary_sent = False, False
                     self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
                     self.last_summary_log_date = now_local.date()
@@ -1017,32 +1041,53 @@ class RadioXBot:
                     self.paused_reason = ''
                     if not self.startup_email_sent:
                         self.log_event("Active hours started."); self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
+                        logging.info("Active hours started - sending startup notification")
+                    logging.info("=== Starting monitoring cycle ===")
                     self.process_main_cycle()
                 else:
                     self.update_service_state('paused', 'out_of_hours')
                     if not self.shutdown_summary_sent:
                         self.log_event("End of active day. Generating and sending daily summary."); self.log_and_send_daily_summary(); self.shutdown_summary_sent = True; self.startup_email_sent = False
+                        logging.info("End of active day - sending daily summary")
+                    logging.info("Outside active hours - pausing monitoring")
                     time.sleep(CHECK_INTERVAL * 5); continue
-            except Exception as e: logging.error(f"CRITICAL UNHANDLED ERROR in main loop: {e}", exc_info=True); time.sleep(CHECK_INTERVAL * 2) 
-            self.log_event(f"Cycle complete. Waiting {CHECK_INTERVAL}s..."); time.sleep(CHECK_INTERVAL)
+            except Exception as e: 
+                logging.error(f"CRITICAL UNHANDLED ERROR in main loop: {e}", exc_info=True); 
+                time.sleep(CHECK_INTERVAL * 2) 
+            self.log_event(f"Cycle complete. Waiting {CHECK_INTERVAL}s..."); 
+            logging.info(f"Cycle complete. Waiting {CHECK_INTERVAL} seconds before next cycle...")
+            time.sleep(CHECK_INTERVAL)
 
     def process_main_cycle(self):
-        if not self.current_station_herald_id: self.current_station_herald_id = self.get_station_herald_id(RADIOX_STATION_SLUG)
-        if not self.current_station_herald_id: return
+        logging.info("=== Starting main cycle ===")
+        if not self.current_station_herald_id: 
+            self.current_station_herald_id = self.get_station_herald_id(RADIOX_STATION_SLUG)
+            logging.info(f"Retrieved station herald ID: {self.current_station_herald_id}")
+        if not self.current_station_herald_id: 
+            logging.error("Failed to get station herald ID")
+            return
         
         current_song_info = self.get_current_radiox_song(self.current_station_herald_id)
         song_added = False
         if current_song_info:
             title, artist, radiox_id = current_song_info["title"], current_song_info["artist"], current_song_info["id"]
-            if not title or not artist: logging.warning("Empty title or artist from Radio X.")
-            elif radiox_id == self.last_added_radiox_track_id: self.log_event(f"Song '{title}' by '{artist}' (ID: {radiox_id}) same as last. Skipping.")
+            if not title or not artist: 
+                logging.warning("Empty title or artist from Radio X.")
+            elif radiox_id == self.last_added_radiox_track_id: 
+                self.log_event(f"Song '{title}' by '{artist}' (ID: {radiox_id}) same as last. Skipping.")
+                logging.info(f"Skipping duplicate song: {title} by {artist}")
             else:
                 self.log_event(f"New song: '{title}' by '{artist}'")
+                logging.info(f"Processing new song: {title} by {artist}")
                 spotify_track_id = self.search_song_on_spotify(title, artist, radiox_id) 
                 if spotify_track_id:
-                    if self.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID): song_added = True 
+                    if self.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID): 
+                        song_added = True 
+                        logging.info(f"Successfully added song to playlist: {title}")
                 self.last_added_radiox_track_id = radiox_id 
-        else: self.log_event("No new track info from Radio X.")
+        else: 
+            self.log_event("No new track info from Radio X.")
+            logging.info("No new track information available from Radio X")
         
         if self.failed_search_queue and (song_added or (time.time() % (CHECK_INTERVAL * 4) < CHECK_INTERVAL)): self.process_failed_search_queue()
         
@@ -1068,6 +1113,8 @@ class RadioXBot:
         if psutil:
             mem = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
             self.log_event(f"[MEMORY] Backend RSS: {mem:.1f} MiB")
+        
+        logging.info("=== Main cycle completed ===")
 
 
 # --- Flask Routes & Script Execution ---
@@ -1229,17 +1276,22 @@ def health():
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
-    logging.info("Background initialization started.")
+    logging.info("=== Background initialization started ===")
     
     # Log version at startup
     log_backend_version()
     
+    logging.info("Attempting Spotify authentication...")
     if bot_instance.authenticate_spotify():
+        logging.info("Spotify authentication successful")
         bot_instance.load_state() 
+        logging.info("State loaded successfully")
         bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
         
+        logging.info("Starting main monitoring thread...")
         monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
         monitor_thread.start()
+        logging.info("Main monitoring thread started successfully")
     else:
         logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
 
@@ -1278,7 +1330,7 @@ def stream():
 # --- Script Execution ---
 if __name__ == "__main__":
     # This block runs for local development
-    logging.info("Script being run directly for local testing.")
+    logging.info("=== Script being run directly for local testing ===")
     
     # Run initialization directly instead of in background thread
     logging.info("Starting initialization...")
@@ -1286,13 +1338,13 @@ if __name__ == "__main__":
     logging.info("Initialization completed.")
     
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
-        print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
+        logging.warning("Email environment variables not set. Emails will not be sent.")
     port = int(os.environ.get("PORT", 8080)) 
     logging.info(f"Starting Flask development server on http://0.0.0.0:{port}")
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
 else:
     # This block runs when deployed on Gunicorn (like on Render)
-    logging.info("Starting initialization for production deployment...")
+    logging.info("=== Starting initialization for production deployment ===")
     # Run initialization directly instead of in background thread
     initialize_bot()
-    logging.info("Initialization completed for production deployment.")
+    logging.info("=== Initialization completed for production deployment ===")
