@@ -131,7 +131,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.2.9"
+BACKEND_VERSION = "1.3.0"
 
 # --- Main Application Class ---
 
@@ -269,42 +269,44 @@ class RadioXBot:
     def authenticate_spotify(self):
         """Initializes and authenticates the Spotipy client using refresh token."""
         try:
+            logging.info("Creating Spotify OAuth manager...")
             auth_manager = spotipy.oauth2.SpotifyOAuth(
                 client_id=SPOTIPY_CLIENT_ID,
                 client_secret=SPOTIPY_CLIENT_SECRET,
                 redirect_uri=SPOTIPY_REDIRECT_URI,
                 scope="playlist-modify-public playlist-modify-private",
-                open_browser=True,
+                open_browser=False,  # Changed to False for server deployment
                 cache_handler=spotipy.cache_handler.CacheFileHandler(cache_path=".spotipy_cache")
             )
             
+            logging.info("Checking for cached token...")
             # Try to get a token from cache first
             token_info = auth_manager.get_cached_token()
             
             if not token_info:
-                # If no cached token, prompt user to authenticate
-                token_info = auth_manager.get_access_token(as_dict=True)
-            
-            if not token_info:
-                # If no cached token, we need to get a new one
-                # For now, we'll use a dummy token that will fail gracefully
+                logging.warning("No cached token found. Spotify authentication will fail.")
                 self.sp = None
-                logging.warning("No cached token found. Please run the application locally first to generate a token.")
                 return False
             
+            logging.info("Token found, checking if expired...")
             # If we have a token, use it
             if auth_manager.is_token_expired(token_info):
+                logging.info("Token expired, refreshing...")
                 token_info = auth_manager.refresh_access_token(token_info['refresh_token'])
             
+            logging.info("Creating Spotify client...")
             self.sp = spotipy.Spotify(auth_manager=auth_manager)
-            # Test the connection
+            
+            logging.info("Testing Spotify connection...")
+            # Test the connection with a timeout
             self.sp.current_user()
             self.log_event("Successfully authenticated with Spotify using refresh token.")
             return True
+            
         except Exception as e:
             self.sp = None
-            logging.critical(f"CRITICAL Error during Spotify Authentication: {e}", exc_info=True)
-        return False
+            logging.error(f"Error during Spotify Authentication: {e}")
+            return False
     
     # --- API Wrappers and Helpers ---
     def spotify_api_call_with_retry(self, func, *args, **kwargs):
@@ -1467,24 +1469,45 @@ def log_backend_version():
 def version():
     return jsonify({"backend_version": BACKEND_VERSION})
 
+@app.route('/health')
+def health():
+    """Simple health check endpoint that doesn't require initialization."""
+    return jsonify({
+        "status": "healthy",
+        "backend_version": BACKEND_VERSION,
+        "timestamp": datetime.datetime.now().isoformat()
+    })
+
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
-    logging.info("Background initialization started.")
-    # Log version at startup
-    log_backend_version()
-    
-    # Try to authenticate with Spotify, but don't fail if it doesn't work
-    auth_success = bot_instance.authenticate_spotify()
-    if auth_success:
-        bot_instance.load_state() 
-        bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
+    try:
+        logging.info("Background initialization started.")
+        # Log version at startup
+        log_backend_version()
         
-        monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
-        monitor_thread.start()
-        logging.info("Background initialization completed successfully.")
-    else:
-        logging.warning("Spotify authentication failed. The main monitoring thread will not start, but the web interface will still be available.")
-        bot_instance.update_service_state('error', 'Spotify authentication failed')
+        # Try to authenticate with Spotify, but don't fail if it doesn't work
+        logging.info("Attempting Spotify authentication...")
+        auth_success = bot_instance.authenticate_spotify()
+        
+        if auth_success:
+            logging.info("Spotify authentication successful. Loading state...")
+            bot_instance.load_state() 
+            
+            logging.info("Running startup diagnostics...")
+            bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
+            
+            logging.info("Starting main monitoring thread...")
+            monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
+            monitor_thread.start()
+            logging.info("Background initialization completed successfully.")
+        else:
+            logging.warning("Spotify authentication failed. The main monitoring thread will not start, but the web interface will still be available.")
+            bot_instance.update_service_state('error', 'Spotify authentication failed')
+            
+    except Exception as e:
+        logging.error(f"Error during background initialization: {e}", exc_info=True)
+        bot_instance.update_service_state('error', f'Initialization error: {str(e)}')
+        # Still allow the web interface to work
 
 @app.route('/test_sse')
 def test_sse():
