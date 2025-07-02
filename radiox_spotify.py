@@ -1855,28 +1855,41 @@ def admin_request_historical_data():
 
 @app.route('/status')
 def status():
-    # Reads state from files to ensure consistency across processes
+    # Non-blocking status endpoint that doesn't depend on initialization
     try:
-        with bot_instance.file_lock:
-            # Check and update daily cache to ensure we're reading the correct date's data
-            bot_instance.check_and_update_daily_cache()
+        # Try to acquire lock with timeout to prevent hanging
+        if bot_instance.file_lock.acquire(timeout=5):
+            try:
+                # Check and update daily cache to ensure we're reading the correct date's data
+                bot_instance.check_and_update_daily_cache()
+                
+                # Read from the current daily cache files
+                if os.path.exists(bot_instance.current_daily_cache_file):
+                    with open(bot_instance.current_daily_cache_file, 'r') as f:
+                        daily_added = json.load(f)
+                else:
+                    daily_added = []
+                    
+                if os.path.exists(bot_instance.current_daily_failed_cache_file):
+                    with open(bot_instance.current_daily_failed_cache_file, 'r') as f:
+                        daily_failed = json.load(f)
+                else:
+                    daily_failed = []
+                    
+                if os.path.exists(bot_instance.FAILED_QUEUE_CACHE_FILE):
+                    with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: 
+                        failed_queue = json.load(f)
+                else:
+                    failed_queue = []
+                    
+                bot_instance.load_last_check_complete_time()
+            finally:
+                bot_instance.file_lock.release()
+        else:
+            # If we can't acquire the lock, return default values
+            logging.warning("Could not acquire file lock for /status endpoint, returning defaults")
+            daily_added, daily_failed, failed_queue = [], [], []
             
-            # Read from the current daily cache files
-            if os.path.exists(bot_instance.current_daily_cache_file):
-                with open(bot_instance.current_daily_cache_file, 'r') as f:
-                    daily_added = json.load(f)
-            else:
-                daily_added = []
-                
-            if os.path.exists(bot_instance.current_daily_failed_cache_file):
-                with open(bot_instance.current_daily_failed_cache_file, 'r') as f:
-                    daily_failed = json.load(f)
-            else:
-                daily_failed = []
-                
-            with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: 
-                failed_queue = json.load(f)
-            bot_instance.load_last_check_complete_time()
     except FileNotFoundError:
         daily_added, daily_failed, failed_queue = [], [], []
     except Exception as e:
@@ -1900,7 +1913,7 @@ def status():
         'queue_size': len(failed_queue),
         'daily_added': daily_added,
         'daily_failed': daily_failed,
-        'service_state': getattr(bot_instance, 'service_state', 'error'),
+        'service_state': getattr(bot_instance, 'service_state', 'initializing'),
         'paused_reason': getattr(bot_instance, 'paused_reason', ''),
         'seconds_until_next_check': seconds_until_next,
         'is_checking': getattr(bot_instance, 'is_checking', False),
@@ -2014,7 +2027,12 @@ def stream():
             logging.error(f"Error in SSE stream: {e}")
             yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
 
-    return Response(event_stream(), content_type='text/event-stream')
+    return Response(event_stream(), content_type='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+    })
 
 @app.route('/activity')
 def activity():
