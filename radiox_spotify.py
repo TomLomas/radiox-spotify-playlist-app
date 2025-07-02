@@ -20,6 +20,8 @@ import pytz
 import smtplib 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from collections import deque, Counter
 import atexit
 import base64
@@ -403,7 +405,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "1.5.1"
+BACKEND_VERSION = "1.5.2"
 
 # --- Main Application Class ---
 
@@ -649,6 +651,98 @@ class RadioXBot:
         """Add a failure to the daily cache and save immediately."""
         self.daily_search_failures.append(failure_data)
         self.save_daily_cache()
+
+    def create_daily_cache_attachments(self, date_str=None):
+        """Create JSON files with daily cache data for email attachments."""
+        if date_str is None:
+            date_str = self.current_date.isoformat()
+        
+        attachments = []
+        
+        try:
+            # Create added songs attachment
+            added_cache_file = os.path.join(self.DAILY_CACHE_DIR, f"{date_str}_added.json")
+            if os.path.exists(added_cache_file):
+                with open(added_cache_file, 'r') as f:
+                    added_data = json.load(f)
+                
+                # Create a comprehensive JSON file
+                added_summary = {
+                    "date": date_str,
+                    "summary": {
+                        "total_songs_added": len(added_data),
+                        "unique_artists": len(set(song['radio_artist'] for song in added_data)),
+                        "success_rate": "100%" if added_data else "0%"
+                    },
+                    "songs": added_data
+                }
+                
+                # Create temporary file for attachment
+                temp_added_file = f"/tmp/radiox_added_{date_str}.json"
+                with open(temp_added_file, 'w') as f:
+                    json.dump(added_summary, f, indent=2)
+                
+                attachments.append({
+                    'filepath': temp_added_file,
+                    'filename': f"radiox_songs_added_{date_str}.json",
+                    'description': f"Complete list of {len(added_data)} songs added on {date_str}"
+                })
+            
+            # Create failed searches attachment
+            failed_cache_file = os.path.join(self.DAILY_CACHE_DIR, f"{date_str}_failed.json")
+            if os.path.exists(failed_cache_file):
+                with open(failed_cache_file, 'r') as f:
+                    failed_data = json.load(f)
+                
+                # Create a comprehensive JSON file
+                failed_summary = {
+                    "date": date_str,
+                    "summary": {
+                        "total_failed_searches": len(failed_data),
+                        "failure_reasons": dict(Counter(item['reason'] for item in failed_data))
+                    },
+                    "failed_searches": failed_data
+                }
+                
+                # Create temporary file for attachment
+                temp_failed_file = f"/tmp/radiox_failed_{date_str}.json"
+                with open(temp_failed_file, 'w') as f:
+                    json.dump(failed_summary, f, indent=2)
+                
+                attachments.append({
+                    'filepath': temp_failed_file,
+                    'filename': f"radiox_failed_searches_{date_str}.json",
+                    'description': f"Complete list of {len(failed_data)} failed searches on {date_str}"
+                })
+            
+            # Create combined daily summary attachment
+            combined_summary = {
+                "date": date_str,
+                "generated_at": datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat(),
+                "summary": {
+                    "total_songs_added": len(added_data) if os.path.exists(added_cache_file) else 0,
+                    "total_failed_searches": len(failed_data) if os.path.exists(failed_cache_file) else 0,
+                    "success_rate": "100%" if (os.path.exists(added_cache_file) and added_data) else "0%"
+                },
+                "songs_added": added_data if os.path.exists(added_cache_file) else [],
+                "failed_searches": failed_data if os.path.exists(failed_cache_file) else []
+            }
+            
+            # Create temporary file for combined attachment
+            temp_combined_file = f"/tmp/radiox_daily_summary_{date_str}.json"
+            with open(temp_combined_file, 'w') as f:
+                json.dump(combined_summary, f, indent=2)
+            
+            attachments.append({
+                'filepath': temp_combined_file,
+                'filename': f"radiox_daily_summary_{date_str}.json",
+                'description': f"Complete daily summary for {date_str} (includes both added songs and failed searches)"
+            })
+            
+        except Exception as e:
+            logging.error(f"Error creating daily cache attachments: {e}")
+        
+        return attachments
 
     # --- Authentication ---
     def authenticate_spotify(self):
@@ -902,18 +996,54 @@ class RadioXBot:
             self.add_failure_to_daily_cache({"timestamp": datetime.datetime.now().isoformat(), "radio_title": item['title'], "radio_artist": item['artist'], "reason": f"Max retries ({MAX_FAILED_SEARCH_ATTEMPTS}) from failed search queue exhausted."})
 
     # --- Email & Summary Functions ---
-    def send_summary_email(self, html_body, subject):
+    def send_summary_email(self, html_body, subject, attachments=None):
         if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
             self.log_event("Email settings not configured. Skipping email.")
             return False
         self.log_event(f"Attempting to send email to {EMAIL_RECIPIENT}...")
         try:
-            port = int(EMAIL_PORT); msg = MIMEMultipart('alternative'); msg['Subject'] = subject; msg['From'] = EMAIL_HOST_USER; msg['To'] = EMAIL_RECIPIENT; msg.attach(MIMEText(html_body, 'html'))
+            port = int(EMAIL_PORT)
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = EMAIL_HOST_USER
+            msg['To'] = EMAIL_RECIPIENT
+            msg.attach(MIMEText(html_body, 'html'))
+            
+            # Add attachments if provided
+            if attachments:
+                for attachment in attachments:
+                    try:
+                        with open(attachment['filepath'], 'rb') as f:
+                            part = MIMEBase('application', 'json')
+                            part.set_payload(f.read())
+                            encoders.encode_base64(part)
+                            part.add_header(
+                                'Content-Disposition',
+                                f'attachment; filename= {attachment["filename"]}'
+                            )
+                            msg.attach(part)
+                        self.log_event(f"Added attachment: {attachment['filename']} ({attachment['description']})")
+                    except Exception as e:
+                        logging.error(f"Failed to add attachment {attachment['filename']}: {e}")
+            
             with smtplib.SMTP(EMAIL_HOST, port) as server:
-                server.starttls(); server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD); server.send_message(msg)
+                server.starttls()
+                server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
+                server.send_message(msg)
+            
+            # Clean up temporary attachment files
+            if attachments:
+                for attachment in attachments:
+                    try:
+                        os.remove(attachment['filepath'])
+                    except:
+                        pass
+            
             logging.info("Email sent successfully.")
             return True
-        except Exception as e: logging.error(f"Failed to send email: {e}"); return False
+        except Exception as e:
+            logging.error(f"Failed to send email: {e}")
+            return False
 
     def get_daily_stats_html(self):
         """Generate enhanced daily statistics HTML with modern styling."""
@@ -1228,7 +1358,11 @@ class RadioXBot:
 
         summary_date = self.last_summary_log_date.isoformat()
         html_body = self.get_daily_stats_html()
-        self.send_summary_email(html_body, subject=f"Radio X Spotify Adder Daily Summary: {summary_date}")
+        
+        # Create daily cache attachments
+        attachments = self.create_daily_cache_attachments(summary_date)
+        
+        self.send_summary_email(html_body, subject=f"Radio X Spotify Adder Daily Summary: {summary_date}", attachments=attachments)
         self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
 
     def send_startup_notification(self, status_report_html_rows):
@@ -1626,6 +1760,82 @@ def admin_test_daily_summary():
     bot_instance.log_event("Daily summary test manually triggered via web.")
     threading.Thread(target=bot_instance.test_daily_summary_with_cached_data).start()
     return "Daily summary test has been triggered. Check email for results."
+
+@app.route('/admin/request_historical_data', methods=['POST'])
+def admin_request_historical_data():
+    """Request historical cache data for a specific date."""
+    try:
+        from flask import request
+        data = request.get_json()
+        date_str = data.get('date') if data else None
+        
+        if not date_str:
+            return jsonify({"error": "Date parameter required"}), 400
+        
+        # Validate date format
+        try:
+            datetime.datetime.strptime(date_str, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+        
+        bot_instance.log_event(f"Historical data request for {date_str} manually triggered via web.")
+        
+        def send_historical_data():
+            try:
+                # Create attachments for the requested date
+                attachments = bot_instance.create_daily_cache_attachments(date_str)
+                
+                if not attachments:
+                    # Send email with no data message
+                    html_body = f"""
+                    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <div style="background: #dc3545; color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+                            <h1 style="margin: 0; font-size: 2.5em; font-weight: 300;">📊 Historical Data Request</h1>
+                            <p style="margin: 10px 0 0 0; font-size: 1.2em; opacity: 0.9;">No Data Available</p>
+                        </div>
+                        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                            <h3 style="margin: 0 0 15px 0; color: #495057;">No Data Found</h3>
+                            <p style="color: #6c757d;">No cache data was found for <strong>{date_str}</strong>.</p>
+                            <p style="color: #6c757d;">This could mean:</p>
+                            <ul style="color: #6c757d;">
+                                <li>The date is in the future</li>
+                                <li>No songs were processed on that date</li>
+                                <li>The cache files have been cleaned up (older than 7 days)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    """
+                    bot_instance.send_summary_email(html_body, f"RadioX Historical Data Request: {date_str} - No Data Available")
+                else:
+                    # Send email with the data
+                    html_body = f"""
+                    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+                            <h1 style="margin: 0; font-size: 2.5em; font-weight: 300;">📊 Historical Data</h1>
+                            <p style="margin: 10px 0 0 0; font-size: 1.2em; opacity: 0.9;">{date_str}</p>
+                        </div>
+                        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                            <h3 style="margin: 0 0 15px 0; color: #495057;">Data Available</h3>
+                            <p style="color: #6c757d;">Historical cache data for <strong>{date_str}</strong> has been attached to this email.</p>
+                            <p style="color: #6c757d;">The following files are included:</p>
+                            <ul style="color: #6c757d;">
+                                {''.join(f'<li>{attachment["description"]}</li>' for attachment in attachments)}
+                            </ul>
+                        </div>
+                    </div>
+                    """
+                    bot_instance.send_summary_email(html_body, f"RadioX Historical Data: {date_str}", attachments=attachments)
+                
+                bot_instance.log_event(f"Historical data for {date_str} sent successfully.")
+                
+            except Exception as e:
+                bot_instance.log_event(f"Error sending historical data for {date_str}: {e}")
+        
+        threading.Thread(target=send_historical_data).start()
+        return jsonify({"message": f"Historical data request for {date_str} has been triggered. Check email for results."})
+        
+    except Exception as e:
+        return jsonify({"error": f"Error processing request: {e}"}), 500
 
 @app.route('/status')
 def status():

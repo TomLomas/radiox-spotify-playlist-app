@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import LiveActivityDashboard from './LiveActivityDashboard';
 
 interface AdminPanelProps {
@@ -17,6 +17,9 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion, frontendVersion, onTestSSE }) => {
+  const [historicalDate, setHistoricalDate] = useState('');
+  const [isRequestingHistorical, setIsRequestingHistorical] = useState(false);
+
   const handleForceCheck = async () => {
     try {
       await fetch('/admin/force_check', { method: 'POST' });
@@ -54,6 +57,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
       await fetch('/admin/test_daily_summary', { method: 'POST' });
     } catch (error) {
       console.error('Error testing daily summary:', error);
+    }
+  };
+
+  const handleRequestHistoricalData = async () => {
+    if (!historicalDate) {
+      alert('Please enter a date');
+      return;
+    }
+
+    setIsRequestingHistorical(true);
+    try {
+      const response = await fetch('/admin/request_historical_data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date: historicalDate }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert('Historical data request sent! Check your email for the results.');
+        setHistoricalDate('');
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error requesting historical data:', error);
+      alert('Error requesting historical data');
+    } finally {
+      setIsRequestingHistorical(false);
     }
   };
 
@@ -107,6 +142,50 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
             Test SSE
           </button>
         </div>
+      </div>
+
+      {/* Historical Data Request Card */}
+      <div className="bg-gray-800 shadow rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Request Historical Data</h3>
+        <div className="flex flex-col md:flex-row md:space-x-8 w-full max-w-xl justify-center">
+          <input
+            type="date"
+            value={historicalDate}
+            onChange={(e) => setHistoricalDate(e.target.value)}
+            className="p-2 border border-gray-300 rounded-lg"
+          />
+          <button
+            onClick={handleRequestHistoricalData}
+            className="bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow"
+          >
+            Request
+          </button>
+        </div>
+      </div>
+
+      {/* Historical Data Request Card */}
+      <div className="bg-gray-800 shadow rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">📊 Request Historical Data</h3>
+        <p className="text-gray-300 mb-4">Get daily cache data for any date (up to 7 days old) emailed to you as JSON files.</p>
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <input
+            type="date"
+            value={historicalDate}
+            onChange={(e) => setHistoricalDate(e.target.value)}
+            className="px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            max={new Date().toISOString().split('T')[0]}
+          />
+          <button
+            onClick={handleRequestHistoricalData}
+            disabled={isRequestingHistorical || !historicalDate}
+            className="bg-purple-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isRequestingHistorical ? 'Requesting...' : 'Request Data'}
+          </button>
+        </div>
+        <p className="text-sm text-gray-400 mt-2">
+          You'll receive an email with JSON files containing all songs added and failed searches for the selected date.
+        </p>
       </div>
 
       {/* State History Card */}
