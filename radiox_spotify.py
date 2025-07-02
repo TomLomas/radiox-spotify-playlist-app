@@ -1931,14 +1931,34 @@ def initialize_bot():
     logging.info("Attempting Spotify authentication...")
     if bot_instance.authenticate_spotify():
         logging.info("Spotify authentication successful")
-        bot_instance.load_state() 
-        logging.info("State loaded successfully")
-        bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
         
-        logging.info("Starting main monitoring thread...")
-        monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
-        monitor_thread.start()
-        logging.info("Main monitoring thread started successfully")
+        # Load state with timeout and error handling
+        try:
+            logging.info("Loading state...")
+            bot_instance.load_state() 
+            logging.info("State loaded successfully")
+        except Exception as e:
+            logging.error(f"Failed to load state: {e}")
+            # Continue anyway - don't let this block startup
+        
+        # Run diagnostics with timeout
+        try:
+            logging.info("Running startup diagnostics...")
+            bot_instance.run_startup_diagnostics(send_email=False)
+            logging.info("Startup diagnostics completed")
+        except Exception as e:
+            logging.error(f"Failed to run startup diagnostics: {e}")
+            # Continue anyway - don't let this block startup
+        
+        # Start monitoring thread
+        try:
+            logging.info("Starting main monitoring thread...")
+            monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
+            monitor_thread.start()
+            logging.info("Main monitoring thread started successfully")
+        except Exception as e:
+            logging.error(f"Failed to start monitoring thread: {e}")
+            bot_instance.update_service_state('error', f'Failed to start monitoring thread: {e}')
     else:
         logging.warning("Spotify authentication failed. The Flask server will start but the bot will not function.")
         logging.warning("The application will be available for admin functions but won't monitor RadioX.")
@@ -2011,6 +2031,7 @@ if __name__ == "__main__":
 else:
     # This block runs when deployed on Gunicorn (like on Render)
     logging.info("=== Starting initialization for production deployment ===")
-    # Run initialization directly instead of in background thread
-    initialize_bot()
-    logging.info("=== Initialization completed for production deployment ===")
+    # Run initialization in background thread to avoid blocking Flask startup
+    init_thread = threading.Thread(target=initialize_bot, daemon=True)
+    init_thread.start()
+    logging.info("=== Initialization thread started for production deployment ===")
