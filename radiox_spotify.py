@@ -534,6 +534,9 @@ class RadioXBot:
                     <p style="margin: 10px 0 0 0; font-size: 1.2em; opacity: 0.9;">RadioX Spotify Playlist</p>
                 </div>
                 
+                <!-- Songs Added Today -->
+                {self._format_songs_added_section() if self.daily_added_songs else ''}
+                
                 <!-- Key Metrics -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
                     <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
@@ -581,14 +584,11 @@ class RadioXBot:
                 <!-- Failure Analysis -->
                 {self._format_failure_analysis(failure_reasons) if failure_reasons else ''}
                 
-                <!-- Songs Added Today -->
-                {self._format_songs_added_section() if self.daily_added_songs else ''}
-                
                 <!-- Queue Status -->
                 <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                     <h3 style="margin: 0 0 15px 0; color: #495057;">🔄 Retry Queue Status</h3>
                     <div style="display: flex; align-items: center; gap: 15px;">
-                        <div style="font-size: 2em;">{len(self.failed_search_queue)}</div>
+                        <div style="font-size: 2em; margin-right: 12px;">{len(self.failed_search_queue)}</div>
                         <div>
                             <div style="font-weight: 500; color: #495057;">Items in Queue</div>
                             <div style="font-size: 0.9em; color: #6c757d;">Will be retried automatically</div>
@@ -616,7 +616,7 @@ class RadioXBot:
             percentage = (count / max_count) * 100
             artists_html += f"""
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
-                <div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9em;">{i+1}</div>
+                <div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9em; margin-right: 12px;">{i+1}</div>
                 <div style="flex: 1;">
                     <div style="font-weight: 500; color: #495057;">{artist}</div>
                     <div style="background: #e9ecef; border-radius: 5px; height: 8px; overflow: hidden; margin-top: 5px;">
@@ -673,7 +673,7 @@ class RadioXBot:
         <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <h3 style="margin: 0 0 15px 0; color: #495057;">⏰ Busiest Hour</h3>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <div style="background: #fd7e14; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em;">{hour:02d}</div>
+                <div style="background: #fd7e14; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em; margin-right: 12px;">{hour:02d}</div>
                 <div>
                     <div style="font-weight: 500; color: #495057;">{hour:02d}:00 - {hour:02d}:59</div>
                     <div style="font-size: 0.9em; color: #6c757d;">{count} songs added</div>
@@ -763,7 +763,7 @@ class RadioXBot:
             
             songs_html += f"""
             <div style="display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid #e9ecef; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
-                <div style="background: #28a745; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9em;">✓</div>
+                <div style="background: #28a745; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9em; margin-right: 12px;">✓</div>
                 <div style="flex: 1;">
                     <div style="font-weight: 600; color: #495057; font-size: 1.1em;">{title}</div>
                     <div style="color: #6c757d; font-size: 0.95em;">{artist}</div>
