@@ -26,6 +26,8 @@ import base64
 from dotenv import load_dotenv
 from flask_sse import sse
 import redis
+import sys
+import logging.handlers
 
 try:
     import psutil
@@ -82,7 +84,31 @@ BOLD = '\033[1m'
 RESET = '\033[0m'
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# Problematic keywords for filtering
+PROBLEM_KEYWORDS = [
+    'error', 'fail', 'not found', 'critical', 'exception', 'warning', 'timeout',
+    'unable', 'could not', 'refused', 'denied', 'invalid', 'missing', 'unavailable',
+    'retry', 'disconnect', 'traceback'
+]
+
+class ProblemLogFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage().lower()
+        return any(word in msg for word in PROBLEM_KEYWORDS)
+
+log_file = 'radiox_debug.log'
+
+# Set up logging: all logs to stdout, filtered logs to file
+root_handlers = [
+    logging.StreamHandler(sys.stdout),
+    logging.handlers.RotatingFileHandler(log_file, maxBytes=2*1024*1024, backupCount=2)
+]
+root_handlers[1].addFilter(ProblemLogFilter())
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=root_handlers
+)
 
 BACKEND_VERSION = "1.4.4"
 
@@ -1117,9 +1143,18 @@ def admin_retry_failed():
 
 @app.route('/admin/send_debug_log', methods=['POST'])
 def admin_send_debug_log():
-    bot_instance.log_event("Debug log manually triggered via web.")
-    threading.Thread(target=bot_instance.send_debug_log).start()
-    return "Debug log has been triggered. Check email for results."
+    # Read the filtered log file and email it
+    try:
+        with open(log_file, 'r') as f:
+            log_content = f.read()
+        subject = "RadioX Spotify Debug Log File (Filtered)"
+        html_body = f"<pre>{log_content}</pre>"
+        bot_instance.send_summary_email(html_body, subject)
+        bot_instance.log_event("Debug log file sent successfully.")
+        return "Debug log has been emailed."
+    except Exception as e:
+        bot_instance.log_event(f"Error sending debug log file: {e}")
+        return f"Error sending debug log: {e}"
 
 @app.route('/admin/test_daily_summary', methods=['POST'])
 def admin_test_daily_summary():
