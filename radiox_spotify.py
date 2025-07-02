@@ -84,7 +84,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.4.2"
+BACKEND_VERSION = "1.4.3"
 
 # --- Main Application Class ---
 
@@ -581,6 +581,9 @@ class RadioXBot:
                 <!-- Failure Analysis -->
                 {self._format_failure_analysis(failure_reasons) if failure_reasons else ''}
                 
+                <!-- Songs Added Today -->
+                {self._format_songs_added_section() if self.daily_added_songs else ''}
+                
                 <!-- Queue Status -->
                 <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                     <h3 style="margin: 0 0 15px 0; color: #495057;">🔄 Retry Queue Status</h3>
@@ -732,6 +735,53 @@ class RadioXBot:
         <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <h3 style="margin: 0 0 20px 0; color: #495057;">❌ Failure Analysis</h3>
             {failures_html}
+        </div>
+        """
+
+    def _format_songs_added_section(self):
+        """Format the songs added today section."""
+        if not self.daily_added_songs:
+            return ""
+        
+        # Sort songs by timestamp (newest first)
+        sorted_songs = sorted(self.daily_added_songs, key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        songs_html = ""
+        for song in sorted_songs:
+            # Format timestamp
+            try:
+                timestamp = datetime.datetime.fromisoformat(song['timestamp'])
+                time_str = timestamp.strftime('%H:%M')
+            except:
+                time_str = "Unknown"
+            
+            # Get song details
+            title = song.get('radio_title', 'Unknown Title')
+            artist = song.get('radio_artist', 'Unknown Artist')
+            album = song.get('album_name', 'Unknown Album')
+            year = song.get('release_date', 'Unknown Year')[:4] if song.get('release_date') else 'Unknown'
+            
+            songs_html += f"""
+            <div style="display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid #e9ecef; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
+                <div style="background: #28a745; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9em;">✓</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #495057; font-size: 1.1em;">{title}</div>
+                    <div style="color: #6c757d; font-size: 0.95em;">{artist}</div>
+                    <div style="color: #adb5bd; font-size: 0.85em;">{album} • {year}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-weight: 500; color: #007bff; font-size: 1.1em;">{time_str}</div>
+                    <div style="color: #6c757d; font-size: 0.8em;">Added</div>
+                </div>
+            </div>
+            """
+        
+        return f"""
+        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 20px 0; color: #495057;">🎵 Songs Added Today ({len(sorted_songs)})</h3>
+            <div style="max-height: 400px; overflow-y: auto;">
+                {songs_html}
+            </div>
         </div>
         """
 
@@ -1127,9 +1177,7 @@ def index_page():
     return render_template('index.html', active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
 
 def log_backend_version():
-    print("=== log_backend_version called ===")
     logging.info(f"RadioX Spotify Backend Version: {BACKEND_VERSION}")
-    print("=== log_backend_version completed ===")
 
 @app.route('/version')
 def version():
@@ -1146,11 +1194,11 @@ def health():
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
-    print("=== initialize_bot function called ===")
     logging.info("Background initialization started.")
-    print("=== About to log backend version ===")
+    
     # Log version at startup
     log_backend_version()
+    
     if bot_instance.authenticate_spotify():
         bot_instance.load_state() 
         bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
@@ -1193,21 +1241,14 @@ def stream():
     return Response(event_stream(), content_type='text/event-stream')
 
 # --- Script Execution ---
-print("=== Script execution starting ===")
 if __name__ == "__main__":
     # This block runs for local development
-    print("=== Script is running as main ===")
     logging.info("Script being run directly for local testing.")
-    print("=== About to start background thread ===")
-    logging.info("Starting background initialization thread...")
-    try:
-        init_thread = threading.Thread(target=initialize_bot, daemon=True)
-        init_thread.start()
-        print("=== Background thread created and started ===")
-        logging.info("Background initialization thread started successfully.")
-    except Exception as e:
-        print(f"=== ERROR starting background thread: {e} ===")
-        logging.error(f"Failed to start background thread: {e}")
+    
+    # Run initialization directly instead of in background thread
+    logging.info("Starting initialization...")
+    initialize_bot()
+    logging.info("Initialization completed.")
     
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
