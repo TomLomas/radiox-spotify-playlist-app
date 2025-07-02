@@ -589,42 +589,62 @@ class RadioXBot:
     
     def save_daily_cache(self):
         """Save current day's added songs and failures to persistent cache."""
-        with self.file_lock:
-            try:
-                with open(self.current_daily_cache_file, 'w') as f:
-                    json.dump(self.daily_added_songs, f, indent=2)
-                with open(self.current_daily_failed_cache_file, 'w') as f:
-                    json.dump(self.daily_search_failures, f, indent=2)
-                logging.debug(f"Saved daily cache for {self.current_date}: {len(self.daily_added_songs)} added, {len(self.daily_search_failures)} failed")
-            except Exception as e:
-                logging.error(f"Failed to save daily cache: {e}")
+        try:
+            # Try to acquire lock with timeout to prevent hanging
+            if self.file_lock.acquire(timeout=10):
+                try:
+                    with open(self.current_daily_cache_file, 'w') as f:
+                        json.dump(self.daily_added_songs, f, indent=2)
+                    with open(self.current_daily_failed_cache_file, 'w') as f:
+                        json.dump(self.daily_search_failures, f, indent=2)
+                    logging.debug(f"Saved daily cache for {self.current_date}: {len(self.daily_added_songs)} added, {len(self.daily_search_failures)} failed")
+                except Exception as e:
+                    logging.error(f"Failed to save daily cache: {e}")
+                finally:
+                    self.file_lock.release()
+            else:
+                logging.error("Timeout acquiring file lock for daily cache saving")
+        except Exception as e:
+            logging.error(f"Error in save_daily_cache: {e}")
     
     def load_daily_cache(self):
         """Load current day's added songs and failures from persistent cache."""
-        with self.file_lock:
-            try:
-                # Load added songs
-                if os.path.exists(self.current_daily_cache_file):
-                    with open(self.current_daily_cache_file, 'r') as f:
-                        self.daily_added_songs = json.load(f)
-                    logging.info(f"Loaded {len(self.daily_added_songs)} added songs from daily cache for {self.current_date}")
-                else:
-                    self.daily_added_songs = []
-                    logging.info(f"Starting fresh daily cache for {self.current_date}")
-                
-                # Load failed searches
-                if os.path.exists(self.current_daily_failed_cache_file):
-                    with open(self.current_daily_failed_cache_file, 'r') as f:
-                        self.daily_search_failures = json.load(f)
-                    logging.info(f"Loaded {len(self.daily_search_failures)} failed searches from daily cache for {self.current_date}")
-                else:
-                    self.daily_search_failures = []
-                    logging.info(f"Starting fresh failed searches cache for {self.current_date}")
+        try:
+            # Try to acquire lock with timeout to prevent hanging
+            if self.file_lock.acquire(timeout=10):
+                try:
+                    # Load added songs
+                    if os.path.exists(self.current_daily_cache_file):
+                        with open(self.current_daily_cache_file, 'r') as f:
+                            self.daily_added_songs = json.load(f)
+                        logging.info(f"Loaded {len(self.daily_added_songs)} added songs from daily cache for {self.current_date}")
+                    else:
+                        self.daily_added_songs = []
+                        logging.info(f"Starting fresh daily cache for {self.current_date}")
                     
-            except Exception as e:
-                logging.error(f"Failed to load daily cache: {e}")
+                    # Load failed searches
+                    if os.path.exists(self.current_daily_failed_cache_file):
+                        with open(self.current_daily_failed_cache_file, 'r') as f:
+                            self.daily_search_failures = json.load(f)
+                        logging.info(f"Loaded {len(self.daily_search_failures)} failed searches from daily cache for {self.current_date}")
+                    else:
+                        self.daily_search_failures = []
+                        logging.info(f"Starting fresh failed searches cache for {self.current_date}")
+                        
+                except Exception as e:
+                    logging.error(f"Failed to load daily cache: {e}")
+                    self.daily_added_songs = []
+                    self.daily_search_failures = []
+                finally:
+                    self.file_lock.release()
+            else:
+                logging.error("Timeout acquiring file lock for daily cache loading")
                 self.daily_added_songs = []
                 self.daily_search_failures = []
+        except Exception as e:
+            logging.error(f"Error in load_daily_cache: {e}")
+            self.daily_added_songs = []
+            self.daily_search_failures = []
     
     def cleanup_old_daily_caches(self):
         """Remove daily cache files older than 7 days."""
