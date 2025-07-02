@@ -14,7 +14,7 @@ import logging
 import re 
 import websocket 
 import threading 
-from flask import Flask, jsonify, render_template, Response
+from flask import Flask, jsonify, render_template
 import datetime
 import pytz 
 import smtplib 
@@ -37,15 +37,6 @@ app = Flask(__name__)
 app.config["REDIS_URL"] = "redis://redis:6379"
 app.config["SSE_REDIS_URL"] = "redis://redis:6379"
 app.register_blueprint(sse, url_prefix='/stream')
-
-# Initialize Redis client for SSE
-try:
-    redis_client = redis.from_url("redis://redis:6379")
-    redis_client.ping()  # Test connection
-    logging.info("Redis connection established successfully")
-except Exception as e:
-    logging.error(f"Failed to connect to Redis: {e}")
-    redis_client = None
 
 # --- Configuration ---
 load_dotenv()
@@ -84,7 +75,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.4.0"
+BACKEND_VERSION = "1.1.9"
 
 # --- Main Application Class ---
 
@@ -623,70 +614,6 @@ class RadioXBot:
             "paused_reason": self.paused_reason,
         }
 
-    def send_debug_log(self):
-        """Sends debug log information via email."""
-        try:
-            # Get recent log entries (this is a simplified version)
-            log_entries = [
-                f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Debug log requested",
-                f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Service state: {self.service_state}",
-                f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Spotify client: {'Available' if self.sp else 'Not available'}",
-                f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Daily added songs: {len(self.daily_added_songs)}",
-                f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Failed queue size: {len(self.failed_search_queue)}"
-            ]
-            
-            html_body = f"""
-            <html>
-            <body>
-                <h2>Debug Log Report</h2>
-                <p><strong>Generated:</strong> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-                <p><strong>Backend Version:</strong> {BACKEND_VERSION}</p>
-                <h3>Recent Log Entries:</h3>
-                <pre>{chr(10).join(log_entries)}</pre>
-                <h3>Service State:</h3>
-                <p><strong>State:</strong> {self.service_state}</p>
-                <p><strong>Paused Reason:</strong> {self.paused_reason}</p>
-                <p><strong>Spotify Client:</strong> {'Available' if self.sp else 'Not available'}</p>
-            </body>
-            </html>
-            """
-            
-            self.send_summary_email(html_body, "RadioX Spotify Debug Log")
-            self.log_event("Debug log sent successfully.")
-            
-        except Exception as e:
-            self.log_event(f"Error sending debug log: {e}")
-
-    def test_daily_summary_with_cached_data(self):
-        """Sends a test daily summary using cached data from the previous day."""
-        try:
-            # Load cached data
-            daily_added = []
-            daily_failed = []
-            
-            try:
-                with open(self.DAILY_ADDED_CACHE_FILE, 'r') as f:
-                    daily_added = json.load(f)
-                with open(self.DAILY_FAILED_CACHE_FILE, 'r') as f:
-                    daily_failed = json.load(f)
-            except FileNotFoundError:
-                self.log_event("No cached data found for test summary.")
-                return
-            
-            if not daily_added and not daily_failed:
-                self.log_event("No cached data available for test summary.")
-                return
-            
-            # Generate test summary HTML
-            html_body = self.get_daily_stats_html()
-            
-            # Send the test summary
-            self.send_summary_email(html_body, "RadioX Spotify - Daily Summary Test")
-            self.log_event("Test daily summary sent successfully.")
-            
-        except Exception as e:
-            self.log_event(f"Error sending test daily summary: {e}")
-
     # --- Main Application Loop ---
     def run(self):
         """Main monitoring loop."""
@@ -859,12 +786,6 @@ def admin_send_debug_log():
     threading.Thread(target=bot_instance.send_debug_log).start()
     return "Debug log has been triggered. Check email for results."
 
-@app.route('/admin/test_daily_summary', methods=['POST'])
-def admin_test_daily_summary():
-    bot_instance.log_event("Daily summary test manually triggered via web.")
-    threading.Thread(target=bot_instance.test_daily_summary_with_cached_data).start()
-    return "Daily summary test has been triggered. Check email for results."
-
 @app.route('/status')
 def status():
     # Reads state from files to ensure consistency across processes
@@ -921,15 +842,6 @@ def log_backend_version():
 def version():
     return jsonify({"backend_version": BACKEND_VERSION})
 
-@app.route('/health')
-def health():
-    """Simple health check endpoint that doesn't require initialization."""
-    return jsonify({
-        "status": "healthy",
-        "backend_version": BACKEND_VERSION,
-        "timestamp": datetime.datetime.now().isoformat()
-    })
-
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
     logging.info("Background initialization started.")
@@ -959,20 +871,12 @@ def stream():
     """SSE endpoint."""
     logging.info("Client connected to /stream endpoint.")
     def event_stream():
-        if redis_client is None:
-            yield f"data: {json.dumps({'error': 'Redis not available'})}\n\n"
-            return
-        
         # Continuously yield messages from Redis pub/sub
-        try:
-            pubsub = redis_client.pubsub()
-            pubsub.subscribe('radiox_spotify_events')
-            for message in pubsub.listen():
-                if message['type'] == 'message':
-                    yield f"data: {message['data'].decode('utf-8')}\n\n"
-        except Exception as e:
-            logging.error(f"Error in SSE stream: {e}")
-            yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
+        pubsub = redis_client.pubsub()
+        pubsub.subscribe('radiox_spotify_events')
+        for message in pubsub.listen():
+            if message['type'] == 'message':
+                yield f"data: {message['data'].decode('utf-8')}\n\n"
 
     return Response(event_stream(), content_type='text/event-stream')
 
@@ -980,11 +884,7 @@ def stream():
 if __name__ == "__main__":
     # This block runs for local development
     logging.info("Script being run directly for local testing.")
-    logging.info("Starting background initialization thread...")
-    init_thread = threading.Thread(target=initialize_bot, daemon=True)
-    init_thread.start()
-    logging.info("Background initialization thread started successfully.")
-    
+    initialize_bot()
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
     port = int(os.environ.get("PORT", 8080)) 
@@ -992,7 +892,4 @@ if __name__ == "__main__":
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
 else:
     # This block runs when deployed on Gunicorn (like on Render)
-    logging.info("Starting background initialization thread for production deployment...")
-    init_thread = threading.Thread(target=initialize_bot, daemon=True)
-    init_thread.start()
-    logging.info("Background initialization thread started successfully.")
+    threading.Thread(target=initialize_bot, daemon=True).start()
