@@ -1,4 +1,5 @@
 import React from 'react';
+import LiveActivityDashboard from './LiveActivityDashboard';
 
 interface AdminPanelProps {
   appState: {
@@ -62,6 +63,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
 
   return (
     <div className="space-y-8">
+      {/* Live Activity Dashboard */}
+      <LiveActivityDashboard />
+
       {/* Admin Controls Card */}
       <div className="bg-gray-800 shadow rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Admin Controls</h2>
