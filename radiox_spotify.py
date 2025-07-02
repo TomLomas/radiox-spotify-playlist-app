@@ -91,9 +91,20 @@ PROBLEM_KEYWORDS = [
     'retry', 'disconnect', 'traceback'
 ]
 
+# Normal/expected messages to exclude from debug logs
+NORMAL_MESSAGES = [
+    'websocket timeout'  # These are normal browser reconnection behavior
+]
+
 class ProblemLogFilter(logging.Filter):
     def filter(self, record):
         msg = record.getMessage().lower()
+        
+        # First check if it's a normal/expected message to exclude
+        if any(normal_msg in msg for normal_msg in NORMAL_MESSAGES):
+            return False
+            
+        # Then check if it contains problematic keywords
         return any(word in msg for word in PROBLEM_KEYWORDS)
 
 log_file = 'radiox_debug.log'
@@ -127,7 +138,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "1.4.7"
+BACKEND_VERSION = "1.4.8"
 
 # --- Main Application Class ---
 
