@@ -84,7 +84,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.4.0"
+BACKEND_VERSION = "1.4.1"
 
 # --- Main Application Class ---
 
@@ -483,45 +483,257 @@ class RadioXBot:
         except Exception as e: logging.error(f"Failed to send email: {e}"); return False
 
     def get_daily_stats_html(self):
-        if not self.daily_added_songs and not self.daily_search_failures: return ""
+        """Generate enhanced daily statistics HTML with modern styling."""
+        if not self.daily_added_songs and not self.daily_search_failures:
+            return ""
+        
         try:
+            # Calculate statistics
+            total_added = len(self.daily_added_songs)
+            total_failed = len(self.daily_search_failures)
+            total_processed = total_added + total_failed
+            success_rate = (total_added / total_processed * 100) if total_processed > 0 else 100
+            
+            # Artist statistics
             artist_counts = Counter(item['radio_artist'] for item in self.daily_added_songs)
-            most_common = artist_counts.most_common(5)
-            top_artists_str = ", ".join([f"{artist} ({count})" for artist, count in most_common]) if most_common else "N/A"
-            unique_artist_count = len(artist_counts)
-            failure_reasons = Counter(item['reason'] for item in self.daily_search_failures)
-            failure_breakdown_str = "; ".join([f"{reason}: {count}" for reason, count in failure_reasons.items()]) or "None"
-            total_processed = len(self.daily_added_songs) + len(self.daily_search_failures)
-            success_rate = (len(self.daily_added_songs) / total_processed * 100) if total_processed > 0 else 100
-            busiest_hour_str, newest_song_str, oldest_song_str, decade_breakdown_str = "N/A", "N/A", "N/A", ""
+            unique_artists = len(artist_counts)
+            top_artists = artist_counts.most_common(5)
+            
+            # Time analysis
+            hour_counts = Counter()
             if self.daily_added_songs:
-                hour_counts = Counter(datetime.datetime.fromisoformat(item['timestamp']).hour for item in self.daily_added_songs)
-                busiest_hour, song_count = hour_counts.most_common(1)[0]
-                busiest_hour_str = f"{busiest_hour:02d}:00 - {busiest_hour:02d}:59 ({song_count} songs)"
-                songs_with_dates = [s for s in self.daily_added_songs if s.get('release_date') and '-' in s['release_date']]
-                if songs_with_dates:
-                    songs_with_dates.sort(key=lambda x: x['release_date'])
-                    oldest_song, newest_song = songs_with_dates[0], songs_with_dates[-1]
-                    oldest_song_str = f"{oldest_song['spotify_title']} by {oldest_song['spotify_artist']} ({oldest_song['release_date'][:4]})"
-                    newest_song_str = f"{newest_song['spotify_title']} by {newest_song['spotify_artist']} ({newest_song['release_date'][:4]})"
-                    decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
-                    total_dated_songs = len(songs_with_dates)
-                    sorted_decades = decade_counts.most_common(5)
-                    decade_breakdown_str = " | ".join([f"<b>{decade}s:</b> {((count / total_dated_songs) * 100):.0f}%%" for decade, count in sorted_decades])
-            stats_html = f"""
-            <h3>Daily Stats</h3>
-            <p><b>Success Rate:</b> {success_rate:.1f}%% ({len(self.daily_added_songs)} added / {total_processed} processed)<br>
-            <b>Unique Artists Added:</b> {unique_artist_count}<br>
-            <b>Top Artists:</b> {top_artists_str}<br>
-            <b>Busiest Hour:</b> {busiest_hour_str}<br>
-            <b>Oldest Song Added:</b> {oldest_song_str}<br>
-            <b>Newest Song Added:</b> {newest_song_str}<br>
-            <b>Decade Breakdown:</b> {decade_breakdown_str}<br>
-            <b>Failure Breakdown:</b> {failure_breakdown_str}<br>
-            <b>Items in Retry Queue at EOD:</b> {len(self.failed_search_queue)}</p>
+                for item in self.daily_added_songs:
+                    try:
+                        timestamp = datetime.datetime.fromisoformat(item['timestamp'])
+                        hour_counts[timestamp.hour] += 1
+                    except:
+                        pass
+            
+            busiest_hour = hour_counts.most_common(1)[0] if hour_counts else (0, 0)
+            
+            # Release date analysis
+            songs_with_dates = [s for s in self.daily_added_songs if s.get('release_date') and '-' in s['release_date']]
+            decade_counts = Counter()
+            oldest_song = None
+            newest_song = None
+            
+            if songs_with_dates:
+                songs_with_dates.sort(key=lambda x: x['release_date'])
+                oldest_song = songs_with_dates[0]
+                newest_song = songs_with_dates[-1]
+                decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
+            
+            # Failure analysis
+            failure_reasons = Counter(item['reason'] for item in self.daily_search_failures)
+            
+            # Generate enhanced HTML
+            html = f"""
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+                    <h1 style="margin: 0; font-size: 2.5em; font-weight: 300;">📊 Daily Summary</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 1.2em; opacity: 0.9;">RadioX Spotify Playlist</p>
+                </div>
+                
+                <!-- Key Metrics -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                    <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2.5em; font-weight: bold; color: #28a745;">{total_added}</div>
+                        <div style="color: #6c757d; font-weight: 500;">Songs Added</div>
+                    </div>
+                    <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2.5em; font-weight: bold; color: #dc3545;">{total_failed}</div>
+                        <div style="color: #6c757d; font-weight: 500;">Failed Searches</div>
+                    </div>
+                    <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2.5em; font-weight: bold; color: #17a2b8;">{unique_artists}</div>
+                        <div style="color: #6c757d; font-weight: 500;">Unique Artists</div>
+                    </div>
+                    <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2.5em; font-weight: bold; color: #ffc107;">{success_rate:.1f}%</div>
+                        <div style="color: #6c757d; font-weight: 500;">Success Rate</div>
+                    </div>
+                </div>
+                
+                <!-- Success Rate Progress Bar -->
+                <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 15px 0; color: #495057;">Success Rate</h3>
+                    <div style="background: #e9ecef; border-radius: 10px; height: 20px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: {success_rate}%; transition: width 0.3s ease; border-radius: 10px;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9em; color: #6c757d;">
+                        <span>{total_added} successful</span>
+                        <span>{total_failed} failed</span>
+                    </div>
+                </div>
+                
+                <!-- Top Artists -->
+                {self._format_top_artists_section(top_artists) if top_artists else ''}
+                
+                <!-- Decade Breakdown -->
+                {self._format_decade_section(decade_counts) if decade_counts else ''}
+                
+                <!-- Time Analysis -->
+                {self._format_time_analysis(hour_counts, busiest_hour) if hour_counts else ''}
+                
+                <!-- Song Range -->
+                {self._format_song_range(oldest_song, newest_song) if oldest_song and newest_song else ''}
+                
+                <!-- Failure Analysis -->
+                {self._format_failure_analysis(failure_reasons) if failure_reasons else ''}
+                
+                <!-- Queue Status -->
+                <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 15px 0; color: #495057;">🔄 Retry Queue Status</h3>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="font-size: 2em;">{len(self.failed_search_queue)}</div>
+                        <div>
+                            <div style="font-weight: 500; color: #495057;">Items in Queue</div>
+                            <div style="font-size: 0.9em; color: #6c757d;">Will be retried automatically</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             """
-            return stats_html
-        except Exception as e: logging.error(f"Could not generate daily stats: {e}"); return ""
+            
+            return html
+            
+        except Exception as e:
+            logging.error(f"Could not generate enhanced daily stats: {e}")
+            return ""
+
+    def _format_top_artists_section(self, top_artists):
+        """Format the top artists section."""
+        if not top_artists:
+            return ""
+        
+        max_count = max(count for _, count in top_artists)
+        artists_html = ""
+        
+        for i, (artist, count) in enumerate(top_artists):
+            percentage = (count / max_count) * 100
+            artists_html += f"""
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                <div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9em;">{i+1}</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 500; color: #495057;">{artist}</div>
+                    <div style="background: #e9ecef; border-radius: 5px; height: 8px; overflow: hidden; margin-top: 5px;">
+                        <div style="background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; width: {percentage}%; border-radius: 5px;"></div>
+                    </div>
+                </div>
+                <div style="font-weight: bold; color: #007bff; min-width: 40px; text-align: right;">{count}</div>
+            </div>
+            """
+        
+        return f"""
+        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 20px 0; color: #495057;">🎤 Top Artists</h3>
+            {artists_html}
+        </div>
+        """
+
+    def _format_decade_section(self, decade_counts):
+        """Format the decade breakdown section."""
+        if not decade_counts:
+            return ""
+        
+        total_songs = sum(decade_counts.values())
+        decades_html = ""
+        
+        for decade, count in decade_counts.most_common(5):
+            percentage = (count / total_songs) * 100
+            decades_html += f"""
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                <div style="background: #6f42c1; color: white; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9em;">{decade}s</div>
+                <div style="flex: 1;">
+                    <div style="background: #e9ecef; border-radius: 5px; height: 8px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #6f42c1, #5a32a3); height: 100%; width: {percentage}%; border-radius: 5px;"></div>
+                    </div>
+                </div>
+                <div style="font-weight: bold; color: #6f42c1; min-width: 60px; text-align: right;">{percentage:.0f}%</div>
+            </div>
+            """
+        
+        return f"""
+        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 20px 0; color: #495057;">📅 Decade Breakdown</h3>
+            {decades_html}
+        </div>
+        """
+
+    def _format_time_analysis(self, hour_counts, busiest_hour):
+        """Format the time analysis section."""
+        if not hour_counts:
+            return ""
+        
+        hour, count = busiest_hour
+        return f"""
+        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 15px 0; color: #495057;">⏰ Busiest Hour</h3>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="background: #fd7e14; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em;">{hour:02d}</div>
+                <div>
+                    <div style="font-weight: 500; color: #495057;">{hour:02d}:00 - {hour:02d}:59</div>
+                    <div style="font-size: 0.9em; color: #6c757d;">{count} songs added</div>
+                </div>
+            </div>
+        </div>
+        """
+
+    def _format_song_range(self, oldest_song, newest_song):
+        """Format the song range section."""
+        if not oldest_song or not newest_song:
+            return ""
+        
+        return f"""
+        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 20px 0; color: #495057;">🎵 Song Range</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 2em; color: #6c757d;">📜</div>
+                    <div style="font-weight: 500; color: #495057; margin: 5px 0;">Oldest</div>
+                    <div style="font-size: 0.9em; color: #6c757d;">{oldest_song['spotify_title']}</div>
+                    <div style="font-size: 0.8em; color: #6c757d;">{oldest_song['spotify_artist']}</div>
+                    <div style="font-weight: bold; color: #495057; margin-top: 5px;">{oldest_song['release_date'][:4]}</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 2em; color: #6c757d;">🆕</div>
+                    <div style="font-weight: 500; color: #495057; margin: 5px 0;">Newest</div>
+                    <div style="font-size: 0.9em; color: #6c757d;">{newest_song['spotify_title']}</div>
+                    <div style="font-size: 0.8em; color: #6c757d;">{newest_song['spotify_artist']}</div>
+                    <div style="font-weight: bold; color: #495057; margin-top: 5px;">{newest_song['release_date'][:4]}</div>
+                </div>
+            </div>
+        </div>
+        """
+
+    def _format_failure_analysis(self, failure_reasons):
+        """Format the failure analysis section."""
+        if not failure_reasons:
+            return ""
+        
+        total_failures = sum(failure_reasons.values())
+        failures_html = ""
+        
+        for reason, count in failure_reasons.most_common():
+            percentage = (count / total_failures) * 100
+            failures_html += f"""
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                <div style="flex: 1;">
+                    <div style="font-weight: 500; color: #495057; font-size: 0.9em;">{reason}</div>
+                    <div style="background: #e9ecef; border-radius: 5px; height: 6px; overflow: hidden; margin-top: 3px;">
+                        <div style="background: linear-gradient(90deg, #dc3545, #c82333); height: 100%; width: {percentage}%; border-radius: 5px;"></div>
+                    </div>
+                </div>
+                <div style="font-weight: bold; color: #dc3545; min-width: 40px; text-align: right;">{count}</div>
+            </div>
+            """
+        
+        return f"""
+        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 20px 0; color: #495057;">❌ Failure Analysis</h3>
+            {failures_html}
+        </div>
+        """
 
     def log_and_send_daily_summary(self):
         if not self.daily_added_songs and not self.daily_search_failures:
