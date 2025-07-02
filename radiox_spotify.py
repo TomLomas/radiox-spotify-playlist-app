@@ -135,7 +135,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.3.1"
+BACKEND_VERSION = "1.3.2"
 
 # --- Main Application Class ---
 
@@ -1549,7 +1549,11 @@ def stream():
 if __name__ == "__main__":
     # This block runs for local development
     logging.info("Script being run directly for local testing.")
-    initialize_bot()
+    logging.info("Starting background initialization thread...")
+    init_thread = threading.Thread(target=initialize_bot, daemon=True)
+    init_thread.start()
+    logging.info("Background initialization thread started successfully.")
+    
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
     port = int(os.environ.get("PORT", 8080)) 
