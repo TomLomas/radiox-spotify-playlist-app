@@ -403,7 +403,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "1.5.0"
+BACKEND_VERSION = "1.5.1"
 
 # --- Main Application Class ---
 
@@ -442,6 +442,13 @@ class RadioXBot:
         self.DAILY_ADDED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_added.json")
         self.DAILY_FAILED_CACHE_FILE = os.path.join(self.CACHE_DIR, "daily_failed.json")
         self.LAST_CHECK_COMPLETE_FILE = os.path.join(self.CACHE_DIR, "last_check_complete_time.txt")
+        
+        # --- NEW: Persistent Daily Cache System ---
+        self.DAILY_CACHE_DIR = os.path.join(self.CACHE_DIR, "daily")
+        os.makedirs(self.DAILY_CACHE_DIR, exist_ok=True)
+        self.current_date = datetime.datetime.now(pytz.timezone(TIMEZONE)).date()
+        self.current_daily_cache_file = os.path.join(self.DAILY_CACHE_DIR, f"{self.current_date.isoformat()}_added.json")
+        self.current_daily_failed_cache_file = os.path.join(self.DAILY_CACHE_DIR, f"{self.current_date.isoformat()}_failed.json")
 
         self.RECENTLY_ADDED_SPOTIFY_IDS = deque(maxlen=20)
         self.failed_search_queue = deque(maxlen=5)
@@ -503,8 +510,10 @@ class RadioXBot:
             try:
                 with open(self.RECENTLY_ADDED_CACHE_FILE, 'w') as f: json.dump(list(self.RECENTLY_ADDED_SPOTIFY_IDS), f)
                 with open(self.FAILED_QUEUE_CACHE_FILE, 'w') as f: json.dump(list(self.failed_search_queue), f)
-                with open(self.DAILY_ADDED_CACHE_FILE, 'w') as f: json.dump(self.daily_added_songs[-50:], f)
-                with open(self.DAILY_FAILED_CACHE_FILE, 'w') as f: json.dump(self.daily_search_failures[-50:], f)
+                
+                # Save daily cache using new persistent system
+                self.save_daily_cache()
+                
                 logging.debug("Successfully saved application state to disk.")
             except Exception as e:
                 logging.error(f"Failed to save state to disk: {e}")
@@ -521,14 +530,10 @@ class RadioXBot:
                     with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
                         self.failed_search_queue = deque(json.load(f), maxlen=5)
                         logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
-                if os.path.exists(self.DAILY_ADDED_CACHE_FILE):
-                    with open(self.DAILY_ADDED_CACHE_FILE, 'r') as f:
-                        self.daily_added_songs = json.load(f)
-                        logging.info(f"Loaded {len(self.daily_added_songs)} daily added songs from cache.")
-                if os.path.exists(self.DAILY_FAILED_CACHE_FILE):
-                    with open(self.DAILY_FAILED_CACHE_FILE, 'r') as f:
-                        self.daily_search_failures = json.load(f)
-                        logging.info(f"Loaded {len(self.daily_search_failures)} daily failed searches from cache.")
+                
+                # Load daily cache using new persistent system
+                self.load_daily_cache()
+                
             except Exception as e:
                 logging.error(f"Failed to load state from disk: {e}")
         # After loading, immediately calculate stats from the cache
@@ -545,6 +550,105 @@ class RadioXBot:
                     self.last_check_complete_time = int(f.read().strip())
                 except Exception:
                     self.last_check_complete_time = 0
+
+    # --- NEW: Persistent Daily Cache Management ---
+    def check_and_update_daily_cache(self):
+        """Check if we need to roll over to a new day and update cache files accordingly."""
+        current_date = datetime.datetime.now(pytz.timezone(TIMEZONE)).date()
+        
+        if current_date != self.current_date:
+            self.log_event(f"🔄 Daily cache rollover: {self.current_date} → {current_date}")
+            
+            # Save current day's data before switching
+            self.save_daily_cache()
+            
+            # Update to new date
+            self.current_date = current_date
+            self.current_daily_cache_file = os.path.join(self.DAILY_CACHE_DIR, f"{self.current_date.isoformat()}_added.json")
+            self.current_daily_failed_cache_file = os.path.join(self.DAILY_CACHE_DIR, f"{self.current_date.isoformat()}_failed.json")
+            
+            # Load new day's data (or start fresh)
+            self.load_daily_cache()
+            
+            # Clean up old cache files (keep last 7 days)
+            self.cleanup_old_daily_caches()
+    
+    def save_daily_cache(self):
+        """Save current day's added songs and failures to persistent cache."""
+        with self.file_lock:
+            try:
+                with open(self.current_daily_cache_file, 'w') as f:
+                    json.dump(self.daily_added_songs, f, indent=2)
+                with open(self.current_daily_failed_cache_file, 'w') as f:
+                    json.dump(self.daily_search_failures, f, indent=2)
+                logging.debug(f"Saved daily cache for {self.current_date}: {len(self.daily_added_songs)} added, {len(self.daily_search_failures)} failed")
+            except Exception as e:
+                logging.error(f"Failed to save daily cache: {e}")
+    
+    def load_daily_cache(self):
+        """Load current day's added songs and failures from persistent cache."""
+        with self.file_lock:
+            try:
+                # Load added songs
+                if os.path.exists(self.current_daily_cache_file):
+                    with open(self.current_daily_cache_file, 'r') as f:
+                        self.daily_added_songs = json.load(f)
+                    logging.info(f"Loaded {len(self.daily_added_songs)} added songs from daily cache for {self.current_date}")
+                else:
+                    self.daily_added_songs = []
+                    logging.info(f"Starting fresh daily cache for {self.current_date}")
+                
+                # Load failed searches
+                if os.path.exists(self.current_daily_failed_cache_file):
+                    with open(self.current_daily_failed_cache_file, 'r') as f:
+                        self.daily_search_failures = json.load(f)
+                    logging.info(f"Loaded {len(self.daily_search_failures)} failed searches from daily cache for {self.current_date}")
+                else:
+                    self.daily_search_failures = []
+                    logging.info(f"Starting fresh failed searches cache for {self.current_date}")
+                    
+            except Exception as e:
+                logging.error(f"Failed to load daily cache: {e}")
+                self.daily_added_songs = []
+                self.daily_search_failures = []
+    
+    def cleanup_old_daily_caches(self):
+        """Remove daily cache files older than 7 days."""
+        try:
+            cutoff_date = datetime.datetime.now(pytz.timezone(TIMEZONE)).date() - datetime.timedelta(days=7)
+            removed_count = 0
+            
+            for filename in os.listdir(self.DAILY_CACHE_DIR):
+                if filename.endswith('.json'):
+                    try:
+                        # Extract date from filename (format: YYYY-MM-DD_added.json or YYYY-MM-DD_failed.json)
+                        date_str = filename.split('_')[0]
+                        file_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+                        
+                        if file_date < cutoff_date:
+                            file_path = os.path.join(self.DAILY_CACHE_DIR, filename)
+                            os.remove(file_path)
+                            removed_count += 1
+                            logging.debug(f"Removed old daily cache: {filename}")
+                    except (ValueError, IndexError):
+                        # Skip files that don't match expected format
+                        continue
+            
+            if removed_count > 0:
+                logging.info(f"Cleaned up {removed_count} old daily cache files")
+                
+        except Exception as e:
+            logging.error(f"Error during daily cache cleanup: {e}")
+    
+    def add_song_to_daily_cache(self, song_data):
+        """Add a song to the daily cache and save immediately."""
+        self.daily_added_songs.append(song_data)
+        self.save_daily_cache()
+    
+    def add_failure_to_daily_cache(self, failure_data):
+        """Add a failure to the daily cache and save immediately."""
+        self.daily_search_failures.append(failure_data)
+        self.save_daily_cache()
 
     # --- Authentication ---
     def authenticate_spotify(self):
@@ -686,7 +790,7 @@ class RadioXBot:
             spotify_id = _attempt_search_spotify(cleaned_title_feat, "features/brackets removed")
             if spotify_id is not None: return spotify_id if spotify_id != "NETWORK_ERROR_FLAG" else None
         self.log_event(f"FAIL: Song '{original_title}' by '{artist}' not found after all attempts.")
-        if not is_retry_from_queue: self.daily_search_failures.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": original_title, "radio_artist": artist, "reason": "Not found on Spotify after all attempts."})
+        if not is_retry_from_queue: self.add_failure_to_daily_cache({"timestamp": datetime.datetime.now().isoformat(), "radio_title": original_title, "radio_artist": artist, "reason": "Not found on Spotify after all attempts."})
         return None
 
     def manage_playlist_size(self, playlist_id):
@@ -725,7 +829,7 @@ class RadioXBot:
 
             self.log_event(f"DEBUG: Album details found. Name: '{album_name}', Art URL present: {album_art_url is not None}")
 
-            self.daily_added_songs.append({
+            song_data = {
                 "timestamp": datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat(),
                 "added_at": int(time.time()),  # Use current Unix timestamp for accuracy
                 "radio_title": radio_x_title, 
@@ -736,7 +840,8 @@ class RadioXBot:
                 "release_date": release_date,
                 "album_art_url": album_art_url,
                 "album_name": album_name
-            })
+            }
+            self.add_song_to_daily_cache(song_data)
             self.log_event(f"SUCCESS: Added '{BOLD}{radio_x_title}{RESET}' by '{BOLD}{radio_x_artist}{RESET}' to playlist.")
             self.RECENTLY_ADDED_SPOTIFY_IDS.append(spotify_track_id)
             return True
@@ -746,11 +851,11 @@ class RadioXBot:
                  self.RECENTLY_ADDED_SPOTIFY_IDS.append(spotify_track_id)
                  reason = "Spotify blocked add as duplicate (already in playlist)"
             else: logging.error(f"Error adding track '{radio_x_title}': {e}")
-            self.daily_search_failures.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": radio_x_title, "radio_artist": radio_x_artist, "reason": reason})
+            self.add_failure_to_daily_cache({"timestamp": datetime.datetime.now().isoformat(), "radio_title": radio_x_title, "radio_artist": radio_x_artist, "reason": reason})
             return False
         except Exception as e:
             logging.error(f"Unexpected error adding track '{radio_x_title}': {e}")
-            self.daily_search_failures.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": radio_x_title, "radio_artist": radio_x_artist, "reason": f"Unexpected error during add: {e}"})
+            self.add_failure_to_daily_cache({"timestamp": datetime.datetime.now().isoformat(), "radio_title": radio_x_title, "radio_artist": radio_x_artist, "reason": f"Unexpected error during add: {e}"})
             return False
 
     def check_and_remove_duplicates(self, playlist_id):
@@ -794,7 +899,7 @@ class RadioXBot:
             self.log_event(f"PFSQ: Re-queued '{item['title']}' (Attempts: {item['attempts']}).")
         else:
             self.log_event(f"PFSQ: Max retries reached for '{item['title']}'. Discarding.")
-            self.daily_search_failures.append({"timestamp": datetime.datetime.now().isoformat(), "radio_title": item['title'], "radio_artist": item['artist'], "reason": f"Max retries ({MAX_FAILED_SEARCH_ATTEMPTS}) from failed search queue exhausted."})
+            self.add_failure_to_daily_cache({"timestamp": datetime.datetime.now().isoformat(), "radio_title": item['title'], "radio_artist": item['artist'], "reason": f"Max retries ({MAX_FAILED_SEARCH_ATTEMPTS}) from failed search queue exhausted."})
 
     # --- Email & Summary Functions ---
     def send_summary_email(self, html_body, subject):
@@ -1330,6 +1435,10 @@ class RadioXBot:
 
     def process_main_cycle(self):
         logging.info("=== Starting main cycle ===")
+        
+        # Check and update daily cache (handles date rollovers)
+        self.check_and_update_daily_cache()
+        
         if not self.current_station_herald_id: 
             self.current_station_herald_id = self.get_station_herald_id(RADIOX_STATION_SLUG)
             logging.info(f"Retrieved station herald ID: {self.current_station_herald_id}")
@@ -1523,9 +1632,24 @@ def status():
     # Reads state from files to ensure consistency across processes
     try:
         with bot_instance.file_lock:
-            with open(bot_instance.DAILY_ADDED_CACHE_FILE, 'r') as f: daily_added = json.load(f)
-            with open(bot_instance.DAILY_FAILED_CACHE_FILE, 'r') as f: daily_failed = json.load(f)
-            with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: failed_queue = json.load(f)
+            # Check and update daily cache to ensure we're reading the correct date's data
+            bot_instance.check_and_update_daily_cache()
+            
+            # Read from the current daily cache files
+            if os.path.exists(bot_instance.current_daily_cache_file):
+                with open(bot_instance.current_daily_cache_file, 'r') as f:
+                    daily_added = json.load(f)
+            else:
+                daily_added = []
+                
+            if os.path.exists(bot_instance.current_daily_failed_cache_file):
+                with open(bot_instance.current_daily_failed_cache_file, 'r') as f:
+                    daily_failed = json.load(f)
+            else:
+                daily_failed = []
+                
+            with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: 
+                failed_queue = json.load(f)
             bot_instance.load_last_check_complete_time()
     except FileNotFoundError:
         daily_added, daily_failed, failed_queue = [], [], []
@@ -1632,7 +1756,7 @@ def stream():
                     yield f"data: {message['data'].decode('utf-8')}\n\n"
         except Exception as e:
             logging.error(f"Error in SSE stream: {e}")
-            yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
+            yield f"data: {json.dumps({'error': 'Stream error')}\n\n"
 
     return Response(event_stream(), content_type='text/event-stream')
 
