@@ -34,6 +34,271 @@ try:
 except ImportError:
     psutil = None
 
+# --- NEW: Smart Search Strategy Class ---
+class SmartSearchStrategy:
+    def __init__(self):
+        self.artist_success_patterns = {}
+        self.search_strategy_weights = {
+            'original': 1.0,
+            'no_parentheses': 0.8,
+            'no_features': 0.6
+        }
+        self.load_patterns()
+    
+    def load_patterns(self):
+        """Load artist success patterns from cache."""
+        try:
+            if os.path.exists('.cache/artist_patterns.json'):
+                with open('.cache/artist_patterns.json', 'r') as f:
+                    self.artist_success_patterns = json.load(f)
+        except Exception as e:
+            logging.warning(f"Could not load artist patterns: {e}")
+    
+    def save_patterns(self):
+        """Save artist success patterns to cache."""
+        try:
+            os.makedirs('.cache', exist_ok=True)
+            with open('.cache/artist_patterns.json', 'w') as f:
+                json.dump(self.artist_success_patterns, f)
+        except Exception as e:
+            logging.warning(f"Could not save artist patterns: {e}")
+    
+    def get_optimal_search_order(self, artist, title):
+        """Return search strategies in order of likely success for this artist."""
+        artist_lower = artist.lower()
+        
+        # Check if we have patterns for this artist
+        if artist_lower in self.artist_success_patterns:
+            patterns = self.artist_success_patterns[artist_lower]
+            # Sort by success rate
+            sorted_patterns = sorted(patterns.items(), key=lambda x: x[1], reverse=True)
+            return [pattern[0] for pattern in sorted_patterns]
+        
+        # Default order for new artists
+        return ['original', 'no_parentheses', 'no_features']
+    
+    def update_success_rate(self, artist, strategy, success):
+        """Update success rate for an artist's search strategy."""
+        artist_lower = artist.lower()
+        
+        if artist_lower not in self.artist_success_patterns:
+            self.artist_success_patterns[artist_lower] = {
+                'original': 0.5,
+                'no_parentheses': 0.5,
+                'no_features': 0.5
+            }
+        
+        # Update with exponential moving average
+        current_rate = self.artist_success_patterns[artist_lower].get(strategy, 0.5)
+        new_rate = current_rate * 0.9 + (1.0 if success else 0.0) * 0.1
+        self.artist_success_patterns[artist_lower][strategy] = new_rate
+        
+        # Save patterns periodically
+        if time.time() % 300 < 1:  # Save every 5 minutes
+            self.save_patterns()
+
+# --- NEW: Real-Time WebSocket Listener ---
+class RealTimeWebSocketListener:
+    def __init__(self, bot_instance):
+        self.bot = bot_instance
+        self.websocket = None
+        self.is_running = False
+        self.reconnect_delay = 5
+        self.max_reconnect_delay = 60
+        
+    def start_listening(self):
+        """Start the real-time WebSocket listener."""
+        self.is_running = True
+        self.listener_thread = threading.Thread(target=self._listen_loop, daemon=True)
+        self.listener_thread.start()
+        logging.info("Real-time WebSocket listener started")
+    
+    def stop_listening(self):
+        """Stop the real-time WebSocket listener."""
+        self.is_running = False
+        if self.websocket:
+            try:
+                self.websocket.close()
+            except:
+                pass
+        logging.info("Real-time WebSocket listener stopped")
+    
+    def _listen_loop(self):
+        """Main listening loop with automatic reconnection."""
+        while self.is_running:
+            try:
+                self._connect_and_listen()
+            except Exception as e:
+                logging.error(f"WebSocket listener error: {e}")
+                if self.is_running:
+                    time.sleep(self.reconnect_delay)
+                    self.reconnect_delay = min(self.reconnect_delay * 2, self.max_reconnect_delay)
+    
+    def _connect_and_listen(self):
+        """Connect to WebSocket and listen for song changes."""
+        if not self.bot.current_station_herald_id:
+            time.sleep(5)
+            return
+        
+        websocket_url = "wss://metadata.musicradio.com/v2/now-playing"
+        logging.info(f"Connecting to real-time WebSocket: {websocket_url}")
+        
+        self.websocket = websocket.create_connection(websocket_url, timeout=10)
+        self.websocket.send(json.dumps({
+            "actions": [{"type": "subscribe", "service": str(self.bot.current_station_herald_id)}]
+        }))
+        
+        self.reconnect_delay = 5  # Reset reconnect delay on successful connection
+        
+        while self.is_running:
+            try:
+                raw_message = self.websocket.recv()
+                if raw_message:
+                    self._handle_message(raw_message)
+            except websocket.WebSocketTimeoutException:
+                continue  # Just continue listening
+            except Exception as e:
+                logging.error(f"WebSocket message error: {e}")
+                break
+    
+    def _handle_message(self, raw_message):
+        """Handle incoming WebSocket messages."""
+        try:
+            message_data = json.loads(raw_message)
+            
+            # Handle heartbeat
+            if message_data.get('type') == 'heartbeat':
+                return
+            
+            # Handle song change
+            if message_data.get('now_playing') and message_data['now_playing'].get('type') == 'track':
+                now_playing = message_data['now_playing']
+                title, artist, track_id_api = now_playing.get('title'), now_playing.get('artist'), now_playing.get('id')
+                
+                if title and artist:
+                    title, artist = title.strip(), artist.strip()
+                    if title and artist:
+                        unique_id = track_id_api or f"{self.bot.current_station_herald_id}_{title}_{artist}".replace(" ", "_")
+                        
+                        # Check if this is a new song
+                        if unique_id != self.bot.last_added_radiox_track_id:
+                            logging.info(f"🔄 REAL-TIME: New song detected: {title} by {artist}")
+                            self.bot.log_event(f"🔄 REAL-TIME: New song detected: {title} by {artist}")
+                            self.bot.activity_tracker.add_activity(
+                                'song_detected',
+                                f"Real-time: New song detected: {title} by {artist}",
+                                success=None,
+                                details={"title": title, "artist": artist}
+                            )
+                            # Process the song immediately
+                            self._process_song_immediately(title, artist, unique_id)
+                        else:
+                            logging.debug(f"🔄 REAL-TIME: Same song still playing: {title} by {artist}")
+            
+        except Exception as e:
+            logging.error(f"Error handling WebSocket message: {e}")
+    
+    def _process_song_immediately(self, title, artist, radiox_id):
+        """Process a new song immediately when detected."""
+        try:
+            # Use smart search strategy
+            spotify_track_id = self.bot.search_song_on_spotify_smart(title, artist, radiox_id)
+            
+            if spotify_track_id:
+                if self.bot.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID):
+                    self.bot.log_event(f"✅ REAL-TIME: Successfully added '{title}' by '{artist}'")
+                    self.bot.last_added_radiox_track_id = radiox_id
+                    self.bot.activity_tracker.add_activity(
+                        'song_added',
+                        f"Real-time: Added '{title}' by '{artist}' to playlist",
+                        success=True,
+                        details={"title": title, "artist": artist, "spotify_id": spotify_track_id}
+                    )
+                else:
+                    self.bot.log_event(f"❌ REAL-TIME: Failed to add '{title}' by '{artist}' to playlist")
+                    self.bot.activity_tracker.add_activity(
+                        'add_failed',
+                        f"Real-time: Failed to add '{title}' by '{artist}' to playlist",
+                        success=False,
+                        details={"title": title, "artist": artist, "spotify_id": spotify_track_id}
+                    )
+            else:
+                self.bot.log_event(f"❌ REAL-TIME: Could not find '{title}' by '{artist}' on Spotify")
+                self.bot.activity_tracker.add_activity(
+                    'search_failed',
+                    f"Real-time: Could not find '{title}' by '{artist}' on Spotify",
+                    success=False,
+                    details={"title": title, "artist": artist}
+                )
+                
+        except Exception as e:
+            logging.error(f"Error processing song immediately: {e}")
+            self.bot.log_event(f"❌ REAL-TIME: Error processing '{title}' by '{artist}': {e}")
+            self.bot.activity_tracker.add_activity(
+                'error',
+                f"Real-time: Error processing '{title}' by '{artist}': {e}",
+                success=False,
+                details={"title": title, "artist": artist, "error": str(e)}
+            )
+
+# --- NEW: Activity Tracker for Live Dashboard ---
+class ActivityTracker:
+    def __init__(self, max_activities=50):
+        self.activities = deque(maxlen=max_activities)
+        self.stats = {
+            'total_songs_processed': 0,
+            'successful_adds': 0,
+            'failed_searches': 0,
+            'api_calls': 0,
+            'start_time': time.time()
+        }
+    
+    def add_activity(self, activity_type, message, success=None, details=None):
+        """Add an activity to the tracker."""
+        activity = {
+            'timestamp': datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat(),
+            'type': activity_type,
+            'message': message,
+            'success': success,
+            'details': details
+        }
+        
+        self.activities.appendleft(activity)
+        
+        # Update stats
+        self.stats['total_songs_processed'] += 1
+        if success is True:
+            self.stats['successful_adds'] += 1
+        elif success is False:
+            self.stats['failed_searches'] += 1
+        
+        # Publish to frontend via SSE
+        try:
+            with app.app_context():
+                sse.publish({
+                    "activity": activity,
+                    "stats": self.stats
+                }, type='activity_update')
+        except Exception as e:
+            logging.error(f"Failed to publish activity update: {e}")
+    
+    def get_recent_activities(self, limit=20):
+        """Get recent activities for the dashboard."""
+        return list(self.activities)[:limit]
+    
+    def get_stats(self):
+        """Get current stats."""
+        uptime = time.time() - self.stats['start_time']
+        success_rate = (self.stats['successful_adds'] / max(self.stats['total_songs_processed'], 1)) * 100
+        
+        return {
+            **self.stats,
+            'uptime_seconds': uptime,
+            'uptime_formatted': f"{int(uptime // 3600)}h {int((uptime % 3600) // 60)}m",
+            'success_rate': f"{success_rate:.1f}%",
+            'songs_per_hour': (self.stats['total_songs_processed'] / max(uptime / 3600, 1))
+        }
+
 # --- Flask App Setup ---
 app = Flask(__name__)
 app.config["REDIS_URL"] = "redis://redis:6379"
@@ -183,9 +448,18 @@ class RadioXBot:
         self.daily_added_songs = [] 
         self.daily_search_failures = [] 
         self.event_log = deque(maxlen=10)
+
+        # --- NEW: Essential Optimizations ---
+        self.smart_search = SmartSearchStrategy()
+        self.realtime_listener = RealTimeWebSocketListener(self)
+        self.activity_tracker = ActivityTracker()
+
         self.log_event("Application instance created. Waiting for initialization.")
         self.file_lock = threading.Lock()
         self.update_service_state('initializing')
+
+        # Start real-time listener automatically
+        self.realtime_listener.start_listening()
 
     def log_event(self, message):
         """Adds an event to the global log for the web UI and standard logging."""
@@ -1108,6 +1382,36 @@ class RadioXBot:
         
         logging.info("=== Main cycle completed ===")
 
+    def search_song_on_spotify_smart(self, original_title, artist, radiox_id_for_queue=None, is_retry_from_queue=False):
+        """Smart search using artist-specific strategy order and learning."""
+        strategies = self.smart_search.get_optimal_search_order(artist, original_title)
+        search_attempts_details = []
+        for strategy in strategies:
+            if strategy == 'original':
+                title_to_search = original_title
+            elif strategy == 'no_parentheses':
+                title_to_search = re.sub(r'\s*\(.*?\)\s*', ' ', original_title).strip()
+            elif strategy == 'no_features':
+                title_to_search = re.sub(r'\s*\[.*?\]\s*|feat\..*', ' ', original_title, flags=re.IGNORECASE).strip()
+            else:
+                continue
+            
+            spotify_id = self.search_song_on_spotify(title_to_search, artist, radiox_id_for_queue, is_retry_from_queue)
+            if spotify_id:
+                self.smart_search.update_success_rate(artist, strategy, True)
+                return spotify_id
+            else:
+                self.smart_search.update_success_rate(artist, strategy, False)
+        # If all fail, log and return None
+        self.log_event(f"SMART FAIL: Song '{original_title}' by '{artist}' not found after all smart attempts.")
+        if not is_retry_from_queue:
+            self.daily_search_failures.append({
+                "timestamp": datetime.datetime.now().isoformat(),
+                "radio_title": original_title,
+                "radio_artist": artist,
+                "reason": "Not found on Spotify after all smart attempts."
+            })
+        return None
 
 # --- Flask Routes & Script Execution ---
 bot_instance = RadioXBot()
@@ -1331,6 +1635,15 @@ def stream():
             yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
 
     return Response(event_stream(), content_type='text/event-stream')
+
+@app.route('/activity')
+def activity():
+    activities = bot_instance.activity_tracker.get_recent_activities()
+    stats = bot_instance.activity_tracker.get_stats()
+    return jsonify({
+        'activities': activities,
+        'stats': stats
+    })
 
 # --- Script Execution ---
 if __name__ == "__main__":
