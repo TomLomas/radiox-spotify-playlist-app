@@ -84,7 +84,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.4.1"
+BACKEND_VERSION = "1.4.2"
 
 # --- Main Application Class ---
 
@@ -1127,7 +1127,9 @@ def index_page():
     return render_template('index.html', active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
 
 def log_backend_version():
+    print("=== log_backend_version called ===")
     logging.info(f"RadioX Spotify Backend Version: {BACKEND_VERSION}")
+    print("=== log_backend_version completed ===")
 
 @app.route('/version')
 def version():
@@ -1144,7 +1146,9 @@ def health():
 
 def initialize_bot():
     """Handles the slow startup tasks in the background."""
+    print("=== initialize_bot function called ===")
     logging.info("Background initialization started.")
+    print("=== About to log backend version ===")
     # Log version at startup
     log_backend_version()
     if bot_instance.authenticate_spotify():
@@ -1189,13 +1193,21 @@ def stream():
     return Response(event_stream(), content_type='text/event-stream')
 
 # --- Script Execution ---
+print("=== Script execution starting ===")
 if __name__ == "__main__":
     # This block runs for local development
+    print("=== Script is running as main ===")
     logging.info("Script being run directly for local testing.")
+    print("=== About to start background thread ===")
     logging.info("Starting background initialization thread...")
-    init_thread = threading.Thread(target=initialize_bot, daemon=True)
-    init_thread.start()
-    logging.info("Background initialization thread started successfully.")
+    try:
+        init_thread = threading.Thread(target=initialize_bot, daemon=True)
+        init_thread.start()
+        print("=== Background thread created and started ===")
+        logging.info("Background initialization thread started successfully.")
+    except Exception as e:
+        print(f"=== ERROR starting background thread: {e} ===")
+        logging.error(f"Failed to start background thread: {e}")
     
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         print("\nWARNING: Email environment variables not set. Emails will not be sent.\n")
