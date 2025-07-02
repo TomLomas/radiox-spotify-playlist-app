@@ -208,6 +208,18 @@ class RealTimeWebSocketListener:
     def _process_song_immediately(self, title, artist, radiox_id):
         """Process a new song immediately when detected."""
         try:
+            # Check if we're within active hours
+            now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+            if not (START_TIME <= now_local.time() <= END_TIME):
+                self.bot.log_event(f"⏰ REAL-TIME: Skipping '{title}' by '{artist}' - outside active hours ({START_TIME.strftime('%H:%M')}-{END_TIME.strftime('%H:%M')})")
+                self.bot.activity_tracker.add_activity(
+                    'skipped_out_of_hours',
+                    f"Real-time: Skipped '{title}' by '{artist}' - outside active hours",
+                    success=None,
+                    details={"title": title, "artist": artist, "reason": "outside_active_hours"}
+                )
+                return
+            
             # Use smart search strategy
             spotify_track_id = self.bot.search_song_on_spotify_smart(title, artist, radiox_id)
             
