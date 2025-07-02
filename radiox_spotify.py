@@ -4,6 +4,8 @@
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
 
+print("=== RadioX Spotify App Starting ===")
+
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import requests
@@ -31,6 +33,8 @@ try:
     import psutil
 except ImportError:
     psutil = None
+
+print("=== All imports completed successfully ===")
 
 # --- Custom Log Handler for Debug Logs ---
 class DebugLogHandler(logging.Handler):
@@ -131,7 +135,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.3.0"
+BACKEND_VERSION = "1.3.1"
 
 # --- Main Application Class ---
 
@@ -1553,4 +1557,7 @@ if __name__ == "__main__":
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
 else:
     # This block runs when deployed on Gunicorn (like on Render)
-    threading.Thread(target=initialize_bot, daemon=True).start()
+    logging.info("Starting background initialization thread for production deployment...")
+    init_thread = threading.Thread(target=initialize_bot, daemon=True)
+    init_thread.start()
+    logging.info("Background initialization thread started successfully.")
