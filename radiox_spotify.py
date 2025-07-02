@@ -135,7 +135,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.3.4"
+BACKEND_VERSION = "1.3.5"
 
 # --- Main Application Class ---
 
@@ -1506,8 +1506,9 @@ def initialize_bot():
             logging.info("Spotify authentication successful. Loading state...")
             bot_instance.load_state() 
             
-            logging.info("Running startup diagnostics...")
-            bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
+            # Temporarily skip startup diagnostics to avoid email issues
+            logging.info("Skipping startup diagnostics to avoid email issues...")
+            # bot_instance.run_startup_diagnostics(send_email=False) # Run checks but don't email on auto-start
             
             logging.info("Starting main monitoring thread...")
             monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
