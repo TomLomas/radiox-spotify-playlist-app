@@ -189,7 +189,6 @@ class RealTimeWebSocketListener:
                         
                         # Check if this is a new song
                         if unique_id != self.bot.last_added_radiox_track_id:
-                            logging.info(f"🔄 REAL-TIME: New song detected: {title} by {artist}")
                             self.bot.log_event(f"🔄 REAL-TIME: New song detected: {title} by {artist}")
                             self.bot.activity_tracker.add_activity(
                                 'song_detected',
@@ -540,7 +539,7 @@ class RadioXBot:
         """Loads the queues and daily summaries from disk on startup."""
         try:
             # Try to acquire lock with timeout to prevent hanging
-            if self.file_lock.acquire(timeout=10):
+            if self.file_lock.acquire(timeout=30):
                 try:
                     if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
                         with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
@@ -559,7 +558,7 @@ class RadioXBot:
                 finally:
                     self.file_lock.release()
             else:
-                logging.error("Timeout acquiring file lock for state loading")
+                logging.warning("Timeout acquiring file lock for state loading - continuing with defaults")
         except Exception as e:
             logging.error(f"Error in load_state: {e}")
         
@@ -607,7 +606,7 @@ class RadioXBot:
         """Save current day's added songs and failures to persistent cache."""
         try:
             # Try to acquire lock with timeout to prevent hanging
-            if self.file_lock.acquire(timeout=10):
+            if self.file_lock.acquire(timeout=30):
                 try:
                     with open(self.current_daily_cache_file, 'w') as f:
                         json.dump(self.daily_added_songs, f, indent=2)
@@ -619,7 +618,7 @@ class RadioXBot:
                 finally:
                     self.file_lock.release()
             else:
-                logging.error("Timeout acquiring file lock for daily cache saving")
+                logging.warning("Timeout acquiring file lock for daily cache saving - will retry later")
         except Exception as e:
             logging.error(f"Error in save_daily_cache: {e}")
     
@@ -627,7 +626,7 @@ class RadioXBot:
         """Load current day's added songs and failures from persistent cache."""
         try:
             # Try to acquire lock with timeout to prevent hanging
-            if self.file_lock.acquire(timeout=10):
+            if self.file_lock.acquire(timeout=30):
                 try:
                     # Load added songs
                     if os.path.exists(self.current_daily_cache_file):
@@ -654,7 +653,7 @@ class RadioXBot:
                 finally:
                     self.file_lock.release()
             else:
-                logging.error("Timeout acquiring file lock for daily cache loading")
+                logging.warning("Timeout acquiring file lock for daily cache loading - using defaults")
                 self.daily_added_songs = []
                 self.daily_search_failures = []
         except Exception as e:
@@ -1560,10 +1559,9 @@ class RadioXBot:
     # --- Main Application Loop ---
     def run(self):
         """Main monitoring loop."""
-        logging.info("=== Starting RadioX monitoring thread ===")
         self.is_running = True
         self.update_service_state('playing')
-        logging.info("RadioX monitoring thread is now running")
+        logging.info("RadioX monitoring thread started")
         
         if not self.sp: 
             self.log_event("ERROR: Spotify client is None. Thread cannot perform Spotify actions.")
@@ -1573,11 +1571,6 @@ class RadioXBot:
         
         if self.last_summary_log_date is None: 
             self.last_summary_log_date = datetime.date.today()
-            logging.info(f"Initialized last_summary_log_date to {self.last_summary_log_date}")
-        
-        logging.info(f"Monitoring thread initialized successfully. Spotify client: {'Available' if self.sp else 'Not available'}")
-        logging.info(f"Service state: {self.service_state}")
-        logging.info(f"Check interval: {CHECK_INTERVAL} seconds")
         
         # Start timer update thread
         def timer_update_loop():
@@ -1597,16 +1590,13 @@ class RadioXBot:
         
         timer_thread = threading.Thread(target=timer_update_loop, daemon=True)
         timer_thread.start()
-        logging.info("Timer update thread started")
         
-        logging.info("=== Entering main monitoring loop ===")
         cycle_count = 0
         
         while True:
             try:
                 cycle_count += 1
                 now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
-                logging.info(f"=== Cycle {cycle_count} starting at {now_local.strftime('%H:%M:%S')} ===")
                 
                 if self.last_summary_log_date < now_local.date():
                     logging.info(f"New day detected: {now_local.date().isoformat()}")
@@ -1634,7 +1624,6 @@ class RadioXBot:
                 logging.error(f"CRITICAL UNHANDLED ERROR in main loop: {e}", exc_info=True); 
                 time.sleep(CHECK_INTERVAL * 2) 
             
-            logging.info(f"Cycle {cycle_count} complete. Waiting {CHECK_INTERVAL} seconds before next cycle...")
             time.sleep(CHECK_INTERVAL)
 
     def process_main_cycle(self):
@@ -2003,9 +1992,6 @@ def initialize_bot():
     """Handles the slow startup tasks in the background."""
     logging.info("=== Background initialization started ===")
     
-    # Log version at startup
-    log_backend_version()
-    
     # Set a timeout for the entire initialization process
     start_time = time.time()
     max_init_time = 300  # 5 minutes max for initialization
@@ -2076,14 +2062,13 @@ def initialize_bot():
                 logging.info("Starting main monitoring thread...")
                 monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
                 monitor_thread.start()
-                logging.info("Main monitoring thread started successfully")
+                logging.info("Main monitoring thread started")
                 
                 # Get station herald ID for WebSocket listener
                 try:
-                    logging.info("Retrieving station herald ID...")
                     bot_instance.current_station_herald_id = bot_instance.get_station_herald_id(RADIOX_STATION_SLUG)
                     if bot_instance.current_station_herald_id:
-                        logging.info(f"Retrieved station herald ID: {bot_instance.current_station_herald_id}")
+                        logging.info(f"Station herald ID: {bot_instance.current_station_herald_id}")
                     else:
                         logging.warning("Failed to retrieve station herald ID - WebSocket listener may not work")
                 except Exception as e:
@@ -2091,9 +2076,8 @@ def initialize_bot():
                 
                 # Start real-time WebSocket listener after monitoring thread is ready
                 try:
-                    logging.info("Starting real-time WebSocket listener...")
                     bot_instance.realtime_listener.start_listening()
-                    logging.info("Real-time WebSocket listener started successfully")
+                    logging.info("Real-time WebSocket listener started")
                 except Exception as e:
                     logging.error(f"Failed to start WebSocket listener: {e}")
                     # Don't fail initialization for this - it's optional
