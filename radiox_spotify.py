@@ -1035,7 +1035,7 @@ class RadioXBot:
                     self.last_summary_log_date = now_local.date()
                 # Handle time window that spans midnight (7am to 6am)
                 if START_TIME <= now_local.time() <= END_TIME:
-                    self.service_state = 'playing'
+                    self.update_service_state('playing')
                     self.paused_reason = ''
                     if not self.startup_email_sent:
                         self.send_startup_notification("<tr><td>Daily Operation</td><td style='color:green;'>SUCCESS</td><td>Entered active hours.</td></tr>"); self.startup_email_sent = True; self.shutdown_summary_sent = False
@@ -1316,7 +1316,7 @@ def stream():
                     yield f"data: {message['data'].decode('utf-8')}\n\n"
         except Exception as e:
             logging.error(f"Error in SSE stream: {e}")
-            yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
+            yield f"data: {json.dumps({'error': 'Stream error')}\n\n"
 
     return Response(event_stream(), content_type='text/event-stream')
 

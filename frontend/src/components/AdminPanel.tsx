@@ -32,14 +32,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
     }
   };
 
-  const handleSendSummary = async () => {
-    try {
-      await fetch('/admin/send_summary', { method: 'POST' });
-    } catch (error) {
-      console.error('Error sending summary:', error);
-    }
-  };
-
   const handleRetryFailed = async () => {
     try {
       await fetch('/admin/retry_failed', { method: 'POST' });
@@ -85,12 +77,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
             className="bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow"
           >
             Check Duplicates
-          </button>
-          <button
-            onClick={handleSendSummary}
-            className="bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow"
-          >
-            Send Summary
           </button>
           <button
             onClick={handleRetryFailed}
