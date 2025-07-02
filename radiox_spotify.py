@@ -522,24 +522,36 @@ class RadioXBot:
 
     def load_state(self):
         """Loads the queues and daily summaries from disk on startup."""
-        with self.file_lock:
-            try:
-                if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
-                    with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
-                        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=20)
-                        logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
-                if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
-                    with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
-                        self.failed_search_queue = deque(json.load(f), maxlen=5)
-                        logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
-                
-                # Load daily cache using new persistent system
-                self.load_daily_cache()
-                
-            except Exception as e:
-                logging.error(f"Failed to load state from disk: {e}")
+        try:
+            # Try to acquire lock with timeout to prevent hanging
+            if self.file_lock.acquire(timeout=10):
+                try:
+                    if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
+                        with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
+                            self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=20)
+                            logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
+                    if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
+                        with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
+                            self.failed_search_queue = deque(json.load(f), maxlen=5)
+                            logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
+                    
+                    # Load daily cache using new persistent system
+                    self.load_daily_cache()
+                    
+                except Exception as e:
+                    logging.error(f"Failed to load state from disk: {e}")
+                finally:
+                    self.file_lock.release()
+            else:
+                logging.error("Timeout acquiring file lock for state loading")
+        except Exception as e:
+            logging.error(f"Error in load_state: {e}")
+        
         # After loading, immediately calculate stats from the cache
-        self.update_stats()
+        try:
+            self.update_stats()
+        except Exception as e:
+            logging.error(f"Failed to update stats: {e}")
 
     def save_last_check_complete_time(self):
         with open(self.LAST_CHECK_COMPLETE_FILE, 'w') as f:
@@ -2018,10 +2030,11 @@ if __name__ == "__main__":
     # This block runs for local development
     logging.info("=== Script being run directly for local testing ===")
     
-    # Run initialization directly instead of in background thread
-    logging.info("Starting initialization...")
-    initialize_bot()
-    logging.info("Initialization completed.")
+    # Run initialization in background thread to avoid blocking Flask startup
+    logging.info("Starting initialization in background...")
+    init_thread = threading.Thread(target=initialize_bot, daemon=True)
+    init_thread.start()
+    logging.info("Initialization thread started.")
     
     if not all([EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_RECIPIENT]):
         logging.warning("Email environment variables not set. Emails will not be sent.")
@@ -2035,3 +2048,4 @@ else:
     init_thread = threading.Thread(target=initialize_bot, daemon=True)
     init_thread.start()
     logging.info("=== Initialization thread started for production deployment ===")
+    logging.info("=== Flask server will start immediately ===")
