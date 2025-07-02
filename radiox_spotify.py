@@ -110,6 +110,10 @@ class RealTimeWebSocketListener:
         
     def start_listening(self):
         """Start the real-time WebSocket listener."""
+        if not self.bot.sp:
+            logging.warning("Cannot start WebSocket listener - Spotify client not available")
+            return
+            
         self.is_running = True
         self.listener_thread = threading.Thread(target=self._listen_loop, daemon=True)
         self.listener_thread.start()
@@ -139,6 +143,7 @@ class RealTimeWebSocketListener:
     def _connect_and_listen(self):
         """Connect to WebSocket and listen for song changes."""
         if not self.bot.current_station_herald_id:
+            logging.debug("WebSocket listener waiting for station herald ID...")
             time.sleep(5)
             return
         
@@ -405,7 +410,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.0.1"
+BACKEND_VERSION = "2.0.2"
 
 # --- Main Application Class ---
 
@@ -467,8 +472,7 @@ class RadioXBot:
         self.file_lock = threading.Lock()
         self.update_service_state('initializing')
 
-        # Start real-time listener automatically
-        self.realtime_listener.start_listening()
+        # Note: Real-time listener will be started after initialization is complete
 
     def log_event(self, message):
         """Adds an event to the global log for the web UI and standard logging."""
@@ -1544,16 +1548,24 @@ class RadioXBot:
     # --- Main Application Loop ---
     def run(self):
         """Main monitoring loop."""
+        logging.info("=== Starting RadioX monitoring thread ===")
         self.is_running = True
         self.update_service_state('playing')
         logging.info("RadioX monitoring thread is now running")
+        
         if not self.sp: 
             self.log_event("ERROR: Spotify client is None. Thread cannot perform Spotify actions.")
             logging.error("Spotify client is None - monitoring thread cannot continue")
+            self.update_service_state('error', 'Spotify client not available')
             return
+        
         if self.last_summary_log_date is None: 
             self.last_summary_log_date = datetime.date.today()
             logging.info(f"Initialized last_summary_log_date to {self.last_summary_log_date}")
+        
+        logging.info(f"Monitoring thread initialized successfully. Spotify client: {'Available' if self.sp else 'Not available'}")
+        logging.info(f"Service state: {self.service_state}")
+        logging.info(f"Check interval: {CHECK_INTERVAL} seconds")
         
         # Start timer update thread
         def timer_update_loop():
@@ -1573,15 +1585,23 @@ class RadioXBot:
         
         timer_thread = threading.Thread(target=timer_update_loop, daemon=True)
         timer_thread.start()
+        logging.info("Timer update thread started")
+        
+        logging.info("=== Entering main monitoring loop ===")
+        cycle_count = 0
         
         while True:
             try:
+                cycle_count += 1
                 now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+                logging.info(f"=== Cycle {cycle_count} starting at {now_local.strftime('%H:%M:%S')} ===")
+                
                 if self.last_summary_log_date < now_local.date():
                     logging.info(f"New day detected: {now_local.date().isoformat()}")
                     self.startup_email_sent, self.shutdown_summary_sent = False, False
                     self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
                     self.last_summary_log_date = now_local.date()
+                
                 # Handle time window that spans midnight (7am to 6am)
                 if START_TIME <= now_local.time() <= END_TIME:
                     self.update_service_state('playing')
@@ -1601,7 +1621,8 @@ class RadioXBot:
             except Exception as e: 
                 logging.error(f"CRITICAL UNHANDLED ERROR in main loop: {e}", exc_info=True); 
                 time.sleep(CHECK_INTERVAL * 2) 
-            logging.info(f"Cycle complete. Waiting {CHECK_INTERVAL} seconds before next cycle...")
+            
+            logging.info(f"Cycle {cycle_count} complete. Waiting {CHECK_INTERVAL} seconds before next cycle...")
             time.sleep(CHECK_INTERVAL)
 
     def process_main_cycle(self):
@@ -1973,49 +1994,125 @@ def initialize_bot():
     # Log version at startup
     log_backend_version()
     
-    logging.info("Attempting Spotify authentication...")
-    if bot_instance.authenticate_spotify():
-        logging.info("Spotify authentication successful")
+    # Set a timeout for the entire initialization process
+    start_time = time.time()
+    max_init_time = 300  # 5 minutes max for initialization
+    
+    try:
+        logging.info("Attempting Spotify authentication...")
+        auth_success = False
         
-        # Load state with timeout and error handling
-        try:
-            logging.info("Loading state...")
-            bot_instance.load_state() 
-            logging.info("State loaded successfully")
-        except Exception as e:
-            logging.error(f"Failed to load state: {e}")
-            # Continue anyway - don't let this block startup
+        # Add timeout to Spotify authentication
+        def auth_with_timeout():
+            return bot_instance.authenticate_spotify()
         
-        # Run diagnostics with timeout
-        try:
-            logging.info("Running startup diagnostics...")
-            bot_instance.run_startup_diagnostics(send_email=False)
-            logging.info("Startup diagnostics completed")
-        except Exception as e:
-            logging.error(f"Failed to run startup diagnostics: {e}")
-            # Continue anyway - don't let this block startup
+        # Run authentication with timeout
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(auth_with_timeout)
+            try:
+                auth_success = future.result(timeout=60)  # 60 second timeout for auth
+                logging.info("Spotify authentication successful" if auth_success else "Spotify authentication failed")
+            except concurrent.futures.TimeoutError:
+                logging.error("Spotify authentication timed out after 60 seconds")
+                auth_success = False
+            except Exception as e:
+                logging.error(f"Spotify authentication failed with error: {e}")
+                auth_success = False
         
-        # Start monitoring thread
-        try:
-            logging.info("Starting main monitoring thread...")
-            monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
-            monitor_thread.start()
-            logging.info("Main monitoring thread started successfully")
-        except Exception as e:
-            logging.error(f"Failed to start monitoring thread: {e}")
-            bot_instance.update_service_state('error', f'Failed to start monitoring thread: {e}')
-    else:
-        logging.warning("Spotify authentication failed. The Flask server will start but the bot will not function.")
-        logging.warning("The application will be available for admin functions but won't monitor RadioX.")
-        # Still load state and run diagnostics even without Spotify
-        try:
-            bot_instance.load_state()
-            logging.info("State loaded successfully")
-        except Exception as e:
-            logging.warning(f"Could not load state: {e}")
-        
-        # Don't start the monitoring thread if authentication failed
-        bot_instance.update_service_state('error', 'Spotify authentication failed')
+        if auth_success:
+            # Load state with timeout and error handling
+            try:
+                logging.info("Loading state...")
+                # Add timeout to state loading
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(bot_instance.load_state)
+                    try:
+                        future.result(timeout=30)  # 30 second timeout for state loading
+                        logging.info("State loaded successfully")
+                    except concurrent.futures.TimeoutError:
+                        logging.error("State loading timed out after 30 seconds")
+                        # Continue anyway - don't let this block startup
+                    except Exception as e:
+                        logging.error(f"Failed to load state: {e}")
+                        # Continue anyway - don't let this block startup
+            except Exception as e:
+                logging.error(f"Failed to load state: {e}")
+                # Continue anyway - don't let this block startup
+            
+            # Run diagnostics with timeout
+            try:
+                logging.info("Running startup diagnostics...")
+                # Add timeout to diagnostics
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(bot_instance.run_startup_diagnostics, False)
+                    try:
+                        future.result(timeout=60)  # 60 second timeout for diagnostics
+                        logging.info("Startup diagnostics completed")
+                    except concurrent.futures.TimeoutError:
+                        logging.error("Startup diagnostics timed out after 60 seconds")
+                        # Continue anyway - don't let this block startup
+                    except Exception as e:
+                        logging.error(f"Failed to run startup diagnostics: {e}")
+                        # Continue anyway - don't let this block startup
+            except Exception as e:
+                logging.error(f"Failed to run startup diagnostics: {e}")
+                # Continue anyway - don't let this block startup
+            
+            # Start monitoring thread
+            try:
+                logging.info("Starting main monitoring thread...")
+                monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
+                monitor_thread.start()
+                logging.info("Main monitoring thread started successfully")
+                
+                # Get station herald ID for WebSocket listener
+                try:
+                    logging.info("Retrieving station herald ID...")
+                    bot_instance.current_station_herald_id = bot_instance.get_station_herald_id(RADIOX_STATION_SLUG)
+                    if bot_instance.current_station_herald_id:
+                        logging.info(f"Retrieved station herald ID: {bot_instance.current_station_herald_id}")
+                    else:
+                        logging.warning("Failed to retrieve station herald ID - WebSocket listener may not work")
+                except Exception as e:
+                    logging.error(f"Failed to retrieve station herald ID: {e}")
+                
+                # Start real-time WebSocket listener after monitoring thread is ready
+                try:
+                    logging.info("Starting real-time WebSocket listener...")
+                    bot_instance.realtime_listener.start_listening()
+                    logging.info("Real-time WebSocket listener started successfully")
+                except Exception as e:
+                    logging.error(f"Failed to start WebSocket listener: {e}")
+                    # Don't fail initialization for this - it's optional
+                
+                bot_instance.update_service_state('playing', 'Initialization complete')
+            except Exception as e:
+                logging.error(f"Failed to start monitoring thread: {e}")
+                bot_instance.update_service_state('error', f'Failed to start monitoring thread: {e}')
+        else:
+            logging.warning("Spotify authentication failed. The Flask server will start but the bot will not function.")
+            logging.warning("The application will be available for admin functions but won't monitor RadioX.")
+            # Still load state and run diagnostics even without Spotify
+            try:
+                bot_instance.load_state()
+                logging.info("State loaded successfully")
+            except Exception as e:
+                logging.warning(f"Could not load state: {e}")
+            
+            # Don't start the monitoring thread if authentication failed
+            bot_instance.update_service_state('error', 'Spotify authentication failed')
+    
+    except Exception as e:
+        logging.error(f"Critical error during initialization: {e}")
+        bot_instance.update_service_state('error', f'Initialization failed: {e}')
+    
+    # Check if initialization took too long
+    init_time = time.time() - start_time
+    if init_time > max_init_time:
+        logging.warning(f"Initialization took {init_time:.1f} seconds (longer than {max_init_time}s)")
+    
+    logging.info(f"=== Background initialization completed in {init_time:.1f} seconds ===")
 
 @app.route('/test_sse')
 def test_sse():
@@ -2045,7 +2142,7 @@ def stream():
                     yield f"data: {message['data'].decode('utf-8')}\n\n"
         except Exception as e:
             logging.error(f"Error in SSE stream: {e}")
-            yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
+            yield f"data: {json.dumps({'error': 'Stream error')}\n\n"
 
     return Response(event_stream(), content_type='text/event-stream', headers={
         'Cache-Control': 'no-cache',
@@ -2061,6 +2158,32 @@ def activity():
     return jsonify({
         'activities': activities,
         'stats': stats
+    })
+
+@app.route('/debug/threads')
+def debug_threads():
+    """Debug endpoint to check if monitoring thread is running."""
+    import threading
+    active_threads = threading.enumerate()
+    thread_info = []
+    
+    for thread in active_threads:
+        thread_info.append({
+            'name': thread.name,
+            'daemon': thread.daemon,
+            'alive': thread.is_alive(),
+            'ident': thread.ident
+        })
+    
+    # Check if monitoring thread is running
+    monitoring_running = any('run' in thread.name.lower() for thread in active_threads if thread.is_alive())
+    
+    return jsonify({
+        'monitoring_thread_running': monitoring_running,
+        'total_threads': len(active_threads),
+        'threads': thread_info,
+        'bot_is_running': getattr(bot_instance, 'is_running', False),
+        'service_state': getattr(bot_instance, 'service_state', 'unknown')
     })
 
 # --- Script Execution ---
