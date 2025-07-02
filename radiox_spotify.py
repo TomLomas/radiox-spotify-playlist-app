@@ -1009,7 +1009,7 @@ class RadioXBot:
         if current_song_info:
             title, artist, radiox_id = current_song_info["title"], current_song_info["artist"], current_song_info["id"]
             if not title or not artist: logging.warning("Empty title or artist from Radio X.")
-            elif radiox_id == self.last_added_radiox_track_id: logging.info(f"Song '{title}' by '{artist}' (ID: {radiox_id}) same as last. Skipping.")
+            elif radiox_id == self.last_added_radiox_track_id: self.log_event(f"Song '{title}' by '{artist}' (ID: {radiox_id}) same as last. Skipping.")
             else:
                 self.log_event(f"New song: '{title}' by '{artist}'")
                 spotify_track_id = self.search_song_on_spotify(title, artist, radiox_id) 
