@@ -138,7 +138,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "1.4.8"
+BACKEND_VERSION = "1.4.9"
 
 # --- Main Application Class ---
 
@@ -1198,8 +1198,21 @@ def admin_send_debug_log():
     try:
         with open(log_file, 'r') as f:
             log_content = f.read()
-        subject = "RadioX Spotify Debug Log File (Filtered)"
-        html_body = f"<pre>{log_content}</pre>"
+        
+        # Check if log content is empty or only contains whitespace
+        if not log_content.strip():
+            subject = "RadioX Spotify Debug Log File (Filtered) - No Issues Detected"
+            html_body = """
+            <h2>🎉 No Issues Detected!</h2>
+            <p>The debug log file is empty, which means no errors, warnings, or problematic events have been detected since the last log rotation.</p>
+            <p>This is a good sign - your RadioX Spotify bot is running smoothly!</p>
+            <hr>
+            <p><em>Debug log requested on: {timestamp}</em></p>
+            """.format(timestamp=datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime('%Y-%m-%d %H:%M:%S'))
+        else:
+            subject = "RadioX Spotify Debug Log File (Filtered)"
+            html_body = f"<pre>{log_content}</pre>"
+        
         bot_instance.send_summary_email(html_body, subject)
         bot_instance.log_event("Debug log file sent successfully.")
         return "Debug log has been emailed."
