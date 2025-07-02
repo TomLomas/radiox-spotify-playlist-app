@@ -405,7 +405,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.0.0"
+BACKEND_VERSION = "2.0.1"
 
 # --- Main Application Class ---
 
@@ -753,7 +753,7 @@ class RadioXBot:
                 client_secret=SPOTIPY_CLIENT_SECRET,
                 redirect_uri=SPOTIPY_REDIRECT_URI,
                 scope="playlist-modify-public playlist-modify-private",
-                open_browser=True,
+                open_browser=False,  # Disable browser opening in container
                 cache_handler=spotipy.cache_handler.CacheFileHandler(cache_path=".spotipy_cache")
             )
             
@@ -761,19 +761,24 @@ class RadioXBot:
             token_info = auth_manager.get_cached_token()
             
             if not token_info:
-                # If no cached token, prompt user to authenticate
-                token_info = auth_manager.get_access_token(as_dict=True)
-            
-            if not token_info:
-                # If no cached token, we need to get a new one
-                # For now, we'll use a dummy token that will fail gracefully
+                # If no cached token, we can't authenticate in a container
+                # The Flask server should still start, but the bot won't work
                 self.sp = None
-                logging.warning("No cached token found. Please run the application locally first to generate a token.")
+                logging.warning("No cached Spotify token found. The bot will not function until a token is provided.")
+                logging.warning("To fix this, you need to:")
+                logging.warning("1. Run the application locally first to generate a token")
+                logging.warning("2. Copy the .spotipy_cache file to the server")
+                logging.warning("3. Restart the application")
                 return False
             
             # If we have a token, use it
             if auth_manager.is_token_expired(token_info):
-                token_info = auth_manager.refresh_access_token(token_info['refresh_token'])
+                try:
+                    token_info = auth_manager.refresh_access_token(token_info['refresh_token'])
+                except Exception as refresh_error:
+                    logging.error(f"Failed to refresh token: {refresh_error}")
+                    self.sp = None
+                    return False
             
             self.sp = spotipy.Spotify(auth_manager=auth_manager)
             # Test the connection
@@ -1935,7 +1940,17 @@ def initialize_bot():
         monitor_thread.start()
         logging.info("Main monitoring thread started successfully")
     else:
-        logging.critical("Spotify authentication failed. The main monitoring thread will not start.")
+        logging.warning("Spotify authentication failed. The Flask server will start but the bot will not function.")
+        logging.warning("The application will be available for admin functions but won't monitor RadioX.")
+        # Still load state and run diagnostics even without Spotify
+        try:
+            bot_instance.load_state()
+            logging.info("State loaded successfully")
+        except Exception as e:
+            logging.warning(f"Could not load state: {e}")
+        
+        # Don't start the monitoring thread if authentication failed
+        bot_instance.update_service_state('error', 'Spotify authentication failed')
 
 @app.route('/test_sse')
 def test_sse():
