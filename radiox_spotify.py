@@ -84,7 +84,7 @@ ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-BACKEND_VERSION = "1.4.3"
+BACKEND_VERSION = "1.4.4"
 
 # --- Main Application Class ---
 
@@ -1257,7 +1257,7 @@ if __name__ == "__main__":
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False) 
 else:
     # This block runs when deployed on Gunicorn (like on Render)
-    logging.info("Starting background initialization thread for production deployment...")
-    init_thread = threading.Thread(target=initialize_bot, daemon=True)
-    init_thread.start()
-    logging.info("Background initialization thread started successfully.")
+    logging.info("Starting initialization for production deployment...")
+    # Run initialization directly instead of in background thread
+    initialize_bot()
+    logging.info("Initialization completed for production deployment.")
