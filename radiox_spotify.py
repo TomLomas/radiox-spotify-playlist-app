@@ -14,7 +14,7 @@ import logging
 import re 
 import websocket 
 import threading 
-from flask import Flask, jsonify, render_template, Response
+from flask import Flask, jsonify, render_template, Response, request
 import datetime
 import pytz 
 import smtplib 
@@ -405,7 +405,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "1.5.2"
+BACKEND_VERSION = "2.0.0"
 
 # --- Main Application Class ---
 
@@ -1765,7 +1765,6 @@ def admin_test_daily_summary():
 def admin_request_historical_data():
     """Request historical cache data for a specific date."""
     try:
-        from flask import request
         data = request.get_json()
         date_str = data.get('date') if data else None
         
@@ -1966,7 +1965,7 @@ def stream():
                     yield f"data: {message['data'].decode('utf-8')}\n\n"
         except Exception as e:
             logging.error(f"Error in SSE stream: {e}")
-            yield f"data: {json.dumps({'error': 'Stream error')}\n\n"
+            yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
 
     return Response(event_stream(), content_type='text/event-stream')
 
