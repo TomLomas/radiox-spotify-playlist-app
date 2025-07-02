@@ -138,7 +138,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "1.4.9"
+BACKEND_VERSION = "1.5.0"
 
 # --- Main Application Class ---
 
@@ -848,20 +848,8 @@ class RadioXBot:
             return
 
         summary_date = self.last_summary_log_date.isoformat()
-        stats_html = self.get_daily_stats_html()
-        html = f"""
-        <html><head><style>body{{font-family:sans-serif;}} table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #ddd;padding:8px}} th{{background-color:#f2f2f2}} h2{{border-bottom:2px solid #ccc;padding-bottom:5px}} h3{{margin-top:20px}}</style></head><body>
-            <h2>Radio X Spotify Adder Daily Summary: {summary_date}</h2>{stats_html}<h2><b>ADDED (Total: {len(self.daily_added_songs)})</b></h2>
-        """
-        if self.daily_added_songs:
-            html += "<table><tr><th>Title</th><th>Artist</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td></tr>" for item in self.daily_added_songs]) + "</table>"
-        else: html += "<p>No songs were added today.</p>"
-        html += f"<br><h2><b>FAILED (Total: {len(self.daily_search_failures)})</b></h2>"
-        if self.daily_search_failures:
-            html += "<table><tr><th>Title</th><th>Artist</th><th>Reason</th></tr>" + "".join([f"<tr><td>{item['radio_title']}</td><td>{item['radio_artist']}</td><td>{item['reason']}</td></tr>" for item in self.daily_search_failures]) + "</table>"
-        else: html += "<p>No unresolved failures today.</p>"
-        html += "</body></html>"
-        self.send_summary_email(html, subject=f"Radio X Spotify Adder Daily Summary - {summary_date}")
+        html_body = self.get_daily_stats_html()
+        self.send_summary_email(html_body, subject=f"Radio X Spotify Adder Daily Summary: {summary_date}")
         self.daily_added_songs.clear(); self.daily_search_failures.clear(); self.save_state()
 
     def send_startup_notification(self, status_report_html_rows):
