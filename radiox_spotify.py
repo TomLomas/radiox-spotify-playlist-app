@@ -135,7 +135,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 root_logger = logging.getLogger()
 root_logger.addHandler(debug_log_handler)
 
-BACKEND_VERSION = "1.3.3"
+BACKEND_VERSION = "1.3.4"
 
 # --- Main Application Class ---
 
@@ -272,7 +272,9 @@ class RadioXBot:
     # --- Authentication ---
     def authenticate_spotify(self):
         """Initializes and authenticates the Spotipy client using refresh token."""
+        print("=== authenticate_spotify method called ===")
         try:
+            print("=== Creating Spotify OAuth manager ===")
             logging.info("Creating Spotify OAuth manager...")
             auth_manager = spotipy.oauth2.SpotifyOAuth(
                 client_id=SPOTIPY_CLIENT_ID,
@@ -308,6 +310,7 @@ class RadioXBot:
             return True
             
         except Exception as e:
+            print(f"=== Spotify authentication error: {e} ===")
             self.sp = None
             logging.error(f"Error during Spotify Authentication: {e}")
             return False
@@ -1467,7 +1470,9 @@ def index_page():
     return render_template('index.html', active_hours=f"{START_TIME.strftime('%H:%M')} - {END_TIME.strftime('%H:%M')}")
 
 def log_backend_version():
+    print("=== log_backend_version called ===")
     logging.info(f"RadioX Spotify Backend Version: {BACKEND_VERSION}")
+    print("=== log_backend_version completed ===")
 
 @app.route('/version')
 def version():
@@ -1492,8 +1497,10 @@ def initialize_bot():
         log_backend_version()
         
         # Try to authenticate with Spotify, but don't fail if it doesn't work
+        print("=== About to attempt Spotify authentication ===")
         logging.info("Attempting Spotify authentication...")
         auth_success = bot_instance.authenticate_spotify()
+        print(f"=== Spotify authentication result: {auth_success} ===")
         
         if auth_success:
             logging.info("Spotify authentication successful. Loading state...")
