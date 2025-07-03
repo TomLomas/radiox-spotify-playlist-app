@@ -1714,9 +1714,6 @@ class RadioXBot:
     def process_main_cycle(self):
         logging.info("=== Starting main cycle ===")
         
-        # --- NEW: Set flag to prevent real-time listener from processing during main cycle ---
-        self.main_cycle_running = True
-        
         # Add activity for cycle start
         self.activity_tracker.add_activity(
             'cycle_start',
@@ -1827,9 +1824,6 @@ class RadioXBot:
         self.save_last_check_complete_time()
         self.save_state()
         self.is_checking = False
-        
-        # --- NEW: Reset flag after main cycle completes ---
-        self.main_cycle_running = False
         
         # Add activity for cycle completion
         self.activity_tracker.add_activity(
