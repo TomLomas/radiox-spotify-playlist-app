@@ -207,6 +207,40 @@ class RealTimeWebSocketListener:
     def _process_song_immediately(self, title, artist, radiox_id):
         """Process a new song immediately when detected."""
         try:
+            # --- NEW: Check if main cycle is running - if so, skip to prevent conflicts ---
+            if self.bot.main_cycle_running:
+                self.bot.log_event(f"⏸️ REAL-TIME: Skipping '{title}' by '{artist}' - main cycle is running")
+                self.bot.activity_tracker.add_activity(
+                    'skipped_main_cycle',
+                    f"Real-time: Skipped '{title}' by '{artist}' - main cycle running",
+                    success=None,
+                    details={"title": title, "artist": artist, "reason": "main_cycle_running"}
+                )
+                return
+            
+            # --- NEW: Check cooldown period to prevent processing same song multiple times ---
+            current_time = time.time()
+            if current_time - self.bot.last_realtime_processed_time < self.bot.realtime_cooldown_seconds:
+                self.bot.log_event(f"⏸️ REAL-TIME: Skipping '{title}' by '{artist}' - cooldown period active")
+                self.bot.activity_tracker.add_activity(
+                    'skipped_cooldown',
+                    f"Real-time: Skipped '{title}' by '{artist}' - cooldown period",
+                    success=None,
+                    details={"title": title, "artist": artist, "reason": "cooldown_period"}
+                )
+                return
+            
+            # --- NEW: Check if this song was already processed (additional safety) ---
+            if radiox_id == self.bot.last_added_radiox_track_id:
+                self.bot.log_event(f"⏸️ REAL-TIME: Skipping '{title}' by '{artist}' - already processed")
+                self.bot.activity_tracker.add_activity(
+                    'skipped_already_processed',
+                    f"Real-time: Skipped '{title}' by '{artist}' - already processed",
+                    success=None,
+                    details={"title": title, "artist": artist, "reason": "already_processed"}
+                )
+                return
+            
             # Check if we're within active hours
             now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
             if not (START_TIME <= now_local.time() <= END_TIME):
@@ -218,6 +252,9 @@ class RealTimeWebSocketListener:
                     details={"title": title, "artist": artist, "reason": "outside_active_hours"}
                 )
                 return
+            
+            # --- NEW: Update last processed time before processing ---
+            self.bot.last_realtime_processed_time = current_time
             
             # Use smart search strategy
             spotify_track_id = self.bot.search_song_on_spotify_smart(title, artist, radiox_id)
@@ -434,7 +471,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.0.9"
+BACKEND_VERSION = "2.1.0"
 
 # --- Main Application Class ---
 
@@ -460,6 +497,11 @@ class RadioXBot:
         self.next_check_time = ''
         self.stats = {}
         self.state_history = []
+        
+        # --- NEW: Coordination flags to prevent duplicate processing ---
+        self.main_cycle_running = False
+        self.last_realtime_processed_time = 0
+        self.realtime_cooldown_seconds = 30  # Prevent processing same song multiple times within 30 seconds
 
         # Persistent Data Structures
         self.CACHE_DIR = ".cache"
@@ -1656,6 +1698,9 @@ class RadioXBot:
     def process_main_cycle(self):
         logging.info("=== Starting main cycle ===")
         
+        # --- NEW: Set flag to prevent real-time listener from processing during main cycle ---
+        self.main_cycle_running = True
+        
         # Check and update daily cache (handles date rollovers)
         self.check_and_update_daily_cache()
         
@@ -1664,6 +1709,7 @@ class RadioXBot:
             logging.info(f"Retrieved station herald ID: {self.current_station_herald_id}")
         if not self.current_station_herald_id: 
             logging.error("Failed to get station herald ID")
+            self.main_cycle_running = False  # Reset flag on error
             return
         
         current_song_info = self.get_current_radiox_song(self.current_station_herald_id)
@@ -1698,6 +1744,10 @@ class RadioXBot:
         self.save_last_check_complete_time()
         self.save_state()
         self.is_checking = False
+        
+        # --- NEW: Reset flag after main cycle completes ---
+        self.main_cycle_running = False
+        
         try:
             with app.app_context():
                 sse.publish({"last_check_complete_time": self.last_check_complete_time}, type='status_update')
@@ -1782,6 +1832,8 @@ def admin_force_check():
     
     def run_manual_check():
         try:
+            # --- NEW: Set flag to prevent real-time listener conflicts during manual check ---
+            bot_instance.main_cycle_running = True
             bot_instance.process_main_cycle()
             # Publish status update after manual check completes
             with app.app_context():
@@ -1789,6 +1841,9 @@ def admin_force_check():
                 logging.debug(f"SSE: Published status_update event after manual check")
         except Exception as e:
             bot_instance.log_event(f"Error during manual check: {e}")
+        finally:
+            # --- NEW: Ensure flag is reset even if error occurs ---
+            bot_instance.main_cycle_running = False
     
     threading.Thread(target=run_manual_check).start()
     return "Manual check has been triggered. Check logs for progress."
