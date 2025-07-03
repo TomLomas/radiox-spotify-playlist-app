@@ -1154,16 +1154,16 @@ class RadioXBot:
             busiest_hour = hour_counts.most_common(1)[0] if hour_counts else (0, 0)
             
             # Release date analysis
-                songs_with_dates = [s for s in self.daily_added_songs if s.get('release_date') and '-' in s['release_date']]
+            songs_with_dates = [s for s in self.daily_added_songs if s.get('release_date') and '-' in s['release_date']]
             decade_counts = Counter()
             oldest_song = None
             newest_song = None
             
-                if songs_with_dates:
-                    songs_with_dates.sort(key=lambda x: x['release_date'])
+            if songs_with_dates:
+                songs_with_dates.sort(key=lambda x: x['release_date'])
                 oldest_song = songs_with_dates[0]
                 newest_song = songs_with_dates[-1]
-                    decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
+                decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
             
             # Failure analysis
             failure_reasons = Counter(item['reason'] for item in self.daily_search_failures)
