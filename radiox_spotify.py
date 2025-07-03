@@ -710,6 +710,21 @@ class RadioXBot:
         """Add a failure to the daily cache and save immediately."""
         self.daily_search_failures.append(failure_data)
         self.save_daily_cache()
+    
+    def add_to_failed_search_queue(self, title, artist, radiox_id):
+        """Add a failed search to the retry queue."""
+        if len(self.failed_search_queue) >= MAX_FAILED_SEARCH_QUEUE_SIZE:
+            # Remove oldest entry if queue is full
+            self.failed_search_queue.popleft()
+        
+        self.failed_search_queue.append({
+            'title': title,
+            'artist': artist,
+            'radiox_id': radiox_id,
+            'attempts': 0,
+            'added_at': time.time()
+        })
+        logging.debug(f"Added '{title}' by '{artist}' to failed search queue")
 
     def create_daily_cache_attachments(self, date_str=None):
         """Create JSON files with daily cache data for email attachments."""
@@ -833,7 +848,7 @@ class RadioXBot:
             # If we have a token, use it
             if auth_manager.is_token_expired(token_info):
                 try:
-                token_info = auth_manager.refresh_access_token(token_info['refresh_token'])
+                    token_info = auth_manager.refresh_access_token(token_info['refresh_token'])
                 except Exception as refresh_error:
                     logging.error(f"Failed to refresh token: {refresh_error}")
                     self.sp = None
