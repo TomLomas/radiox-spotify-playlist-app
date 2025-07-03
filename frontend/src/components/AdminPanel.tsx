@@ -146,25 +146,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ appState, backendVersion
 
       {/* Historical Data Request Card */}
       <div className="bg-gray-800 shadow rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Request Historical Data</h3>
-        <div className="flex flex-col md:flex-row md:space-x-8 w-full max-w-xl justify-center">
-          <input
-            type="date"
-            value={historicalDate}
-            onChange={(e) => setHistoricalDate(e.target.value)}
-            className="p-2 border border-gray-300 rounded-lg"
-          />
-          <button
-            onClick={handleRequestHistoricalData}
-            className="bg-purple-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow"
-          >
-            Request
-          </button>
-        </div>
-      </div>
-
-      {/* Historical Data Request Card */}
-      <div className="bg-gray-800 shadow rounded-lg p-6">
         <h3 className="text-lg font-semibold text-white mb-4">📊 Request Historical Data</h3>
         <p className="text-gray-300 mb-4">Get daily cache data for any date (up to 7 days old) emailed to you as JSON files.</p>
         <div className="flex flex-col sm:flex-row gap-4 items-center">
