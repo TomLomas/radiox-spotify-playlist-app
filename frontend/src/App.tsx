@@ -45,7 +45,7 @@ interface AppState {
   backend_version: string;
 }
 
-const FRONTEND_VERSION = "2.0.0";
+const FRONTEND_VERSION = "2.0.5";
 
 function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
