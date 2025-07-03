@@ -480,7 +480,6 @@ class RadioXBot:
         self.activity_tracker = ActivityTracker()
 
         self.log_event("Application instance created. Waiting for initialization.")
-        self.file_lock = threading.Lock()
         self.update_service_state('initializing')
 
         # Note: Real-time listener will be started after initialization is complete
@@ -523,42 +522,43 @@ class RadioXBot:
     # --- Persistent State Management ---
     def save_state(self):
         """Saves the queues and daily summaries to disk."""
-        with self.file_lock:
-            try:
-                with open(self.RECENTLY_ADDED_CACHE_FILE, 'w') as f: json.dump(list(self.RECENTLY_ADDED_SPOTIFY_IDS), f)
-                with open(self.FAILED_QUEUE_CACHE_FILE, 'w') as f: json.dump(list(self.failed_search_queue), f)
-                
-                # Save daily cache using new persistent system
-                self.save_daily_cache()
-                
-                logging.debug("Successfully saved application state to disk.")
-            except Exception as e:
-                logging.error(f"Failed to save state to disk: {e}")
+        try:
+            # Save without blocking - use temporary files then rename
+            temp_recently_added = f"{self.RECENTLY_ADDED_CACHE_FILE}.tmp"
+            temp_failed_queue = f"{self.FAILED_QUEUE_CACHE_FILE}.tmp"
+            
+            with open(temp_recently_added, 'w') as f: 
+                json.dump(list(self.RECENTLY_ADDED_SPOTIFY_IDS), f)
+            with open(temp_failed_queue, 'w') as f: 
+                json.dump(list(self.failed_search_queue), f)
+            
+            # Atomic rename operations
+            os.replace(temp_recently_added, self.RECENTLY_ADDED_CACHE_FILE)
+            os.replace(temp_failed_queue, self.FAILED_QUEUE_CACHE_FILE)
+            
+            # Save daily cache using new persistent system
+            self.save_daily_cache()
+            
+            logging.debug("Successfully saved application state to disk.")
+        except Exception as e:
+            logging.error(f"Failed to save state to disk: {e}")
 
     def load_state(self):
         """Loads the queues and daily summaries from disk on startup."""
         try:
-            # Try to acquire lock with timeout to prevent hanging
-            if self.file_lock.acquire(timeout=30):
-                try:
-                    if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
-                        with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
-                            self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=20)
-                            logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
-                    if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
-                        with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
-                            self.failed_search_queue = deque(json.load(f), maxlen=5)
-                            logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
-                    
-                    # Load daily cache using new persistent system
-                    self.load_daily_cache()
-                    
-                except Exception as e:
-                    logging.error(f"Failed to load state from disk: {e}")
-                finally:
-                    self.file_lock.release()
-            else:
-                logging.warning("Timeout acquiring file lock for state loading - continuing with defaults")
+            # Load without blocking - read files directly
+            if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
+                with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
+                    self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=20)
+                    logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
+            if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
+                with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
+                    self.failed_search_queue = deque(json.load(f), maxlen=5)
+                    logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
+            
+            # Load daily cache using new persistent system
+            self.load_daily_cache()
+            
         except Exception as e:
             logging.error(f"Error in load_state: {e}")
         
@@ -569,16 +569,27 @@ class RadioXBot:
             logging.error(f"Failed to update stats: {e}")
 
     def save_last_check_complete_time(self):
-        with open(self.LAST_CHECK_COMPLETE_FILE, 'w') as f:
-            f.write(str(self.last_check_complete_time))
+        try:
+            # Save without blocking - use temporary file then rename
+            temp_file = f"{self.LAST_CHECK_COMPLETE_FILE}.tmp"
+            with open(temp_file, 'w') as f:
+                f.write(str(self.last_check_complete_time))
+            # Atomic rename operation
+            os.replace(temp_file, self.LAST_CHECK_COMPLETE_FILE)
+        except Exception as e:
+            logging.error(f"Error saving last check complete time: {e}")
 
     def load_last_check_complete_time(self):
-        if os.path.exists(self.LAST_CHECK_COMPLETE_FILE):
-            with open(self.LAST_CHECK_COMPLETE_FILE, 'r') as f:
-                try:
-                    self.last_check_complete_time = int(f.read().strip())
-                except Exception:
-                    self.last_check_complete_time = 0
+        try:
+            if os.path.exists(self.LAST_CHECK_COMPLETE_FILE):
+                with open(self.LAST_CHECK_COMPLETE_FILE, 'r') as f:
+                    try:
+                        self.last_check_complete_time = int(f.read().strip())
+                    except Exception:
+                        self.last_check_complete_time = 0
+        except Exception as e:
+            logging.error(f"Error loading last check complete time: {e}")
+            self.last_check_complete_time = 0
 
     # --- NEW: Persistent Daily Cache Management ---
     def check_and_update_daily_cache(self):
@@ -605,57 +616,45 @@ class RadioXBot:
     def save_daily_cache(self):
         """Save current day's added songs and failures to persistent cache."""
         try:
-            # Try to acquire lock with timeout to prevent hanging
-            if self.file_lock.acquire(timeout=30):
-                try:
-                    with open(self.current_daily_cache_file, 'w') as f:
-                        json.dump(self.daily_added_songs, f, indent=2)
-                    with open(self.current_daily_failed_cache_file, 'w') as f:
-                        json.dump(self.daily_search_failures, f, indent=2)
-                    logging.debug(f"Saved daily cache for {self.current_date}: {len(self.daily_added_songs)} added, {len(self.daily_search_failures)} failed")
-                except Exception as e:
-                    logging.error(f"Failed to save daily cache: {e}")
-                finally:
-                    self.file_lock.release()
-            else:
-                logging.warning("Timeout acquiring file lock for daily cache saving - will retry later")
+            # Save without blocking - use temporary files then rename
+            temp_added_file = f"{self.current_daily_cache_file}.tmp"
+            temp_failed_file = f"{self.current_daily_failed_cache_file}.tmp"
+            
+            with open(temp_added_file, 'w') as f:
+                json.dump(self.daily_added_songs, f, indent=2)
+            with open(temp_failed_file, 'w') as f:
+                json.dump(self.daily_search_failures, f, indent=2)
+            
+            # Atomic rename operations
+            os.replace(temp_added_file, self.current_daily_cache_file)
+            os.replace(temp_failed_file, self.current_daily_failed_cache_file)
+            
+            logging.debug(f"Saved daily cache for {self.current_date}: {len(self.daily_added_songs)} added, {len(self.daily_search_failures)} failed")
         except Exception as e:
             logging.error(f"Error in save_daily_cache: {e}")
     
     def load_daily_cache(self):
         """Load current day's added songs and failures from persistent cache."""
         try:
-            # Try to acquire lock with timeout to prevent hanging
-            if self.file_lock.acquire(timeout=30):
-                try:
-                    # Load added songs
-                    if os.path.exists(self.current_daily_cache_file):
-                        with open(self.current_daily_cache_file, 'r') as f:
-                            self.daily_added_songs = json.load(f)
-                        logging.info(f"Loaded {len(self.daily_added_songs)} added songs from daily cache for {self.current_date}")
-                    else:
-                        self.daily_added_songs = []
-                        logging.info(f"Starting fresh daily cache for {self.current_date}")
-                    
-                    # Load failed searches
-                    if os.path.exists(self.current_daily_failed_cache_file):
-                        with open(self.current_daily_failed_cache_file, 'r') as f:
-                            self.daily_search_failures = json.load(f)
-                        logging.info(f"Loaded {len(self.daily_search_failures)} failed searches from daily cache for {self.current_date}")
-                    else:
-                        self.daily_search_failures = []
-                        logging.info(f"Starting fresh failed searches cache for {self.current_date}")
-                        
-                except Exception as e:
-                    logging.error(f"Failed to load daily cache: {e}")
-                    self.daily_added_songs = []
-                    self.daily_search_failures = []
-                finally:
-                    self.file_lock.release()
+            # Load without blocking - read files directly
+            # Load added songs
+            if os.path.exists(self.current_daily_cache_file):
+                with open(self.current_daily_cache_file, 'r') as f:
+                    self.daily_added_songs = json.load(f)
+                logging.info(f"Loaded {len(self.daily_added_songs)} added songs from daily cache for {self.current_date}")
             else:
-                logging.warning("Timeout acquiring file lock for daily cache loading - using defaults")
                 self.daily_added_songs = []
+                logging.info(f"Starting fresh daily cache for {self.current_date}")
+            
+            # Load failed searches
+            if os.path.exists(self.current_daily_failed_cache_file):
+                with open(self.current_daily_failed_cache_file, 'r') as f:
+                    self.daily_search_failures = json.load(f)
+                logging.info(f"Loaded {len(self.daily_search_failures)} failed searches from daily cache for {self.current_date}")
+            else:
                 self.daily_search_failures = []
+                logging.info(f"Starting fresh failed searches cache for {self.current_date}")
+                
         except Exception as e:
             logging.error(f"Error in load_daily_cache: {e}")
             self.daily_added_songs = []
@@ -1899,38 +1898,29 @@ def admin_request_historical_data():
 def status():
     # Non-blocking status endpoint that doesn't depend on initialization
     try:
-        # Try to acquire lock with timeout to prevent hanging
-        if bot_instance.file_lock.acquire(timeout=5):
-            try:
-                # Check and update daily cache to ensure we're reading the correct date's data
-                bot_instance.check_and_update_daily_cache()
-                
-                # Read from the current daily cache files
-                if os.path.exists(bot_instance.current_daily_cache_file):
-                    with open(bot_instance.current_daily_cache_file, 'r') as f:
-                        daily_added = json.load(f)
-                else:
-                    daily_added = []
-                    
-                if os.path.exists(bot_instance.current_daily_failed_cache_file):
-                    with open(bot_instance.current_daily_failed_cache_file, 'r') as f:
-                        daily_failed = json.load(f)
-                else:
-                    daily_failed = []
-                    
-                if os.path.exists(bot_instance.FAILED_QUEUE_CACHE_FILE):
-                    with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: 
-                        failed_queue = json.load(f)
-                else:
-                    failed_queue = []
-                    
-                bot_instance.load_last_check_complete_time()
-            finally:
-                bot_instance.file_lock.release()
+        # Check and update daily cache to ensure we're reading the correct date's data
+        bot_instance.check_and_update_daily_cache()
+        
+        # Read from the current daily cache files without blocking
+        if os.path.exists(bot_instance.current_daily_cache_file):
+            with open(bot_instance.current_daily_cache_file, 'r') as f:
+                daily_added = json.load(f)
         else:
-            # If we can't acquire the lock, return default values
-            logging.warning("Could not acquire file lock for /status endpoint, returning defaults")
-            daily_added, daily_failed, failed_queue = [], [], []
+            daily_added = []
+            
+        if os.path.exists(bot_instance.current_daily_failed_cache_file):
+            with open(bot_instance.current_daily_failed_cache_file, 'r') as f:
+                daily_failed = json.load(f)
+        else:
+            daily_failed = []
+            
+        if os.path.exists(bot_instance.FAILED_QUEUE_CACHE_FILE):
+            with open(bot_instance.FAILED_QUEUE_CACHE_FILE, 'r') as f: 
+                failed_queue = json.load(f)
+        else:
+            failed_queue = []
+            
+        bot_instance.load_last_check_complete_time()
             
     except FileNotFoundError:
         daily_added, daily_failed, failed_queue = [], [], []
