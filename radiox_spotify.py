@@ -218,18 +218,6 @@ class RealTimeWebSocketListener:
                 )
                 return
             
-            # --- NEW: Check cooldown period to prevent processing same song multiple times ---
-            current_time = time.time()
-            if current_time - self.bot.last_realtime_processed_time < self.bot.realtime_cooldown_seconds:
-                self.bot.log_event(f"⏸️ REAL-TIME: Skipping '{title}' by '{artist}' - cooldown period active")
-                self.bot.activity_tracker.add_activity(
-                    'skipped_cooldown',
-                    f"Real-time: Skipped '{title}' by '{artist}' - cooldown period",
-                    success=None,
-                    details={"title": title, "artist": artist, "reason": "cooldown_period"}
-                )
-                return
-            
             # --- NEW: Check if this song was already processed (additional safety) ---
             if radiox_id == self.bot.last_added_radiox_track_id:
                 self.bot.log_event(f"⏸️ REAL-TIME: Skipping '{title}' by '{artist}' - already processed")
@@ -241,9 +229,13 @@ class RealTimeWebSocketListener:
                 )
                 return
             
+            # --- NEW: Reset main cycle flag to prevent main cycle from duplicating this track ---
+            self.bot.main_cycle_running = True
+            
             # Check if we're within active hours
             now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
             if not (START_TIME <= now_local.time() <= END_TIME):
+                self.bot.main_cycle_running = False  # Reset flag if skipping
                 self.bot.log_event(f"⏰ REAL-TIME: Skipping '{title}' by '{artist}' - outside active hours ({START_TIME.strftime('%H:%M')}-{END_TIME.strftime('%H:%M')})")
                 self.bot.activity_tracker.add_activity(
                     'skipped_out_of_hours',
@@ -252,9 +244,6 @@ class RealTimeWebSocketListener:
                     details={"title": title, "artist": artist, "reason": "outside_active_hours"}
                 )
                 return
-            
-            # --- NEW: Update last processed time before processing ---
-            self.bot.last_realtime_processed_time = current_time
             
             # Use smart search strategy
             spotify_track_id = self.bot.search_song_on_spotify_smart(title, artist, radiox_id)
@@ -298,8 +287,13 @@ class RealTimeWebSocketListener:
                     success=False,
                     details={"title": title, "artist": artist}
                 )
+            
+            # --- NEW: Reset main cycle flag after processing completes ---
+            self.bot.main_cycle_running = False
                 
         except Exception as e:
+            # --- NEW: Ensure main cycle flag is reset even on error ---
+            self.bot.main_cycle_running = False
             logging.error(f"Error processing song immediately: {e}")
             self.bot.log_event(f"❌ REAL-TIME: Error processing '{title}' by '{artist}': {e}")
             self.bot.activity_tracker.add_activity(
@@ -500,8 +494,7 @@ class RadioXBot:
         
         # --- NEW: Coordination flags to prevent duplicate processing ---
         self.main_cycle_running = False
-        self.last_realtime_processed_time = 0
-        self.realtime_cooldown_seconds = 30  # Prevent processing same song multiple times within 30 seconds
+        # Removed cooldown - not necessary with main cycle coordination
 
         # Persistent Data Structures
         self.CACHE_DIR = ".cache"
