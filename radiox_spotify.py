@@ -2328,6 +2328,7 @@ def stream():
 
 @app.route('/activity')
 def activity():
+    logging.info("ACTIVITY ENDPOINT: Request received")
     try:
         activities = bot_instance.activity_tracker.get_recent_activities()
         stats = bot_instance.activity_tracker.get_stats()
@@ -2335,10 +2336,13 @@ def activity():
         # Debug logging
         logging.info(f"ACTIVITY ENDPOINT: Returning {len(activities)} activities and stats: {stats}")
         
-        return jsonify({
+        response_data = {
             'activities': activities,
             'stats': stats
-        })
+        }
+        logging.info(f"ACTIVITY ENDPOINT: Response data: {response_data}")
+        
+        return jsonify(response_data)
     except Exception as e:
         logging.error(f"Error in /activity endpoint: {e}")
         return jsonify({

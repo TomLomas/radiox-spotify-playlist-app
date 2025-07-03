@@ -54,9 +54,20 @@ const LiveActivityDashboard: React.FC = () => {
     let mounted = true;
     const fetchActivity = async () => {
       try {
+        console.log('LiveActivityDashboard: Fetching /activity...');
         const res = await fetch('/activity');
+        console.log('LiveActivityDashboard: Response status:', res.status);
+        console.log('LiveActivityDashboard: Response headers:', res.headers);
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
         const data = await res.json();
         console.log('LiveActivityDashboard: Received data from /activity:', data);
+        console.log('LiveActivityDashboard: Activities count:', data.activities?.length || 0);
+        console.log('LiveActivityDashboard: Stats:', data.stats);
+        
         if (mounted) {
           setActivities(data.activities || []);
           setStats(data.stats || null);
@@ -64,6 +75,7 @@ const LiveActivityDashboard: React.FC = () => {
         }
       } catch (e) {
         console.error('LiveActivityDashboard: Error fetching activity:', e);
+        console.error('LiveActivityDashboard: Error details:', e.message);
         // If error, show as disconnected
         if (mounted) setLoading(false);
       }
