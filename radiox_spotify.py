@@ -480,7 +480,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.1.5"
+BACKEND_VERSION = "2.1.6"
 
 # --- Main Application Class ---
 
@@ -2328,16 +2328,24 @@ def stream():
 
 @app.route('/activity')
 def activity():
-    activities = bot_instance.activity_tracker.get_recent_activities()
-    stats = bot_instance.activity_tracker.get_stats()
-    
-    # Debug logging
-    logging.info(f"ACTIVITY ENDPOINT: Returning {len(activities)} activities and stats: {stats}")
-    
-    return jsonify({
-        'activities': activities,
-        'stats': stats
-    })
+    try:
+        activities = bot_instance.activity_tracker.get_recent_activities()
+        stats = bot_instance.activity_tracker.get_stats()
+        
+        # Debug logging
+        logging.info(f"ACTIVITY ENDPOINT: Returning {len(activities)} activities and stats: {stats}")
+        
+        return jsonify({
+            'activities': activities,
+            'stats': stats
+        })
+    except Exception as e:
+        logging.error(f"Error in /activity endpoint: {e}")
+        return jsonify({
+            'activities': [],
+            'stats': None,
+            'error': str(e)
+        }), 500
 
 @app.route('/debug/threads')
 def debug_threads():

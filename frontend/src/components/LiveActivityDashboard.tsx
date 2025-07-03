@@ -56,12 +56,14 @@ const LiveActivityDashboard: React.FC = () => {
       try {
         const res = await fetch('/activity');
         const data = await res.json();
+        console.log('LiveActivityDashboard: Received data from /activity:', data);
         if (mounted) {
           setActivities(data.activities || []);
           setStats(data.stats || null);
           setLoading(false);
         }
       } catch (e) {
+        console.error('LiveActivityDashboard: Error fetching activity:', e);
         // If error, show as disconnected
         if (mounted) setLoading(false);
       }
