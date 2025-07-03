@@ -434,7 +434,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.0.2"
+BACKEND_VERSION = "2.0.6"
 
 # --- Main Application Class ---
 
