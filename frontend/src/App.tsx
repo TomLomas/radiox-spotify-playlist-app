@@ -114,6 +114,11 @@ function App() {
       if (data.timer_update || data.last_check_complete_time) {
         fetchStatus();
       }
+      // --- NEW: If it's a stats update, refresh to get updated statistics ---
+      if (data.stats_update) {
+        console.log('Stats update received, refreshing status...');
+        fetchStatus();
+      }
     });
 
     eventSource.addEventListener('test', (event) => {

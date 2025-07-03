@@ -265,6 +265,14 @@ class RealTimeWebSocketListener:
                     except Exception as e:
                         logging.error(f"SSE: Failed to publish status_update event after real-time song: {e}")
                     
+                    # --- NEW: Trigger stats panel refresh when song is added ---
+                    try:
+                        with app.app_context():
+                            sse.publish({"stats_update": True}, type='status_update')
+                            logging.debug(f"SSE: Published stats_update event after real-time song addition")
+                    except Exception as e:
+                        logging.error(f"SSE: Failed to publish stats_update event: {e}")
+                    
                     self.bot.activity_tracker.add_activity(
                         'song_added',
                         f"Real-time: Added '{title}' by '{artist}' to playlist",
@@ -472,7 +480,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.1.3"
+BACKEND_VERSION = "2.1.4"
 
 # --- Main Application Class ---
 
@@ -1771,14 +1779,21 @@ class RadioXBot:
                             'song_added',
                             f'Main cycle: Successfully added {title} by {artist}',
                             success=True,
-                            details={'title': title, 'artist': artist, 'spotify_id': spotify_track_id, 'source': 'main_cycle'}
+                            details={"title": title, "artist": artist, "spotify_id": spotify_track_id, "source": "main_cycle"}
                         )
+                        # --- NEW: Trigger stats panel refresh when song is added via main cycle ---
+                        try:
+                            with app.app_context():
+                                sse.publish({"stats_update": True}, type='status_update')
+                                logging.debug(f"SSE: Published stats_update event after main cycle song addition")
+                        except Exception as e:
+                            logging.error(f"SSE: Failed to publish stats_update event: {e}")
                     else:
                         self.activity_tracker.add_activity(
                             'add_failed',
                             f'Main cycle: Failed to add {title} by {artist} to playlist',
                             success=False,
-                            details={'title': title, 'artist': artist, 'spotify_id': spotify_track_id, 'source': 'main_cycle'}
+                            details={"title": title, "artist": artist, "spotify_id": spotify_track_id, "source": "main_cycle"}
                         )
                 else:
                     self.activity_tracker.add_activity(
