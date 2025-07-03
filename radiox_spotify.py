@@ -207,8 +207,8 @@ class RealTimeWebSocketListener:
     def _process_song_immediately(self, title, artist, radiox_id):
         """Process a new song immediately when detected."""
         try:
-            # --- NEW: Check if main cycle is running - if so, skip to prevent conflicts ---
-            if self.bot.main_cycle_running:
+            # --- NEW: Use lock to prevent race conditions with main cycle ---
+            if not self.bot.processing_lock.acquire(blocking=False):
                 self.bot.log_event(f"⏸️ REAL-TIME: Skipping '{title}' by '{artist}' - main cycle is running")
                 self.bot.activity_tracker.add_activity(
                     'skipped_main_cycle',
@@ -217,91 +217,85 @@ class RealTimeWebSocketListener:
                     details={"title": title, "artist": artist, "reason": "main_cycle_running"}
                 )
                 return
-            
-            # --- NEW: Check if this song was already processed (additional safety) ---
-            if radiox_id == self.bot.last_added_radiox_track_id:
-                self.bot.log_event(f"⏸️ REAL-TIME: Skipping '{title}' by '{artist}' - already processed")
-                self.bot.activity_tracker.add_activity(
-                    'skipped_already_processed',
-                    f"Real-time: Skipped '{title}' by '{artist}' - already processed",
-                    success=None,
-                    details={"title": title, "artist": artist, "reason": "already_processed"}
-                )
-                return
-            
-            # --- NEW: Reset main cycle flag to prevent main cycle from duplicating this track ---
-            self.bot.main_cycle_running = True
-            
-            # Check if we're within active hours
-            now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
-            if not (START_TIME <= now_local.time() <= END_TIME):
-                self.bot.main_cycle_running = False  # Reset flag if skipping
-                self.bot.log_event(f"⏰ REAL-TIME: Skipping '{title}' by '{artist}' - outside active hours ({START_TIME.strftime('%H:%M')}-{END_TIME.strftime('%H:%M')})")
-                self.bot.activity_tracker.add_activity(
-                    'skipped_out_of_hours',
-                    f"Real-time: Skipped '{title}' by '{artist}' - outside active hours",
-                    success=None,
-                    details={"title": title, "artist": artist, "reason": "outside_active_hours"}
-                )
-                return
-            
-            # Use smart search strategy
-            spotify_track_id = self.bot.search_song_on_spotify_smart(title, artist, radiox_id)
-            
-            if spotify_track_id:
-                if self.bot.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID):
-                    self.bot.log_event(f"✅ REAL-TIME: Successfully added '{title}' by '{artist}'")
-                    self.bot.last_added_radiox_track_id = radiox_id
-                    
-                    # Reset timer like a force check - update last_check_complete_time
-                    self.bot.last_check_complete_time = int(time.time())
-                    self.bot.save_last_check_complete_time()
-                    
-                    # Publish status update to reset frontend timer
-                    try:
-                        with app.app_context():
-                            sse.publish({"last_check_complete_time": self.bot.last_check_complete_time}, type='status_update')
-                            logging.debug(f"SSE: Published status_update event after real-time song addition")
-                    except Exception as e:
-                        logging.error(f"SSE: Failed to publish status_update event after real-time song: {e}")
-                    
-                    # --- NEW: Trigger stats panel refresh when song is added ---
-                    try:
-                        with app.app_context():
-                            sse.publish({"stats_update": True}, type='status_update')
-                            logging.debug(f"SSE: Published stats_update event after real-time song addition")
-                    except Exception as e:
-                        logging.error(f"SSE: Failed to publish stats_update event: {e}")
-                    
+
+            try:
+                # --- NEW: Check if this song was already processed (additional safety) ---
+                if radiox_id == self.bot.last_added_radiox_track_id:
+                    self.bot.log_event(f"⏸️ REAL-TIME: Skipping '{title}' by '{artist}' - already processed")
                     self.bot.activity_tracker.add_activity(
-                        'song_added',
-                        f"Real-time: Added '{title}' by '{artist}' to playlist",
-                        success=True,
-                        details={"title": title, "artist": artist, "spotify_id": spotify_track_id}
+                        'skipped_already_processed',
+                        f"Real-time: Skipped '{title}' by '{artist}' - already processed",
+                        success=None,
+                        details={"title": title, "artist": artist, "reason": "already_processed"}
                     )
-                else:
-                    self.bot.log_event(f"❌ REAL-TIME: Failed to add '{title}' by '{artist}' to playlist")
-                    self.bot.activity_tracker.add_activity(
-                        'add_failed',
-                        f"Real-time: Failed to add '{title}' by '{artist}' to playlist",
-                        success=False,
-                        details={"title": title, "artist": artist, "spotify_id": spotify_track_id}
-                    )
-            else:
-                self.bot.log_event(f"❌ REAL-TIME: Could not find '{title}' by '{artist}' on Spotify")
-                self.bot.activity_tracker.add_activity(
-                    'search_failed',
-                    f"Real-time: Could not find '{title}' by '{artist}' on Spotify",
-                    success=False,
-                    details={"title": title, "artist": artist}
-                )
-            
-            # --- NEW: Reset main cycle flag after processing completes ---
-            self.bot.main_cycle_running = False
+                    return
                 
+                # Check if we're within active hours
+                now_local = datetime.datetime.now(pytz.timezone(TIMEZONE))
+                if not (START_TIME <= now_local.time() <= END_TIME):
+                    self.bot.log_event(f"⏰ REAL-TIME: Skipping '{title}' by '{artist}' - outside active hours ({START_TIME.strftime('%H:%M')}-{END_TIME.strftime('%H:%M')})")
+                    self.bot.activity_tracker.add_activity(
+                        'skipped_out_of_hours',
+                        f"Real-time: Skipped '{title}' by '{artist}' - outside active hours",
+                        success=None,
+                        details={"title": title, "artist": artist, "reason": "outside_active_hours"}
+                    )
+                    return
+                
+                # Use smart search strategy
+                spotify_track_id = self.bot.search_song_on_spotify_smart(title, artist, radiox_id)
+                
+                if spotify_track_id:
+                    if self.bot.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID):
+                        self.bot.log_event(f"✅ REAL-TIME: Successfully added '{title}' by '{artist}'")
+                        self.bot.last_added_radiox_track_id = radiox_id
+                        
+                        # Reset timer like a force check - update last_check_complete_time
+                        self.bot.last_check_complete_time = int(time.time())
+                        self.bot.save_last_check_complete_time()
+                        
+                        # Publish status update to reset frontend timer
+                        try:
+                            with app.app_context():
+                                sse.publish({"last_check_complete_time": self.bot.last_check_complete_time}, type='status_update')
+                                logging.debug(f"SSE: Published status_update event after real-time song addition")
+                        except Exception as e:
+                            logging.error(f"SSE: Failed to publish status_update event after real-time song: {e}")
+                        
+                        # --- NEW: Trigger stats panel refresh when song is added ---
+                        try:
+                            with app.app_context():
+                                sse.publish({"stats_update": True}, type='status_update')
+                                logging.debug(f"SSE: Published stats_update event after real-time song addition")
+                        except Exception as e:
+                            logging.error(f"SSE: Failed to publish stats_update event: {e}")
+                        
+                        self.bot.activity_tracker.add_activity(
+                            'song_added',
+                            f"Real-time: Added '{title}' by '{artist}' to playlist",
+                            success=True,
+                            details={"title": title, "artist": artist, "spotify_id": spotify_track_id}
+                        )
+                    else:
+                        self.bot.log_event(f"❌ REAL-TIME: Failed to add '{title}' by '{artist}' to playlist")
+                        self.bot.activity_tracker.add_activity(
+                            'add_failed',
+                            f"Real-time: Failed to add '{title}' by '{artist}' to playlist",
+                            success=False,
+                            details={"title": title, "artist": artist, "spotify_id": spotify_track_id}
+                        )
+                else:
+                    self.bot.log_event(f"❌ REAL-TIME: Could not find '{title}' by '{artist}' on Spotify")
+                    self.bot.activity_tracker.add_activity(
+                        'search_failed',
+                        f"Real-time: Could not find '{title}' by '{artist}' on Spotify",
+                        success=False,
+                        details={"title": title, "artist": artist}
+                    )
+            finally:
+                # --- NEW: Always release the lock after processing completes ---
+                self.bot.processing_lock.release()
         except Exception as e:
-            # --- NEW: Ensure main cycle flag is reset even on error ---
-            self.bot.main_cycle_running = False
             logging.error(f"Error processing song immediately: {e}")
             self.bot.log_event(f"❌ REAL-TIME: Error processing '{title}' by '{artist}': {e}")
             self.bot.activity_tracker.add_activity(
@@ -480,7 +474,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.1.8"
+BACKEND_VERSION = "2.2.0"
 
 # --- Main Application Class ---
 
@@ -507,9 +501,9 @@ class RadioXBot:
         self.stats = {}
         self.state_history = []
         
-        # --- NEW: Coordination flags to prevent duplicate processing ---
-        self.main_cycle_running = False
-        # Removed cooldown - not necessary with main cycle coordination
+        # --- NEW: Threading lock to prevent race conditions between main cycle and real-time listener ---
+        self.processing_lock = threading.Lock()
+        # Removed main_cycle_running flag - using lock instead
 
         # Persistent Data Structures
         self.CACHE_DIR = ".cache"
@@ -1714,142 +1708,144 @@ class RadioXBot:
     def process_main_cycle(self):
         logging.info("=== Starting main cycle ===")
         
-        # Add activity for cycle start
-        self.activity_tracker.add_activity(
-            'cycle_start',
-            'Main monitoring cycle started',
-            success=None,
-            details={'cycle_type': 'scheduled'}
-        )
-        
-        # Check and update daily cache (handles date rollovers)
-        self.check_and_update_daily_cache()
-        
-        if not self.current_station_herald_id: 
-            self.current_station_herald_id = self.get_station_herald_id(RADIOX_STATION_SLUG)
-            logging.info(f"Retrieved station herald ID: {self.current_station_herald_id}")
-        if not self.current_station_herald_id: 
-            logging.error("Failed to get station herald ID")
-            self.main_cycle_running = False  # Reset flag on error
+        # --- NEW: Use lock to prevent real-time listener from processing during main cycle ---
+        with self.processing_lock:
+            # Add activity for cycle start
             self.activity_tracker.add_activity(
-                'error',
-                'Failed to get station herald ID',
-                success=False,
-                details={'error': 'station_herald_id_failed'}
+                'cycle_start',
+                'Main monitoring cycle started',
+                success=None,
+                details={'cycle_type': 'scheduled'}
             )
-            return
-        
-        current_song_info = self.get_current_radiox_song(self.current_station_herald_id)
-        song_added = False
-        if current_song_info:
-            title, artist, radiox_id = current_song_info["title"], current_song_info["artist"], current_song_info["id"]
-            if not title or not artist: 
-                logging.warning("Empty title or artist from Radio X.")
+            
+            # Check and update daily cache (handles date rollovers)
+            self.check_and_update_daily_cache()
+            
+            if not self.current_station_herald_id: 
+                self.current_station_herald_id = self.get_station_herald_id(RADIOX_STATION_SLUG)
+                logging.info(f"Retrieved station herald ID: {self.current_station_herald_id}")
+            if not self.current_station_herald_id: 
+                logging.error("Failed to get station herald ID")
                 self.activity_tracker.add_activity(
-                    'warning',
-                    'Empty title or artist from Radio X',
-                    success=None,
-                    details={'title': title, 'artist': artist}
+                    'error',
+                    'Failed to get station herald ID',
+                    success=False,
+                    details={'error': 'station_herald_id_failed'}
                 )
-            elif radiox_id == self.last_added_radiox_track_id: 
-                logging.info(f"Skipping duplicate song: {title} by {artist}")
-                self.activity_tracker.add_activity(
-                    'skipped_duplicate',
-                    f'Skipped duplicate song: {title} by {artist}',
-                    success=None,
-                    details={'title': title, 'artist': artist, 'reason': 'already_processed'}
-                )
-            else:
-                logging.info(f"Processing new song: {title} by {artist}")
-                self.activity_tracker.add_activity(
-                    'song_detected',
-                    f'Main cycle: New song detected: {title} by {artist}',
-                    success=None,
-                    details={'title': title, 'artist': artist, 'source': 'main_cycle'}
-                )
-                
-                spotify_track_id = self.search_song_on_spotify(title, artist, radiox_id) 
-                if spotify_track_id:
-                    if self.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID): 
-                        song_added = True
-                        self.activity_tracker.add_activity(
-                            'song_added',
-                            f'Main cycle: Successfully added {title} by {artist}',
-                            success=True,
-                            details={"title": title, "artist": artist, "spotify_id": spotify_track_id, "source": "main_cycle"}
-                        )
-                        # --- NEW: Trigger stats panel refresh when song is added via main cycle ---
-                        try:
-                            with app.app_context():
-                                sse.publish({"stats_update": True}, type='status_update')
-                                logging.debug(f"SSE: Published stats_update event after main cycle song addition")
-                        except Exception as e:
-                            logging.error(f"SSE: Failed to publish stats_update event: {e}")
-                    else:
-                        self.activity_tracker.add_activity(
-                            'add_failed',
-                            f'Main cycle: Failed to add {title} by {artist} to playlist',
-                            success=False,
-                            details={"title": title, "artist": artist, "spotify_id": spotify_track_id, "source": "main_cycle"}
-                        )
-                else:
+                return
+            
+            current_song_info = self.get_current_radiox_song(self.current_station_herald_id)
+            song_added = False
+            if current_song_info:
+                title, artist, radiox_id = current_song_info["title"], current_song_info["artist"], current_song_info["id"]
+                if not title or not artist: 
+                    logging.warning("Empty title or artist from Radio X.")
                     self.activity_tracker.add_activity(
-                        'search_failed',
-                        f'Main cycle: Could not find {title} by {artist} on Spotify',
-                        success=False,
+                        'warning',
+                        'Empty title or artist from Radio X',
+                        success=None,
+                        details={'title': title, 'artist': artist}
+                    )
+                elif radiox_id == self.last_added_radiox_track_id: 
+                    logging.info(f"Skipping duplicate song: {title} by {artist}")
+                    self.activity_tracker.add_activity(
+                        'skipped_duplicate',
+                        f'Skipped duplicate song: {title} by {artist}',
+                        success=None,
+                        details={'title': title, 'artist': artist, 'reason': 'already_processed'}
+                    )
+                else:
+                    logging.info(f"Processing new song: {title} by {artist}")
+                    self.activity_tracker.add_activity(
+                        'song_detected',
+                        f'Main cycle: New song detected: {title} by {artist}',
+                        success=None,
                         details={'title': title, 'artist': artist, 'source': 'main_cycle'}
                     )
-                self.last_added_radiox_track_id = radiox_id 
-        else: 
-            logging.info("No new track information available from Radio X")
+                    
+                    spotify_track_id = self.search_song_on_spotify(title, artist, radiox_id) 
+                    if spotify_track_id:
+                        if self.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID): 
+                            song_added = True
+                            self.activity_tracker.add_activity(
+                                'song_added',
+                                f'Main cycle: Successfully added {title} by {artist}',
+                                success=True,
+                                details={"title": title, "artist": artist, "spotify_id": spotify_track_id, "source": "main_cycle"}
+                            )
+                            # --- NEW: Trigger stats panel refresh when song is added via main cycle ---
+                            try:
+                                with app.app_context():
+                                    sse.publish({"stats_update": True}, type='status_update')
+                                    logging.debug(f"SSE: Published stats_update event after main cycle song addition")
+                            except Exception as e:
+                                logging.error(f"SSE: Failed to publish stats_update event: {e}")
+                        else:
+                            self.activity_tracker.add_activity(
+                                'add_failed',
+                                f'Main cycle: Failed to add {title} by {artist} to playlist',
+                                success=False,
+                                details={"title": title, "artist": artist, "spotify_id": spotify_track_id, "source": "main_cycle"}
+                            )
+                    else:
+                        self.activity_tracker.add_activity(
+                            'search_failed',
+                            f'Main cycle: Could not find {title} by {artist} on Spotify',
+                            success=False,
+                            details={'title': title, 'artist': artist, 'source': 'main_cycle'}
+                        )
+                    self.last_added_radiox_track_id = radiox_id 
+            else: 
+                logging.info("No new track information available from Radio X")
+                self.activity_tracker.add_activity(
+                    'no_track_info',
+                    'No new track information available from Radio X',
+                    success=None,
+                    details={'source': 'main_cycle'}
+                )
+            
+            if self.failed_search_queue and (song_added or (time.time() % (CHECK_INTERVAL * 4) < CHECK_INTERVAL)): 
+                self.process_failed_search_queue()
+            
+            current_time = time.time()
+            if current_time - self.last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
+                self.check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID); self.last_duplicate_check_time = current_time
+            
+            self.update_stats()
+            self.last_check_time = int(current_time)
+            self.is_checking = True
+            self.check_complete = True
+            self.last_check_complete_time = int(time.time())
+            self.save_last_check_complete_time()
+            self.save_state()
+            self.is_checking = False
+            
+            # Add activity for cycle completion
             self.activity_tracker.add_activity(
-                'no_track_info',
-                'No new track information available from Radio X',
-                success=None,
-                details={'source': 'main_cycle'}
+                'cycle_complete',
+                'Main monitoring cycle completed',
+                success=True,
+                details={'songs_processed': 1 if song_added else 0, 'cycle_type': 'scheduled'}
             )
-        
-        if self.failed_search_queue and (song_added or (time.time() % (CHECK_INTERVAL * 4) < CHECK_INTERVAL)): 
-            self.process_failed_search_queue()
-        
-        current_time = time.time()
-        if current_time - self.last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
-            self.check_and_remove_duplicates(SPOTIFY_PLAYLIST_ID); self.last_duplicate_check_time = current_time
-        
-        self.update_stats()
-        self.last_check_time = int(current_time)
-        self.is_checking = True
-        self.check_complete = True
-        self.last_check_complete_time = int(time.time())
-        self.save_last_check_complete_time()
-        self.save_state()
-        self.is_checking = False
-        
-        # Add activity for cycle completion
-        self.activity_tracker.add_activity(
-            'cycle_complete',
-            'Main monitoring cycle completed',
-            success=True,
-            details={'songs_processed': 1 if song_added else 0, 'cycle_type': 'scheduled'}
-        )
-        
-        try:
-            with app.app_context():
-                sse.publish({"last_check_complete_time": self.last_check_complete_time}, type='status_update')
-                logging.debug(f"SSE: Published status_update event after main cycle")
-        except Exception as e:
-            logging.error(f"SSE: Failed to publish status_update event: {e}")
+            
+            try:
+                with app.app_context():
+                    sse.publish({"last_check_complete_time": self.last_check_complete_time}, type='status_update')
+                    logging.debug(f"SSE: Published status_update event after main cycle")
+            except Exception as e:
+                logging.error(f"SSE: Failed to publish status_update event: {e}")
 
-        if psutil:
-            mem = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
-            self.log_event(f"[MEMORY] Backend RSS: {mem:.1f} MiB")
+            if psutil:
+                mem = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
+                self.log_event(f"[MEMORY] Backend RSS: {mem:.1f} MiB")
 
-        logging.info("=== Main cycle completed ===")
+            logging.info("=== Main cycle completed ===")
 
     def search_song_on_spotify_smart(self, original_title, artist, radiox_id_for_queue=None, is_retry_from_queue=False):
-        """Smart search using artist-specific strategy order and learning."""
+        """Smart search using artist-specific strategy order and learning, with enhanced album filtering."""
         strategies = self.smart_search.get_optimal_search_order(artist, original_title)
         search_attempts_details = []
+        
         for strategy in strategies:
             if strategy == 'original':
                 title_to_search = original_title
@@ -1860,12 +1856,20 @@ class RadioXBot:
             else:
                 continue
             
+            # Try enhanced search first (with album filtering)
+            spotify_id = self.search_song_on_spotify_enhanced(title_to_search, artist, radiox_id_for_queue, is_retry_from_queue)
+            if spotify_id:
+                self.smart_search.update_success_rate(artist, strategy, True)
+                return spotify_id
+            
+            # Fall back to original search if enhanced search fails
             spotify_id = self.search_song_on_spotify(title_to_search, artist, radiox_id_for_queue, is_retry_from_queue)
             if spotify_id:
                 self.smart_search.update_success_rate(artist, strategy, True)
                 return spotify_id
             else:
                 self.smart_search.update_success_rate(artist, strategy, False)
+        
         # If all fail, log and return None
         self.log_event(f"SMART FAIL: Song '{original_title}' by '{artist}' not found after all smart attempts.")
         if not is_retry_from_queue:
@@ -1876,6 +1880,96 @@ class RadioXBot:
                 "reason": "Not found on Spotify after all smart attempts."
             })
         return None
+
+    def search_song_on_spotify_enhanced(self, title, artist, radiox_id_for_queue=None, is_retry_from_queue=False):
+        """Enhanced search that filters results to prefer original albums over compilations."""
+        if not self.sp:
+            logging.error("Spotify not initialized for enhanced search.")
+            return None
+        
+        try:
+            # Search for the song with a broader query to get multiple results
+            query = f"track:{title} artist:{artist}"
+            results = self.spotify_api_call_with_retry(self.sp.search, q=query, type="track", limit=20)
+            
+            if not results or not results["tracks"]["items"]:
+                return None
+            
+            tracks = results["tracks"]["items"]
+            filtered_tracks = []
+            
+            for track in tracks:
+                album = track.get('album', {})
+                album_name = album.get('name', '').lower()
+                release_date = album.get('release_date', '')
+                track_artists = [a.get('name', '').lower() for a in track.get('artists', [])]
+                
+                # Skip if primary artist doesn't match
+                if not track_artists or track_artists[0] != artist.lower():
+                    continue
+                
+                # Skip compilation albums
+                compilation_keywords = [
+                    'greatest hits', 'best of', 'collection', 'compilation', 
+                    'anthology', 'essential', 'definitive', 'complete', 'box set',
+                    'remastered', 'deluxe edition', 'expanded edition'
+                ]
+                
+                if any(keyword in album_name for keyword in compilation_keywords):
+                    continue
+                
+                # Skip very recent releases of old songs (likely re-releases)
+                # Only apply this filter if we have multiple versions of the same song
+                # This will be handled in the scoring system instead of hard filtering
+                
+                # Calculate a score for ranking (lower is better)
+                score = 0
+                
+                # Smart release date scoring
+                try:
+                    release_year = int(release_date[:4]) if release_date and len(release_date) >= 4 else 2000
+                    current_year = 2024
+                    
+                    # Smart scoring based on release year
+                    if release_year < 2000:
+                        # Old songs: prefer original releases, but don't heavily penalize re-releases
+                        score += (current_year - release_year) * 3  # Gentle preference for older
+                    else:
+                        # Newer songs: neutral scoring, don't penalize recent releases
+                        score += 50  # Neutral score for modern songs
+                        
+                except (ValueError, TypeError):
+                    score += 100  # Unknown date gets middle score
+                
+                # Prefer albums with artist name in album title (common for original albums)
+                if artist.lower() in album_name:
+                    score -= 50
+                
+                # Prefer albums with fewer tracks (less likely to be compilations)
+                total_tracks = album.get('total_tracks', 20)
+                if total_tracks < 15:
+                    score -= 20
+                
+                filtered_tracks.append((track, score))
+            
+            if not filtered_tracks:
+                return None
+            
+            # Sort by score (best first) and return the top result
+            filtered_tracks.sort(key=lambda x: x[1])
+            best_track = filtered_tracks[0][0]
+            
+            album_name = best_track.get('album', {}).get('name', 'Unknown')
+            release_date = best_track.get('album', {}).get('release_date', 'Unknown')
+            
+            self.log_event(f"ENHANCED: Found '{best_track['name']}' from album '{album_name}' ({release_date})")
+            return best_track["id"]
+            
+        except Exception as e:
+            self.log_event(f"ERROR: Enhanced search failed for '{title}' by '{artist}': {e}")
+            if radiox_id_for_queue and not is_retry_from_queue:
+                self.add_to_failed_search_queue(title, artist, radiox_id_for_queue)
+            return None
 
 # --- Flask Routes & Script Execution ---
 bot_instance = RadioXBot()
@@ -1925,8 +2019,7 @@ def admin_force_check():
     
     def run_manual_check():
         try:
-            # --- NEW: Set flag to prevent real-time listener conflicts during manual check ---
-            bot_instance.main_cycle_running = True
+            # Manual check uses the same locking mechanism as the main cycle
             bot_instance.process_main_cycle()
             # Publish status update after manual check completes
             with app.app_context():
@@ -1940,9 +2033,6 @@ def admin_force_check():
                 success=False,
                 details={'error': str(e), 'trigger': 'web_interface'}
             )
-        finally:
-            # --- NEW: Ensure flag is reset even if error occurs ---
-            bot_instance.main_cycle_running = False
     
     threading.Thread(target=run_manual_check).start()
     return "Manual check has been triggered. Check logs for progress."
