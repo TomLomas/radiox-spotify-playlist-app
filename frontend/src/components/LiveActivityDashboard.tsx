@@ -75,7 +75,7 @@ const LiveActivityDashboard: React.FC = () => {
         }
       } catch (e) {
         console.error('LiveActivityDashboard: Error fetching activity:', e);
-        console.error('LiveActivityDashboard: Error details:', e.message);
+        console.error('LiveActivityDashboard: Error details:', e instanceof Error ? e.message : String(e));
         // If error, show as disconnected
         if (mounted) setLoading(false);
       }
