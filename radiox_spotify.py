@@ -2072,7 +2072,8 @@ def initialize_bot():
                     logging.error(f"Failed to start WebSocket listener: {e}")
                     # Don't fail initialization for this - it's optional
                 
-                bot_instance.update_service_state('playing', 'Initialization complete')
+                # Don't override the service state - let the monitoring thread handle it based on time
+                logging.info("Initialization complete - service state will be managed by monitoring thread")
             except Exception as e:
                 logging.error(f"Failed to start monitoring thread: {e}")
                 bot_instance.update_service_state('error', f'Failed to start monitoring thread: {e}')
