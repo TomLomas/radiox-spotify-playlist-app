@@ -480,7 +480,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.1.4"
+BACKEND_VERSION = "2.1.5"
 
 # --- Main Application Class ---
 
@@ -2107,8 +2107,8 @@ def status():
                 failed_queue = json.load(f)
         else:
             failed_queue = []
-            
-            bot_instance.load_last_check_complete_time()
+        
+        bot_instance.load_last_check_complete_time()
             
     except FileNotFoundError:
         daily_added, daily_failed, failed_queue = [], [], []
