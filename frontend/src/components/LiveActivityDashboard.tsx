@@ -34,6 +34,12 @@ const typeIcon = (type: string) => {
     case 'search_failed': return '❌';
     case 'add_failed': return '⚠️';
     case 'error': return '🚨';
+    case 'cycle_start': return '🔄';
+    case 'cycle_complete': return '✅';
+    case 'manual_check': return '👆';
+    case 'skipped_duplicate': return '⏭️';
+    case 'no_track_info': return '📭';
+    case 'warning': return '⚠️';
     default: return 'ℹ️';
   }
 };

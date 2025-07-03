@@ -465,7 +465,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.1.0"
+BACKEND_VERSION = "2.1.1"
 
 # --- Main Application Class ---
 
@@ -1694,6 +1694,14 @@ class RadioXBot:
         # --- NEW: Set flag to prevent real-time listener from processing during main cycle ---
         self.main_cycle_running = True
         
+        # Add activity for cycle start
+        self.activity_tracker.add_activity(
+            'cycle_start',
+            'Main monitoring cycle started',
+            success=None,
+            details={'cycle_type': 'scheduled'}
+        )
+        
         # Check and update daily cache (handles date rollovers)
         self.check_and_update_daily_cache()
         
@@ -1703,6 +1711,12 @@ class RadioXBot:
         if not self.current_station_herald_id: 
             logging.error("Failed to get station herald ID")
             self.main_cycle_running = False  # Reset flag on error
+            self.activity_tracker.add_activity(
+                'error',
+                'Failed to get station herald ID',
+                success=False,
+                details={'error': 'station_herald_id_failed'}
+            )
             return
         
         current_song_info = self.get_current_radiox_song(self.current_station_herald_id)
@@ -1711,19 +1725,65 @@ class RadioXBot:
             title, artist, radiox_id = current_song_info["title"], current_song_info["artist"], current_song_info["id"]
             if not title or not artist: 
                 logging.warning("Empty title or artist from Radio X.")
+                self.activity_tracker.add_activity(
+                    'warning',
+                    'Empty title or artist from Radio X',
+                    success=None,
+                    details={'title': title, 'artist': artist}
+                )
             elif radiox_id == self.last_added_radiox_track_id: 
                 logging.info(f"Skipping duplicate song: {title} by {artist}")
+                self.activity_tracker.add_activity(
+                    'skipped_duplicate',
+                    f'Skipped duplicate song: {title} by {artist}',
+                    success=None,
+                    details={'title': title, 'artist': artist, 'reason': 'already_processed'}
+                )
             else:
                 logging.info(f"Processing new song: {title} by {artist}")
+                self.activity_tracker.add_activity(
+                    'song_detected',
+                    f'Main cycle: New song detected: {title} by {artist}',
+                    success=None,
+                    details={'title': title, 'artist': artist, 'source': 'main_cycle'}
+                )
+                
                 spotify_track_id = self.search_song_on_spotify(title, artist, radiox_id) 
                 if spotify_track_id:
                     if self.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID): 
                         song_added = True
+                        self.activity_tracker.add_activity(
+                            'song_added',
+                            f'Main cycle: Successfully added {title} by {artist}',
+                            success=True,
+                            details={'title': title, 'artist': artist, 'spotify_id': spotify_track_id, 'source': 'main_cycle'}
+                        )
+                    else:
+                        self.activity_tracker.add_activity(
+                            'add_failed',
+                            f'Main cycle: Failed to add {title} by {artist} to playlist',
+                            success=False,
+                            details={'title': title, 'artist': artist, 'spotify_id': spotify_track_id, 'source': 'main_cycle'}
+                        )
+                else:
+                    self.activity_tracker.add_activity(
+                        'search_failed',
+                        f'Main cycle: Could not find {title} by {artist} on Spotify',
+                        success=False,
+                        details={'title': title, 'artist': artist, 'source': 'main_cycle'}
+                    )
                 self.last_added_radiox_track_id = radiox_id 
         else: 
             logging.info("No new track information available from Radio X")
+            self.activity_tracker.add_activity(
+                'no_track_info',
+                'No new track information available from Radio X',
+                success=None,
+                details={'source': 'main_cycle'}
+            )
         
-        if self.failed_search_queue and (song_added or (time.time() % (CHECK_INTERVAL * 4) < CHECK_INTERVAL)): self.process_failed_search_queue()
+        if self.failed_search_queue and (song_added or (time.time() % (CHECK_INTERVAL * 4) < CHECK_INTERVAL)): 
+            self.process_failed_search_queue()
         
         current_time = time.time()
         if current_time - self.last_duplicate_check_time >= DUPLICATE_CHECK_INTERVAL:
@@ -1740,6 +1800,14 @@ class RadioXBot:
         
         # --- NEW: Reset flag after main cycle completes ---
         self.main_cycle_running = False
+        
+        # Add activity for cycle completion
+        self.activity_tracker.add_activity(
+            'cycle_complete',
+            'Main monitoring cycle completed',
+            success=True,
+            details={'songs_processed': 1 if song_added else 0, 'cycle_type': 'scheduled'}
+        )
         
         try:
             with app.app_context():
@@ -1823,6 +1891,14 @@ def admin_force_diagnostics():
 def admin_force_check():
     bot_instance.log_event("Manual check triggered via web.")
     
+    # Add activity for manual check
+    bot_instance.activity_tracker.add_activity(
+        'manual_check',
+        'Manual check triggered via web interface',
+        success=None,
+        details={'trigger': 'web_interface'}
+    )
+    
     def run_manual_check():
         try:
             # --- NEW: Set flag to prevent real-time listener conflicts during manual check ---
@@ -1834,6 +1910,12 @@ def admin_force_check():
                 logging.debug(f"SSE: Published status_update event after manual check")
         except Exception as e:
             bot_instance.log_event(f"Error during manual check: {e}")
+            bot_instance.activity_tracker.add_activity(
+                'error',
+                f'Error during manual check: {e}',
+                success=False,
+                details={'error': str(e), 'trigger': 'web_interface'}
+            )
         finally:
             # --- NEW: Ensure flag is reset even if error occurs ---
             bot_instance.main_cycle_running = False
