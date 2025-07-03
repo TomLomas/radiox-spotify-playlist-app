@@ -226,6 +226,19 @@ class RealTimeWebSocketListener:
                 if self.bot.add_song_to_playlist(title, artist, spotify_track_id, SPOTIFY_PLAYLIST_ID):
                     self.bot.log_event(f"✅ REAL-TIME: Successfully added '{title}' by '{artist}'")
                     self.bot.last_added_radiox_track_id = radiox_id
+                    
+                    # Reset timer like a force check - update last_check_complete_time
+                    self.bot.last_check_complete_time = int(time.time())
+                    self.bot.save_last_check_complete_time()
+                    
+                    # Publish status update to reset frontend timer
+                    try:
+                        with app.app_context():
+                            sse.publish({"last_check_complete_time": self.bot.last_check_complete_time}, type='status_update')
+                            logging.debug(f"SSE: Published status_update event after real-time song addition")
+                    except Exception as e:
+                        logging.error(f"SSE: Failed to publish status_update event after real-time song: {e}")
+                    
                     self.bot.activity_tracker.add_activity(
                         'song_added',
                         f"Real-time: Added '{title}' by '{artist}' to playlist",
@@ -539,32 +552,32 @@ class RadioXBot:
             # Save daily cache using new persistent system
             self.save_daily_cache()
             
-            logging.debug("Successfully saved application state to disk.")
-        except Exception as e:
-            logging.error(f"Failed to save state to disk: {e}")
+                logging.debug("Successfully saved application state to disk.")
+            except Exception as e:
+                logging.error(f"Failed to save state to disk: {e}")
 
     def load_state(self):
         """Loads the queues and daily summaries from disk on startup."""
-        try:
+            try:
             # Load without blocking - read files directly
-            if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
-                with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
-                    self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=20)
-                    logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
-            if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
-                with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
-                    self.failed_search_queue = deque(json.load(f), maxlen=5)
-                    logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
+                if os.path.exists(self.RECENTLY_ADDED_CACHE_FILE):
+                    with open(self.RECENTLY_ADDED_CACHE_FILE, 'r') as f:
+                        self.RECENTLY_ADDED_SPOTIFY_IDS = deque(json.load(f), maxlen=20)
+                        logging.info(f"Loaded {len(self.RECENTLY_ADDED_SPOTIFY_IDS)} recent tracks from cache.")
+                if os.path.exists(self.FAILED_QUEUE_CACHE_FILE):
+                    with open(self.FAILED_QUEUE_CACHE_FILE, 'r') as f:
+                        self.failed_search_queue = deque(json.load(f), maxlen=5)
+                        logging.info(f"Loaded {len(self.failed_search_queue)} failed searches from cache.")
             
             # Load daily cache using new persistent system
             self.load_daily_cache()
             
-        except Exception as e:
+            except Exception as e:
             logging.error(f"Error in load_state: {e}")
         
         # After loading, immediately calculate stats from the cache
         try:
-            self.update_stats()
+        self.update_stats()
         except Exception as e:
             logging.error(f"Failed to update stats: {e}")
 
@@ -573,7 +586,7 @@ class RadioXBot:
             # Save without blocking - use temporary file then rename
             temp_file = f"{self.LAST_CHECK_COMPLETE_FILE}.tmp"
             with open(temp_file, 'w') as f:
-                f.write(str(self.last_check_complete_time))
+            f.write(str(self.last_check_complete_time))
             # Atomic rename operation
             os.replace(temp_file, self.LAST_CHECK_COMPLETE_FILE)
         except Exception as e:
@@ -581,15 +594,15 @@ class RadioXBot:
 
     def load_last_check_complete_time(self):
         try:
-            if os.path.exists(self.LAST_CHECK_COMPLETE_FILE):
-                with open(self.LAST_CHECK_COMPLETE_FILE, 'r') as f:
-                    try:
-                        self.last_check_complete_time = int(f.read().strip())
-                    except Exception:
+        if os.path.exists(self.LAST_CHECK_COMPLETE_FILE):
+            with open(self.LAST_CHECK_COMPLETE_FILE, 'r') as f:
+                try:
+                    self.last_check_complete_time = int(f.read().strip())
+                except Exception:
                         self.last_check_complete_time = 0
         except Exception as e:
             logging.error(f"Error loading last check complete time: {e}")
-            self.last_check_complete_time = 0
+                    self.last_check_complete_time = 0
 
     # --- NEW: Persistent Daily Cache Management ---
     def check_and_update_daily_cache(self):
@@ -820,7 +833,7 @@ class RadioXBot:
             # If we have a token, use it
             if auth_manager.is_token_expired(token_info):
                 try:
-                    token_info = auth_manager.refresh_access_token(token_info['refresh_token'])
+                token_info = auth_manager.refresh_access_token(token_info['refresh_token'])
                 except Exception as refresh_error:
                     logging.error(f"Failed to refresh token: {refresh_error}")
                     self.sp = None
@@ -1126,16 +1139,16 @@ class RadioXBot:
             busiest_hour = hour_counts.most_common(1)[0] if hour_counts else (0, 0)
             
             # Release date analysis
-            songs_with_dates = [s for s in self.daily_added_songs if s.get('release_date') and '-' in s['release_date']]
+                songs_with_dates = [s for s in self.daily_added_songs if s.get('release_date') and '-' in s['release_date']]
             decade_counts = Counter()
             oldest_song = None
             newest_song = None
             
-            if songs_with_dates:
-                songs_with_dates.sort(key=lambda x: x['release_date'])
+                if songs_with_dates:
+                    songs_with_dates.sort(key=lambda x: x['release_date'])
                 oldest_song = songs_with_dates[0]
                 newest_song = songs_with_dates[-1]
-                decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
+                    decade_counts = Counter((int(s['release_date'][:4]) // 10) * 10 for s in songs_with_dates)
             
             # Failure analysis
             failure_reasons = Counter(item['reason'] for item in self.daily_search_failures)
@@ -1680,7 +1693,7 @@ class RadioXBot:
         if psutil:
             mem = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
             self.log_event(f"[MEMORY] Backend RSS: {mem:.1f} MiB")
-        
+
         logging.info("=== Main cycle completed ===")
 
     def search_song_on_spotify_smart(self, original_title, artist, radiox_id_for_queue=None, is_retry_from_queue=False):
@@ -1920,7 +1933,7 @@ def status():
         else:
             failed_queue = []
             
-        bot_instance.load_last_check_complete_time()
+            bot_instance.load_last_check_complete_time()
             
     except FileNotFoundError:
         daily_added, daily_failed, failed_queue = [], [], []
@@ -2050,8 +2063,8 @@ def initialize_bot():
             # Start monitoring thread
             try:
                 logging.info("Starting main monitoring thread...")
-                monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
-                monitor_thread.start()
+        monitor_thread = threading.Thread(target=bot_instance.run, daemon=True)
+        monitor_thread.start()
                 logging.info("Main monitoring thread started")
                 
                 # Get station herald ID for WebSocket listener
@@ -2059,7 +2072,7 @@ def initialize_bot():
                     bot_instance.current_station_herald_id = bot_instance.get_station_herald_id(RADIOX_STATION_SLUG)
                     if bot_instance.current_station_herald_id:
                         logging.info(f"Station herald ID: {bot_instance.current_station_herald_id}")
-                    else:
+    else:
                         logging.warning("Failed to retrieve station herald ID - WebSocket listener may not work")
                 except Exception as e:
                     logging.error(f"Failed to retrieve station herald ID: {e}")
@@ -2122,11 +2135,11 @@ def stream():
         
         # Continuously yield messages from Redis pub/sub
         try:
-            pubsub = redis_client.pubsub()
-            pubsub.subscribe('radiox_spotify_events')
-            for message in pubsub.listen():
-                if message['type'] == 'message':
-                    yield f"data: {message['data'].decode('utf-8')}\n\n"
+        pubsub = redis_client.pubsub()
+        pubsub.subscribe('radiox_spotify_events')
+        for message in pubsub.listen():
+            if message['type'] == 'message':
+                yield f"data: {message['data'].decode('utf-8')}\n\n"
         except Exception as e:
             logging.error(f"Error in SSE stream: {e}")
             yield f"data: {json.dumps({'error': 'Stream error'})}\n\n"
