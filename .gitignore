@@ -15,6 +15,7 @@ frontend/node_modules/
 
 # Build outputs
 build/
+frontend/build/
 dist/
 *.pyc
 __pycache__/
