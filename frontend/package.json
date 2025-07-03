@@ -1,6 +1,6 @@
 {
   "name": "radiox-spotify-frontend",
-  "version": "1.2.0",
+  "version": "2.1.0",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^9.3.4",
