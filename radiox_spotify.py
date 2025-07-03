@@ -334,6 +334,10 @@ class ActivityTracker:
         elif success is False:
             self.stats['failed_searches'] += 1
         
+        # Debug logging
+        logging.info(f"ACTIVITY ADDED: {activity_type} - {message}")
+        logging.info(f"ACTIVITY COUNT: {len(self.activities)} activities in tracker")
+        
         # Publish to frontend via SSE
         try:
             with app.app_context():
@@ -341,12 +345,15 @@ class ActivityTracker:
                     "activity": activity,
                     "stats": self.stats
                 }, type='activity_update')
+                logging.debug(f"SSE: Published activity_update event for {activity_type}")
         except Exception as e:
             logging.error(f"Failed to publish activity update: {e}")
     
     def get_recent_activities(self, limit=20):
         """Get recent activities for the dashboard."""
-        return list(self.activities)[:limit]
+        activities = list(self.activities)[:limit]
+        logging.debug(f"ACTIVITY REQUEST: Returning {len(activities)} activities")
+        return activities
     
     def get_stats(self):
         """Get current stats."""
@@ -465,7 +472,7 @@ sys.stderr.flush()
 logging.info("=== RadioX Spotify Backend Starting ===")
 logging.info("Logging system initialized successfully")
 
-BACKEND_VERSION = "2.1.2"
+BACKEND_VERSION = "2.1.3"
 
 # --- Main Application Class ---
 
@@ -529,6 +536,14 @@ class RadioXBot:
 
         self.log_event("Application instance created. Waiting for initialization.")
         self.update_service_state('initializing')
+        
+        # --- NEW: Test activity to verify tracker is working ---
+        self.activity_tracker.add_activity(
+            'system_startup',
+            'RadioX Spotify Bot initialized and ready',
+            success=True,
+            details={'version': BACKEND_VERSION}
+        )
 
         # Note: Real-time listener will be started after initialization is complete
 
@@ -2300,6 +2315,10 @@ def stream():
 def activity():
     activities = bot_instance.activity_tracker.get_recent_activities()
     stats = bot_instance.activity_tracker.get_stats()
+    
+    # Debug logging
+    logging.info(f"ACTIVITY ENDPOINT: Returning {len(activities)} activities and stats: {stats}")
+    
     return jsonify({
         'activities': activities,
         'stats': stats
