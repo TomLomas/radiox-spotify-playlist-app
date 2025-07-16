@@ -37,66 +37,233 @@ except ImportError:
     psutil = None
 
 # --- NEW: Smart Search Strategy Class ---
+# REPLACE the entire SmartSearchStrategy class with the advanced version from the split codebase
+import json
+import logging
+import os
+import time
+import re
+import datetime
+import pytz
+
 class SmartSearchStrategy:
     def __init__(self):
         self.artist_success_patterns = {}
         self.search_strategy_weights = {
-            'original': 1.0,
-            'no_parentheses': 0.8,
-            'no_features': 0.6
+            'original_album': 1.0,
+            'original_single': 0.9,
+            'studio_version': 0.8,
+            'no_live_keywords': 0.7,
+            'no_compilation_keywords': 0.6,
+            'exact_match': 0.5,
+            'no_parentheses': 0.4,
+            'no_features': 0.3
         }
+        self.live_keywords = [
+            'live', 'concert', 'acoustic', 'unplugged', 'session', 'performance',
+            'live at', 'live from', 'live version', 'live recording', 'live album',
+            'live in', 'live on', 'live studio', 'live radio', 'live tv'
+        ]
+        self.compilation_keywords = [
+            'greatest hits', 'best of', 'collection', 'anthology', 'compilation',
+            'hits', 'singles', 'remix', 'remastered', 'deluxe', 'extended',
+            'soundtrack', 'ost', 'movie', 'film', 'tv', 'television'
+        ]
+        self.studio_indicators = [
+            'studio version', 'album version', 'original version', 'radio edit',
+            'single version', 'album track', 'original recording'
+        ]
         self.load_patterns()
-    
     def load_patterns(self):
-        """Load artist success patterns from cache."""
         try:
             if os.path.exists('.cache/artist_patterns.json'):
                 with open('.cache/artist_patterns.json', 'r') as f:
                     self.artist_success_patterns = json.load(f)
         except Exception as e:
             logging.warning(f"Could not load artist patterns: {e}")
-    
     def save_patterns(self):
-        """Save artist success patterns to cache."""
         try:
             os.makedirs('.cache', exist_ok=True)
             with open('.cache/artist_patterns.json', 'w') as f:
                 json.dump(self.artist_success_patterns, f)
         except Exception as e:
             logging.warning(f"Could not save artist patterns: {e}")
-    
+    def clean_title_for_search(self, title):
+        title = re.sub(r'\s*\(.*?\)\s*$', '', title)
+        title = re.sub(r'\s*\[.*?\]\s*$', '', title)
+        title = re.sub(r'\s*feat\.?\s*.*$', '', title, flags=re.IGNORECASE)
+        title = re.sub(r'\s*ft\.?\s*.*$', '', title, flags=re.IGNORECASE)
+        title = re.sub(r'\s*with\s+.*$', '', title, flags=re.IGNORECASE)
+        return title.strip()
+    def clean_artist_for_search(self, artist):
+        artist = re.sub(r'\s*feat\.?\s*.*$', '', artist, flags=re.IGNORECASE)
+        artist = re.sub(r'\s*ft\.?\s*.*$', '', artist, flags=re.IGNORECASE)
+        artist = re.sub(r'\s*with\s+.*$', '', artist, flags=re.IGNORECASE)
+        return artist.strip()
+    def is_live_track(self, track_info):
+        if not track_info:
+            return False
+        track_name = track_info.get('name', '').lower()
+        for keyword in self.live_keywords:
+            if keyword in track_name:
+                return True
+        album_name = track_info.get('album', {}).get('name', '').lower()
+        for keyword in self.live_keywords:
+            if keyword in album_name:
+                return True
+        album_type = track_info.get('album', {}).get('album_type', '').lower()
+        if album_type in ['compilation', 'live']:
+            return True
+        return False
+    def is_compilation_track(self, track_info):
+        if not track_info:
+            return False
+        album_name = track_info.get('album', {}).get('name', '').lower()
+        for keyword in self.compilation_keywords:
+            if keyword in album_name:
+                return True
+        album_type = track_info.get('album', {}).get('album_type', '').lower()
+        if album_type in ['compilation']:
+            return True
+        return False
+    def is_studio_version(self, track_info):
+        if not track_info:
+            return False
+        track_name = track_info.get('name', '').lower()
+        for indicator in self.studio_indicators:
+            if indicator in track_name:
+                return True
+        return False
+    def score_track(self, track_info, original_title, original_artist):
+        if not track_info:
+            return 0.0
+        score = 0.0
+        track_name = track_info.get('name', '').lower()
+        artist_name = track_info.get('artists', [{}])[0].get('name', '').lower()
+        album_name = track_info.get('album', {}).get('name', '').lower()
+        album_release_date = track_info.get('album', {}).get('release_date', '')
+        track_age_score = self.calculate_age_score(album_release_date)
+        if track_name == original_title.lower():
+            score += 2.0
+        if artist_name == original_artist.lower():
+            score += 2.0
+        if original_title.lower() in track_name:
+            score += 1.0
+        if original_artist.lower() in artist_name:
+            score += 1.0
+        if self.is_live_track(track_info):
+            score -= 3.0
+        if self.is_compilation_track(track_info):
+            score -= 2.0
+        if self.is_studio_version(track_info):
+            score += 1.0
+        album_type = track_info.get('album', {}).get('album_type', '').lower()
+        if album_type == 'album':
+            score += 0.5
+        score += track_age_score
+        popularity = track_info.get('popularity', 0)
+        score += popularity / 100.0
+        return max(0.0, score)
+    def calculate_age_score(self, release_date):
+        if not release_date:
+            return 0.0
+        try:
+            if len(release_date) == 4:
+                year = int(release_date)
+                current_year = datetime.datetime.now().year
+                age_years = current_year - year
+                age_years = min(age_years, 50)
+                return age_years / 25.0
+            else:
+                release_datetime = datetime.datetime.strptime(release_date, '%Y-%m-%d')
+                current_datetime = datetime.datetime.now()
+                age_days = (current_datetime - release_datetime).days
+                age_years = age_days / 365.25
+                age_years = min(age_years, 50)
+                return age_years / 25.0
+        except (ValueError, TypeError):
+            return 0.0
+    def get_album_age_info(self, track_info):
+        if not track_info:
+            return "Unknown"
+        release_date = track_info.get('album', {}).get('release_date', '')
+        if not release_date:
+            return "Unknown"
+        try:
+            if len(release_date) == 4:
+                year = int(release_date)
+                current_year = datetime.datetime.now().year
+                age = current_year - year
+                return f"{release_date} ({age} years old)"
+            else:
+                release_datetime = datetime.datetime.strptime(release_date, '%Y-%m-%d')
+                current_datetime = datetime.datetime.now()
+                age_days = (current_datetime - release_datetime).days
+                age_years = age_days / 365.25
+                return f"{release_date} ({age_years:.1f} years old)"
+        except (ValueError, TypeError):
+            return release_date
+    def search_spotify_track(self, sp, title, artist):
+        if not sp:
+            return None
+        clean_title = self.clean_title_for_search(title)
+        clean_artist = self.clean_artist_for_search(artist)
+        search_queries = [
+            f"{clean_title} {clean_artist}",
+            f'"{clean_title}" "{clean_artist}"',
+            f"{clean_title} artist:{clean_artist}",
+            f"{clean_artist} {clean_title}",
+            clean_title,
+        ]
+        best_track = None
+        best_score = 0.0
+        for query in search_queries:
+            try:
+                results = sp.search(q=query, type='track', limit=20)
+                tracks = results.get('tracks', {}).get('items', [])
+                for track in tracks:
+                    score = self.score_track(track, clean_title, clean_artist)
+                    if score > best_score:
+                        best_score = score
+                        best_track = track
+                        if score >= 4.0:
+                            break
+                if best_score >= 3.0:
+                    break
+            except Exception as e:
+                logging.warning(f"Spotify search failed for query '{query}': {e}")
+                continue
+        if best_track and best_score >= 1.0:
+            album_age = self.get_album_age_info(best_track)
+            logging.info(f"Found track: {best_track['name']} by {best_track['artists'][0]['name']} "
+                        f"from '{best_track['album']['name']}' ({album_age}) (score: {best_score:.2f})")
+            return best_track['id']
+        logging.warning(f"No suitable track found for '{title}' by '{artist}' (best score: {best_score:.2f})")
+        return None
     def get_optimal_search_order(self, artist, title):
-        """Return search strategies in order of likely success for this artist."""
         artist_lower = artist.lower()
-        
-        # Check if we have patterns for this artist
         if artist_lower in self.artist_success_patterns:
             patterns = self.artist_success_patterns[artist_lower]
-            # Sort by success rate
             sorted_patterns = sorted(patterns.items(), key=lambda x: x[1], reverse=True)
             return [pattern[0] for pattern in sorted_patterns]
-        
-        # Default order for new artists
-        return ['original', 'no_parentheses', 'no_features']
-    
+        return ['original_album', 'original_single', 'studio_version', 'no_live_keywords', 'no_compilation_keywords']
     def update_success_rate(self, artist, strategy, success):
-        """Update success rate for an artist's search strategy."""
         artist_lower = artist.lower()
-        
         if artist_lower not in self.artist_success_patterns:
             self.artist_success_patterns[artist_lower] = {
-                'original': 0.5,
+                'original_album': 0.5,
+                'original_single': 0.5,
+                'studio_version': 0.5,
+                'no_live_keywords': 0.5,
+                'no_compilation_keywords': 0.5,
+                'exact_match': 0.5,
                 'no_parentheses': 0.5,
                 'no_features': 0.5
             }
-        
-        # Update with exponential moving average
         current_rate = self.artist_success_patterns[artist_lower].get(strategy, 0.5)
         new_rate = current_rate * 0.9 + (1.0 if success else 0.0) * 0.1
         self.artist_success_patterns[artist_lower][strategy] = new_rate
-        
-        # Save patterns periodically
-        if time.time() % 300 < 1:  # Save every 5 minutes
+        if time.time() % 300 < 1:
             self.save_patterns()
 
 # --- NEW: Real-Time WebSocket Listener ---
