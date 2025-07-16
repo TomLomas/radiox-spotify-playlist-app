@@ -1,5 +1,5 @@
 # Radio X to Spotify Playlist Adder
-# v6.0 - Final with Stable Web UI and All Features
+# v2.2.1 - Duplication checks, stat fixes, and frontend sync
 # Includes: Startup diagnostic tests, class-based structure, time-windowed operation, 
 #           playlist size limit, daily HTML email summaries with detailed stats,
 #           persistent caches, web UI with manual triggers, robust networking, and enhanced title cleaning.
@@ -534,8 +534,8 @@ class ActivityTracker:
     
     def get_stats(self):
         """Get current stats."""
-        uptime = time.time() - self.stats['start_time']
-        success_rate = (self.stats['successful_adds'] / max(self.stats['total_songs_processed'], 1)) * 100
+        uptime = max(time.time() - self.stats['start_time'], 1)  # Ensure uptime is at least 1 second
+        success_rate = min((self.stats['successful_adds'] / max(self.stats['total_songs_processed'], 1)) * 100, 100.0)  # Clamp to 100%
         # Songs/hour: only count successful adds
         songs_per_hour = (self.stats['successful_adds'] / max(uptime / 3600, 1))
         return {
@@ -1274,7 +1274,7 @@ class RadioXBot:
         try:
             all_tracks, offset, limit = [], 0, 100
             while True:
-                results = self.spotify_api_call_with_retry(self.sp.playlist_items, playlist_id, limit=limit, offset=offset, fields="items(track(id,uri,name)),next")
+                results = self.spotify_api_call_with_retry(self.sp.playlist_items, playlist_id, limit=limit, offset=offset, fields="items(track(id,uri,name,album,artists,release_date,images)),next")
                 if not results or not results['items']: break
                 for item in results['items']:
                     if item.get('track') and item['track'].get('id'): all_tracks.append(item['track'])
@@ -1285,13 +1285,30 @@ class RadioXBot:
             track_counts = Counter(t['id'] for t in all_tracks if t['id'])
             for track_id, count in track_counts.items():
                 if count > 1:
-                    track_uri = next((t['uri'] for t in all_tracks if t['id'] == track_id), None)
-                    track_name = next((t['name'] for t in all_tracks if t['id'] == track_id), "Unknown")
+                    track = next((t for t in all_tracks if t['id'] == track_id), None)
+                    track_uri = track['uri'] if track else None
+                    track_name = track['name'] if track else "Unknown"
+                    album_name = track['album']['name'] if track and 'album' in track and track['album'] else 'N/A'
+                    release_date = track['album']['release_date'] if track and 'album' in track and track['album'] else 'N/A'
+                    album_art_url = track['album']['images'][1]['url'] if track and 'album' in track and track['album'] and 'images' in track['album'] and len(track['album']['images']) > 1 else None
+                    artists = ", ".join([a.get('name', '') for a in track['artists']]) if track and 'artists' in track else ''
                     if track_uri:
                         self.log_event(f"DUPLICATE_CLEANUP: Track '{track_name}' found {count} times. Re-processing.")
                         self.spotify_api_call_with_retry(self.sp.playlist_remove_all_occurrences_of_items, playlist_id, [track_uri])
                         time.sleep(0.5); self.spotify_api_call_with_retry(self.sp.playlist_add_items, playlist_id, [track_uri])
                         self.RECENTLY_ADDED_SPOTIFY_IDS.append(track_id)
+                        # Record duplication re-add event
+                        song_details = {
+                            "timestamp": datetime.datetime.now(pytz.timezone(TIMEZONE)).isoformat(),
+                            "added_at": int(time.time()),
+                            "radio_title": track_name,
+                            "radio_artist": artists,
+                            "spotify_id": track_id,
+                            "release_date": release_date,
+                            "album_art_url": album_art_url,
+                            "album_name": album_name
+                        }
+                        self.activity_tracker.increment_songs_readded_via_duplication(song_details)
                         time.sleep(1)
         except Exception as e: self.log_event(f"ERROR during duplicate cleanup: {e}")
 

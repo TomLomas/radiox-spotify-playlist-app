@@ -120,8 +120,9 @@ export const SongHistory: React.FC<SongHistoryProps> = ({ dailyAdded, dailyFaile
         </div>
       </div>
 
+      {/* Duplication Checks */}
       <div>
-        <h3 className="text-lg font-semibold mb-3 text-purple-400">Re-added via Duplication Checks</h3>
+        <h3 className="text-lg font-semibold mb-3 text-purple-400">Duplication Checks</h3>
         <div className="bg-gray-800 rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-700">
