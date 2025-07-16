@@ -477,12 +477,16 @@ class ActivityTracker:
     def __init__(self, max_activities=50):
         self.activities = deque(maxlen=max_activities)
         self.stats = {
-            'total_songs_processed': 0,
+            'total_songs_processed': 0,  # Only real add attempts (success/fail)
             'successful_adds': 0,
             'failed_searches': 0,
+            'songs_skipped': 0,         # New: count of skipped songs
+            'duplication_checks': 0,    # New: count of duplication checks
+            'songs_readded_via_duplication': 0, # New: count of songs re-added via duplication check
             'api_calls': 0,
             'start_time': time.time()
         }
+        self.duplication_readded_history = deque(maxlen=100)  # New: history of re-added songs
     
     def add_activity(self, activity_type, message, success=None, details=None):
         """Add an activity to the tracker."""
@@ -493,20 +497,24 @@ class ActivityTracker:
             'success': success,
             'details': details
         }
-        
         self.activities.appendleft(activity)
-        
+
         # Update stats
-        self.stats['total_songs_processed'] += 1
+        # Only increment total_songs_processed for real add attempts (success/fail)
+        if activity_type in ('song_added', 'add_failed', 'search_failed'):
+            self.stats['total_songs_processed'] += 1
+        # Increment skipped counter for skip events
+        if activity_type in ('skipped_duplicate', 'skipped_main_cycle', 'skipped_already_processed'):
+            self.stats['songs_skipped'] += 1
         if success is True:
             self.stats['successful_adds'] += 1
         elif success is False:
             self.stats['failed_searches'] += 1
-        
+
         # Debug logging
         logging.info(f"ACTIVITY ADDED: {activity_type} - {message}")
         logging.info(f"ACTIVITY COUNT: {len(self.activities)} activities in tracker")
-        
+
         # Publish to frontend via SSE
         try:
             with app.app_context():
@@ -528,14 +536,23 @@ class ActivityTracker:
         """Get current stats."""
         uptime = time.time() - self.stats['start_time']
         success_rate = (self.stats['successful_adds'] / max(self.stats['total_songs_processed'], 1)) * 100
-        
+        # Songs/hour: only count successful adds
+        songs_per_hour = (self.stats['successful_adds'] / max(uptime / 3600, 1))
         return {
             **self.stats,
             'uptime_seconds': uptime,
             'uptime_formatted': f"{int(uptime // 3600)}h {int((uptime % 3600) // 60)}m",
             'success_rate': f"{success_rate:.1f}%",
-            'songs_per_hour': (self.stats['total_songs_processed'] / max(uptime / 3600, 1))
+            'songs_per_hour': songs_per_hour
         }
+    def increment_duplication_check(self):
+        self.stats['duplication_checks'] += 1
+    def increment_songs_readded_via_duplication(self, song_details=None):
+        self.stats['songs_readded_via_duplication'] += 1
+        if song_details:
+            self.duplication_readded_history.appendleft(song_details)
+    def get_duplication_readded_history(self, limit=20):
+        return list(self.duplication_readded_history)[:limit]
 
 # --- Flask App Setup ---
 app = Flask(__name__)
@@ -2077,9 +2094,9 @@ class RadioXBot:
                 
                 # Skip compilation albums
                 compilation_keywords = [
-                    'greatest hits', 'best of', 'collection', 'compilation', 
-                    'anthology', 'essential', 'definitive', 'complete', 'box set',
-                    'remastered', 'deluxe edition', 'expanded edition'
+                    'greatest hits', 'best of', 'collection', 'anthology', 'compilation',
+                    'hits', 'singles', 'remix', 'remastered', 'deluxe', 'extended',
+                    'soundtrack', 'ost', 'movie', 'film', 'tv', 'television'
                 ]
                 
                 if any(keyword in album_name for keyword in compilation_keywords):
@@ -2588,7 +2605,8 @@ def activity():
         
         return jsonify({
             'activities': activities,
-            'stats': stats
+            'stats': stats,
+            'duplication_readded_history': bot_instance.activity_tracker.get_duplication_readded_history()
         })
     except Exception as e:
         logging.error(f"Error in /activity endpoint: {e}")

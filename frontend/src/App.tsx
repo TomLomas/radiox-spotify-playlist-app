@@ -51,6 +51,7 @@ function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
   const [activeTab, setActiveTab] = useState('status');
   const [logs, setLogs] = useState<string[]>([]);
+  const [duplicationReadded, setDuplicationReadded] = useState<any[]>([]); // New state for duplication readded
 
   // Fetch status from backend
   const fetchStatus = async () => {
@@ -73,9 +74,21 @@ function App() {
     }
   };
 
+  // Fetch activity for song history (including duplication readded)
+  const fetchActivity = async () => {
+    try {
+      const response = await fetch('/activity');
+      const data = await response.json();
+      setDuplicationReadded(data.duplication_readded_history || []);
+    } catch (error) {
+      console.error('Error fetching activity:', error);
+    }
+  };
+
   // Initialize app state and start listening for SSE
   useEffect(() => {
     fetchStatus(); // Initial fetch
+    fetchActivity(); // Fetch duplication readded history
 
     const eventSource = new EventSource('/stream');
     console.log('EventSource created for /stream.');
@@ -118,6 +131,7 @@ function App() {
       if (data.stats_update) {
         console.log('Stats update received, refreshing status...');
         fetchStatus();
+        fetchActivity(); // Also refresh duplication readded history
       }
     });
 
@@ -234,7 +248,11 @@ function App() {
             </div>
             <div className="mt-8">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Today's History</h2>
-              <SongHistory dailyAdded={appState.daily_added} dailyFailed={appState.daily_failed} />
+              <SongHistory 
+                dailyAdded={appState.daily_added} 
+                dailyFailed={appState.daily_failed} 
+                duplicationReadded={duplicationReadded}
+              />
             </div>
           </div>
         )}
